@@ -189,6 +189,45 @@ textarea{resize:vertical;min-height:56px;font-family:var(--font-b)}
 .act .meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
 .act .foot{display:flex;align-items:center;gap:8px;margin-top:2px;padding-top:8px;border-top:1px solid var(--line-2)}
 
+/* blocos de informação */
+.blocos{display:flex;flex-direction:column;gap:12px}
+.bloco{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface-2)}
+.bloco-top{display:flex;gap:7px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.bloco-top input[type=text]{flex:1;min-width:170px;font-weight:600}
+.bloco-top select{width:auto;min-width:150px}
+.bloco-n{width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:5px;
+  background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:600}
+.bloco textarea{background:var(--surface);font-size:13.5px;line-height:1.5}
+
+.fich{display:flex;flex-direction:column;gap:8px}
+.fich-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:7px;background:var(--surface-2)}
+.fich-n{width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:5px;
+  background:var(--surface-3);color:var(--ink-2);font-size:11px}
+.card>header .grupo-btn{display:flex;gap:8px;flex-wrap:wrap}
+label.switch{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+label.switch span{font-family:var(--font-d);font-weight:600}
+
+/* editor de tabela */
+.tabela-ed{background:var(--surface);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+table.grelha{font-size:13px}
+table.grelha th{padding:5px 6px;background:var(--surface-3);text-transform:none;letter-spacing:0;
+  font-size:12px;position:static}
+table.grelha td{padding:3px 6px;border-bottom:1px solid var(--line-2)}
+table.grelha input{border:1px solid transparent;background:transparent;padding:4px 6px;border-radius:5px;
+  width:auto;min-width:70px;max-width:340px;font-size:13px}
+table.grelha th input{font-family:var(--font-d);font-weight:600;color:var(--ink-2)}
+table.grelha input:hover{border-color:var(--line)}
+table.grelha input:focus{border-color:var(--accent);background:var(--surface);outline:none}
+table.grelha .gnum{width:26px;text-align:center;padding:3px 2px;font-size:11px}
+table.grelha tbody tr:hover td{background:transparent}
+.gcol{display:flex;align-items:center;gap:2px}
+.gx{border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:15px;line-height:1;
+  padding:2px 5px;border-radius:4px}
+.gx:hover{background:var(--bad-soft);color:var(--bad)}
+.tabela-btns{display:flex;gap:7px;padding:8px 9px;border-top:1px solid var(--line-2);
+  background:var(--surface-2);flex-wrap:wrap}
+
 /* modal */
 .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(8,20,30,.55)}
@@ -454,6 +493,66 @@ const GRUPOS_PROVA = {
   'Livres (fundo)':    ['400 Liv','800 Liv','1500 Liv'],
   'Estilos':           ['100 Est','200 Est','400 Est']
 };
+
+
+/* ==========================================================================
+   BLOCOS DE INFORMAÇÃO DA CONVOCATÓRIA
+   Pontos que a DTN acrescenta a cada convocatória (alojamento, concentração,
+   plano de viagem, notas). Os marcadores {dataIni} / {dataFim} / {local} são
+   substituídos pelos dados da atividade ao inserir.
+   ========================================================================== */
+const BLOCOS_MODELO = [
+  { id:'alojamento', titulo:'Alojamento', tipo:'texto',
+    conteudo:'' },
+
+  { id:'partida', titulo:'Concentração – Partida', tipo:'tabela',
+    conteudo:'Grupo | Data | Hora | Local de concentração\n(1) | {dataIni} | 00:00 | Aeroporto Francisco Sá Carneiro\n(2) | {dataIni} | 00:00 | Aeroporto Internacional de Lisboa Humberto Delgado' },
+
+  { id:'regresso', titulo:'Concentração – Regresso', tipo:'tabela',
+    conteudo:'Grupo | Data | Hora | Local de concentração\n(1) | {dataFim} | 00:00 | Aeroporto Francisco Sá Carneiro\n(2) | {dataFim} | 00:00 | Aeroporto Internacional de Lisboa Humberto Delgado' },
+
+  { id:'importante', titulo:'Importante', tipo:'lista',
+    conteudo:'As viagens para o local de concentração, na partida e na chegada, são da responsabilidade dos participantes nesta atividade.' },
+
+  { id:'viagem', titulo:'Plano de Viagem', tipo:'tabela',
+    conteudo:'Grupo | Data | Voo | Origem | Destino | Partida | Chegada\n(1) | {dataIni} | FR 000 | Porto | Cidade | 00:00 | 00:00\n(2) | {dataIni} | FR 000 | Lisboa | Cidade | 00:00 | 00:00\n(1) (2) | {dataFim} | TP 0000 | Cidade | Lisboa | 00:00 | 00:00\n(1) | {dataFim} | TP 0000 | Lisboa | Porto | 00:00 | 00:00' },
+
+  { id:'bagagem', titulo:'Bagagem', tipo:'texto',
+    conteudo:'São permitidos, por pessoa, uma bagagem de porão de 20 Kg e uma mochila. Qualquer excesso de peso que obrigue ao pagamento de taxas-extra, será da exclusiva responsabilidade dos próprios.' },
+
+  { id:'nota1', titulo:'Nota 1 — Documentos', tipo:'texto',
+    conteudo:'Todos os intervenientes deverão fazer-se acompanhar do Cartão de Cidadão/Passaporte (dentro da data de validade do evento) e do Cartão Europeu de Seguro de Doença.' },
+
+  { id:'nota2', titulo:'Nota 2 — Equipamento', tipo:'texto',
+    conteudo:'Os nadadores convocados deverão ser portadores de todo o equipamento necessário para a competição. Os nadadores deverão levar o equipamento recebido em anteriores convocatórias.' },
+
+  { id:'nota3', titulo:'Nota 3 — Regime de Alto Rendimento', tipo:'texto',
+    conteudo:'Os pedidos de dispensa ao abrigo do Decreto-Lei n.º 272/09, de 01 de outubro (Regime do Alto Rendimento), por implicarem requisição ao Instituto Português do Desporto e Juventude, terão que ser solicitados previamente à realização desta competição. Neste sentido, os interessados deverão enviar, através dos respetivos clubes, informação para a FPN (mafalda.nobre@fpnatacao.pt), indicando o nome do nadador, o NIF, o CC/BI, bem como o ano, turma e número de aluno e o nome, morada e os contactos da Escola que o nadador frequenta.' },
+
+  { id:'nota4', titulo:'Nota 4 — Autorização de saída de menores', tipo:'texto',
+    conteudo:'Todos os nadadores menores de idade deverão ser portadores de autorização dos encarregados de educação para se deslocarem ao estrangeiro nas datas e locais indicados e deverão ser portadores do Cartão de Cidadão (dentro da data de validade do evento). O formulário para preenchimento de autorização de saída, bem como mais informações, pode ser obtido na página eletrónica: https://www.gov.pt/servicos/dar-autorizacao-de-saida-de-menor-do-territorio-nacional' },
+
+  { id:'concentracao', titulo:'Concentração', tipo:'tabela',
+    conteudo:'Momento | Data | Hora | Local\nChegada | {dataIni} | 00:00 | {local}\nPartida | {dataFim} | 00:00 | {local}' },
+
+  { id:'tabela', titulo:'Nova tabela', tipo:'tabela',
+    conteudo:'Coluna 1 | Coluna 2 | Coluna 3\n |  | ' },
+
+  { id:'transporte', titulo:'Transporte', tipo:'texto',
+    conteudo:'As deslocações de e para o local do estágio são da responsabilidade dos participantes.' },
+
+  { id:'livre', titulo:'Novo ponto', tipo:'texto', conteudo:'' }
+];
+
+/* Conjuntos que se inserem de uma só vez */
+const CONJUNTOS_BLOCOS = [
+  { id:'internacional', nome:'Deslocação internacional (completo)',
+    blocos:['alojamento','partida','regresso','importante','viagem','bagagem','nota1','nota2','nota3','nota4'] },
+  { id:'estagio', nome:'Estágio em Portugal',
+    blocos:['alojamento','concentracao','transporte','nota2','nota3'] },
+  { id:'notas', nome:'Apenas as notas 1 a 4',
+    blocos:['nota1','nota2','nota3','nota4'] }
+];
 
 /* ==========================================================================
    SELEÇÕES
@@ -1102,6 +1201,18 @@ function fmtTime(sec){
   const cc = String(c).padStart(2,'0');
   return m > 0 ? `${m}:${String(s).padStart(2,'0')},${cc}` : `${s},${cc}`;
 }
+function fmtDelta(sec){
+  if (sec == null || !isFinite(sec)) return '—';
+  const s = Math.abs(sec), sinal = sec >= 0 ? '+' : '−';
+  if (s >= 60) return sinal + fmtTime(s);
+  return sinal + s.toFixed(2).replace('.', ',') + ' s';
+}
+function dataLonga(iso){
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) return '';
+  return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
 function fmtDate(d){
   if (!d) return '—';
   const dt = (d instanceof Date) ? d : new Date(d);
@@ -1369,6 +1480,35 @@ function buildDb(sheets, fileName){
            cursos: [...new Set(lim.map(r => r.curso))] };
 }
 
+/* ---------- juntar um novo ficheiro de rankings ao existente ---------- */
+function mergeDb(atual, novo){
+  const chave = r => `${r.nome}|${+r.nasc}|${r.curso}|${r.ev}|${r.t}|${r.data ? +r.data : 0}|${r.lap ? 1 : 0}`;
+  const vistos = new Set(atual.resultados.map(chave));
+  const juntos = atual.resultados.slice();
+  let novos = 0;
+  for (const r of novo.resultados){ const k = chave(r); if (vistos.has(k)) continue; vistos.add(k); juntos.push(r); novos++; }
+
+  const bases = { ...atual.bases };
+  for (const [k, v] of Object.entries(novo.bases)) bases[k] = v;   // o ficheiro mais recente manda
+
+  const nad = new Map();
+  for (const r of juntos){
+    const key = `${r.nome}|${r.nasc.getFullYear()}-${r.nasc.getMonth()+1}-${r.nasc.getDate()}`;
+    let n = nad.get(key);
+    if (!n){ n = { key, nome:r.nome, nasc:r.nasc, g:r.g, nation:r.nation, clube:r.clube,
+                   clubeCod:r.clubeCod, regiao:r.regiao, res:[] }; nad.set(key, n); }
+    if (r.data && (!n.ultima || r.data > n.ultima)){ n.ultima = r.data; n.clube = r.clube; n.regiao = r.regiao; n.clubeCod = r.clubeCod; }
+    n.res.push(r);
+  }
+  const ficheiros = (atual.ficheiros || [{ nome:atual.ficheiro, em:atual.importadoEm, n:atual.resultados.length }])
+    .concat([{ nome:novo.ficheiro, em:novo.importadoEm, n:novos }]);
+  return { resultados:juntos, nadadores:nad, bases,
+    periodo: novo.periodo || atual.periodo, ficheiro: novo.ficheiro,
+    importadoEm: novo.importadoEm, avisos: novo.avisos, ficheiros,
+    novosResultados: novos,
+    cursos: [...new Set(juntos.map(r => r.curso))] };
+}
+
 /* ---------- índices ---------- */
 function idxTime(indices, curso, nivel, g, ev){
   if (curso === 'PL'){
@@ -1556,6 +1696,17 @@ function avaliar(ativ, db, cfg){
     return null;
   };
 
+  /* melhor aproximação ao índice, para quem não o cumpre */
+  for (const c of cands){
+    const comIdx = c.provas.filter(p => p.idx != null && p.delta != null);
+    c.perto = comIdx.sort((a,b) => b.delta - a.delta)[0] || null;
+    if (c.perto) { c.falta = c.perto.t - c.perto.idx; c.faltaPct = c.falta / c.perto.idx * 100; }
+  }
+  const naoCumprem = cands.filter(c => !c.melhor && c.perto)
+    .sort((a,b) => b.perto.delta - a.perto.delta).slice(0, 60)
+    .map(c => ({ ...c, via:'—', melhor:c.perto, delta:c.perto.delta,
+      motivo:`Não cumpre o índice — falta ${fmtDelta(c.falta)} (${c.faltaPct.toFixed(1)}%) em ${c.perto.ev}` }));
+
   let elegiveis = [];
   for (const c of cands){
     if (regra.semIndice) continue;   // sem índice: a lista é construída só pelos critérios adicionais
@@ -1646,6 +1797,8 @@ function avaliar(ativ, db, cfg){
   selecionados.sort((a,b) => a.g.localeCompare(b.g) || (b.delta ?? -1e9) - (a.delta ?? -1e9));
   out.apurados = selecionados;
   out.excluidos.sort((a,b) => (b.delta ?? -1e9) - (a.delta ?? -1e9));
+  const jaExcl = new Set(out.excluidos.map(x => x.key).concat(selecionados.map(x => x.key)));
+  out.excluidos.push(...naoCumprem.filter(x => !jaExcl.has(x.key)));
   return out;
 }
 </script>
@@ -2145,7 +2298,9 @@ const cfgPadrao = () => ({
     completo:{ nome:'Ranking Nacional do Nadador Completo', provas:['100 Liv','100 Cos','100 Bru','100 Mar','200 Est'], metodo:'soma', nProvas:5 }
   },
   provasRegulamento:{},
+  incluirNaoConvocados:false,
   convocatorias:{},
+  email:{ para:'', cc:'', assinatura:'Com os melhores cumprimentos,\nDireção Técnica Nacional\nFederação Portuguesa de Natação' },
   notas:{}
 });
 const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, _cache:{} };
@@ -2155,7 +2310,7 @@ async function salvarDb(){ await store.set('db', S.db ? serializarDb(S.db) : nul
 
 function serializarDb(db){
   return { resultados: db.resultados.map(r => ({ ...r, nasc:+r.nasc, data:r.data ? +r.data : null })),
-           bases: db.bases, periodo: db.periodo, ficheiro: db.ficheiro,
+           bases: db.bases, periodo: db.periodo, ficheiro: db.ficheiro, ficheiros: db.ficheiros,
            importadoEm: db.importadoEm, avisos: db.avisos, cursos: db.cursos };
 }
 function desserializarDb(s){
@@ -2233,21 +2388,57 @@ function irPara(p, ativo){
 }
 
 /* ---------- importação ---------- */
-async function importarFicheiro(file){
+async function importarFicheiro(file, modo){
   toast('A ler ' + file.name + '…');
+  let db;
   try{
     const buf = await file.arrayBuffer();
     const sheets = await parseXlsx(buf);
-    const db = buildDb(sheets, file.name);
+    db = buildDb(sheets, file.name);
     if (!db.resultados.length) throw new Error('Não foram encontrados resultados reconhecíveis. O ficheiro deve ter as colunas COURSE, GENDER, DISTANCE, STROKE, FULLNAME, BIRTHDATE, SWIMTIME.');
-    S.db = db; S._cache = {};
-    await salvarDb();
-    toast(`${db.nadadores.size} nadadores e ${db.resultados.length.toLocaleString('pt-PT')} resultados importados.`);
-    irPara('painel');
-  } catch(e){ console.error(e); toast('Erro na importação: ' + e.message, true); }
+  } catch(e){ console.error(e); return toast('Erro na importação: ' + e.message, true); }
+
+  if (!S.db || modo === 'substituir') return aplicarDb(db, 'substituir');
+  if (modo === 'juntar') return aplicarDb(db, 'juntar');
+
+  abrirModal('Novo ficheiro de rankings', el('div', {},
+    el('p', {}, `Já existem dados carregados de ${esc(S.db.ficheiro)} (${S.db.resultados.length.toLocaleString('pt-PT')} resultados).`),
+    el('p', { class:'small muted' }, `O novo ficheiro ${esc(file.name)} traz ${db.resultados.length.toLocaleString('pt-PT')} resultados de ${db.nadadores.size} nadadores.`),
+    el('div', { class:'note', style:'margin-top:12px' },
+      el('b', {}, 'Atualizar '), 'mantém tudo o que já estava e acrescenta os resultados novos — útil para juntar a piscina curta à piscina longa ou para carregar um ranking mais recente. ',
+      el('b', {}, 'Substituir '), 'apaga os resultados anteriores. Em qualquer dos casos, as convocatórias, justificações e índices editados mantêm-se.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn', onclick:() => aplicarDb(db, 'substituir') }, 'Substituir dados'),
+      el('button', { class:'btn primary', onclick:() => aplicarDb(db, 'juntar') }, 'Atualizar (juntar)') ]);
 }
-$('#fileInput').addEventListener('change', e => { if (e.target.files[0]) importarFicheiro(e.target.files[0]); e.target.value = ''; });
-const escolherFicheiro = () => $('#fileInput').click();
+
+async function aplicarDb(db, modo){
+  if (modo === 'juntar' && S.db){
+    const antes = S.db.resultados.length;
+    S.db = mergeDb(S.db, db);
+    toast(`${S.db.novosResultados.toLocaleString('pt-PT')} resultados novos juntos aos ${antes.toLocaleString('pt-PT')} existentes — ${S.db.nadadores.size} nadadores no total.`);
+  } else {
+    db.ficheiros = [{ nome:db.ficheiro, em:db.importadoEm, n:db.resultados.length }];
+    S.db = db;
+    toast(`${db.nadadores.size} nadadores e ${db.resultados.length.toLocaleString('pt-PT')} resultados importados.`);
+  }
+  S._cache = {};
+  await salvarDb();
+  fecharModal(); pintarNav();
+  const geradas = Object.keys(S.cfg.convocatorias).length;
+  if (geradas){
+    for (const id of Object.keys(S.cfg.convocatorias)) gerarConvocatoria(id, true);
+    await salvar();
+  }
+  irPara('painel');
+}
+let modoImportacao = 'perguntar';
+$('#fileInput').addEventListener('change', e => {
+  const f = e.target.files[0]; const modo = modoImportacao;
+  e.target.value = ''; modoImportacao = 'perguntar';
+  if (f) importarFicheiro(f, modo);
+});
+const escolherFicheiro = (modo) => { modoImportacao = (typeof modo === 'string') ? modo : 'perguntar'; $('#fileInput').click(); };
 
 /* ---------- avaliação com cache ---------- */
 function resultado(ativId){
@@ -2293,6 +2484,13 @@ function perfil(n, ativ){
 /* ---------- convocatórias ---------- */
 function conv(ativId){ return S.cfg.convocatorias[ativId]; }
 
+/* incluir a lista de candidatos não convocados nos documentos e no e-mail? */
+function incluirNaoConv(ativId){
+  const c = conv(ativId);
+  if (c && c.incluirNaoConvocados != null) return !!c.incluirNaoConvocados;
+  return !!S.cfg.incluirNaoConvocados;
+}
+
 function gerarConvocatoria(ativId, silencioso){
   const ativ = ATIVIDADES.find(a => a.id === ativId);
   const r = resultado(ativId);
@@ -2307,7 +2505,8 @@ function gerarConvocatoria(ativId, silencioso){
       key:a.key, nome:a.nome, estado: (m && m.estado === 'removido') ? 'removido' : 'auto',
       justificacao: m ? m.justificacao || '' : '',
       provas: m && m.provas ? m.provas
-        : ((a.comIndice && a.comIndice.length ? a.comIndice : (a.provas || [])).slice(0, 3).map(p => p.ev)),
+        : (ativ.tipo === 'Estágio' ? []
+          : (a.comIndice && a.comIndice.length ? a.comIndice : (a.provas || [])).slice(0, 3).map(p => p.ev)),
       via: a.via, adicional: a.adicional || '', detalhe: a.detalhe || ''
     });
   }
@@ -2318,6 +2517,8 @@ function gerarConvocatoria(ativId, silencioso){
   S.cfg.convocatorias[ativId] = {
     ativId, geradaEm:new Date().toISOString(), membros,
     treinadores: antiga ? antiga.treinadores || [] : [],
+    blocos: antiga ? antiga.blocos || [] : [],
+    email: antiga ? antiga.email : undefined,
     nota: antiga ? antiga.nota || '' : '',
     estado: antiga ? antiga.estado || 'rascunho' : 'rascunho'
   };
@@ -2361,7 +2562,7 @@ function semDados(v, msg){
       el('p', {}, msg || 'As convocatórias são calculadas a partir de um ficheiro Excel de rankings no formato da FPN (colunas COURSE, GENDER, DISTANCE, STROKE, FULLNAME, BIRTHDATE, SWIMTIME, PTS_FINA, MEETDATE…).'),
       el('div', { class:'drop', id:'drop', style:'margin-top:18px' },
         el('p', { style:'margin:0 0 12px' }, 'Arraste o ficheiro .xlsx para aqui'),
-        el('button', { class:'btn primary', onclick:escolherFicheiro }, 'Escolher ficheiro'))))));
+        el('button', { class:'btn primary', onclick:() => escolherFicheiro() }, 'Escolher ficheiro'))))));
   ligarDrop();
 }
 function ligarDrop(){
@@ -2369,6 +2570,40 @@ function ligarDrop(){
   ['dragenter','dragover'].forEach(e => d.addEventListener(e, ev => { ev.preventDefault(); d.classList.add('over'); }));
   ['dragleave','drop'].forEach(e => d.addEventListener(e, ev => { ev.preventDefault(); d.classList.remove('over'); }));
   d.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) importarFicheiro(f); });
+}
+
+
+/* ---------- ficheiros de rankings carregados ---------- */
+function cardFicheiros(){
+  const fich = (S.db && S.db.ficheiros && S.db.ficheiros.length)
+    ? S.db.ficheiros
+    : (S.db ? [{ nome:S.db.ficheiro, em:S.db.importadoEm, n:S.db.resultados.length }] : []);
+
+  const lista = el('div', { class:'fich' });
+  fich.forEach((f, i) => lista.append(el('div', { class:'fich-item' },
+    el('span', { class:'fich-n mono' }, String(i + 1)),
+    el('div', { style:'min-width:0;flex:1' },
+      el('div', { class:'nome', style:'overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, f.nome),
+      el('div', { class:'small muted' }, `${(f.n || 0).toLocaleString('pt-PT')} resultados · carregado a ${fmtDate(f.em)}`)),
+    i === 0 ? el('span', { class:'pill' }, 'base') : el('span', { class:'pill acc' }, 'acrescentado'))));
+
+  return el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, 'Ficheiros de rankings'),
+        el('div', { class:'small muted' },
+          'Os dados ficam guardados neste navegador — não é preciso voltar a carregá-los na próxima sessão.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('div', { class:'grupo-btn' },
+        el('button', { class:'btn primary', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
+        el('button', { class:'btn', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'))),
+    el('div', { class:'body' }, lista,
+      el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+        el('button', { class:'btn sm', onclick:exportarWorkspace }, 'Guardar cópia de trabalho (.json)'),
+        el('button', { class:'btn sm', onclick:importarWorkspace }, 'Restaurar cópia')),
+      el('p', { class:'small muted', style:'margin:12px 0 0' },
+        'Acrescentar junta os resultados novos aos que já existem — para somar a piscina curta à longa, ou para atualizar com um ranking mais recente. ' +
+        'Substituir apaga os resultados anteriores. Em qualquer dos casos, as convocatórias, justificações, provas, treinadores e índices editados mantêm-se, e as convocatórias já geradas são recalculadas com os dados novos.')));
 }
 
 /* ---------- gráfico de barras ---------- */
@@ -2438,16 +2673,18 @@ function estatisticas(){
 function vPainel(v){
   if (!S.db) return semDados(v);
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:escolherFicheiro }, 'Substituir ficheiro'),
     el('button', { class:'btn', onclick:gerarTodas }, 'Gerar todas as convocatórias'),
     el('span', { class:'small muted', style:'margin-left:4px' }, 'Exportar painel:'),
+    el('button', { class:'btn', onclick:exportarPainelXlsx }, 'Excel'),
     el('button', { class:'btn', onclick:exportarPainelDocx }, 'Word'),
     el('button', { class:'btn', onclick:exportarPainelPdf }, 'PDF'),
-    el('button', { class:'btn primary', onclick:exportarPainelXlsx }, 'Excel'));
+    el('button', { class:'btn primary', onclick:() => modalEmail({}) }, 'Enviar por e-mail'));
 
   const st = estatisticas();
   const nCon = st.convocados.size;
   const nAtiv = ATIVIDADES.filter(a => a.regra.modo !== 'nominal').length;
+
+  v.append(cardFicheiros());
 
   v.append(el('div', { class:'grid g4' },
     kpi(String(S.db.nadadores.size), 'Nadadores no ficheiro', S.db.periodo || ''),
@@ -2648,7 +2885,8 @@ function vConvDetalhe(v){
     ...(c ? [
       el('button', { class:'btn', onclick:() => exportarConvXlsx(ativ.id) }, 'Excel'),
       el('button', { class:'btn', onclick:() => exportarConvDocx(ativ.id) }, 'Word'),
-      el('button', { class:'btn primary', onclick:() => exportarConvPdf(ativ.id) }, 'PDF')] : []));
+      el('button', { class:'btn', onclick:() => exportarConvPdf(ativ.id) }, 'PDF'),
+      el('button', { class:'btn primary', onclick:() => modalEmail({ ativId: ativ.id }) }, 'Enviar por e-mail')] : []));
 
   /* cabeçalho da atividade */
   const sel = SELECOES.find(s => s.id === ativ.sel);
@@ -2753,9 +2991,10 @@ function vConvDetalhe(v){
           onclick:() => editarJustificacao(ativ.id, l.key) },
           l.justificacao || 'adicionar…')),
       el('td', { style:'text-align:right;white-space:nowrap' },
-        el('button', { class:'btn sm', title:'Escolher provas a inscrever',
-          onclick:() => modalProvas(ativ.id, l.key) }, `Provas ${(l.provas||[]).length}`),
-        ' ',
+        ativ.tipo === 'Estágio' ? null
+          : el('button', { class:'btn sm', title:'Escolher provas a inscrever',
+              onclick:() => modalProvas(ativ.id, l.key) }, `Provas ${(l.provas||[]).length}`),
+        ativ.tipo === 'Estágio' ? null : ' ',
         el('button', { class:'btn sm', onclick:() => alternarMembro(ativ.id, l.key) },
           l.estado === 'removido' ? 'Repor' : 'Remover')));
     tb.append(tr);
@@ -2777,6 +3016,9 @@ function vConvDetalhe(v){
   /* treinadores */
   v.append(cardTreinadores(ativ, ativos));
 
+  /* informações da convocatória */
+  v.append(cardBlocos(ativ));
+
   /* nota geral */
   const ta = el('textarea', { placeholder:'Observações da convocatória (comunicado, logística, decisões da DTN…)' });
   ta.value = c.nota || '';
@@ -2789,27 +3031,42 @@ function vConvDetalhe(v){
   const r = resultado(ativ.id);
   if (r.excluidos.length){
     const tw2 = el('div', { class:'tw' }); const t2 = el('table');
-    t2.append(el('thead', {}, el('tr', {}, ...['Nadador','Id.','Clube','Melhor prova elegível','Tempo','Δ pts','Motivo','']
-      .map(h => el('th', { class:h === 'Δ pts' || h === 'Id.' ? 'num':'' }, h)))));
+    t2.append(el('thead', {}, el('tr', {}, ...['Nadador','Id.','Clube','Melhor prova elegível','Tempo','Índice','Falta','Δ pts','Motivo','']
+      .map(h => el('th', { class:['Δ pts','Id.','Falta'].includes(h) ? 'num':'' }, h)))));
     const tb2 = el('tbody', {});
-    for (const x of r.excluidos.slice(0, 60)){
+    for (const x of r.excluidos.slice(0, 80)){
       const m = x.melhor || x.melhorGeral;
+      const falta = (m && m.idx != null) ? m.t - m.idx : null;
       tb2.append(el('tr', {},
-        el('td', {}, el('span', { class:'nome' }, x.nome)),
+        el('td', {}, el('span', { class:'nome' }, x.nome),
+          el('div', { class:'small muted' }, x.clube || '—')),
         el('td', { class:'num' }, String(x.idade ?? '—')),
-        el('td', { class:'small' }, x.clube || '—'),
+        el('td', { class:'small' }, x.regiao || '—'),
         el('td', { class:'small' }, m ? `${m.ev} (${m.curso})` : '—'),
         el('td', { class:'num' }, m ? fmtTime(m.t) : '—'),
+        el('td', { class:'num small' }, m && m.idx ? fmtTime(m.idx) : '—'),
+        el('td', { class:'num mono small', style:`color:${falta != null && falta <= 0 ? 'var(--good)':'var(--warn)'}` },
+          falta != null ? fmtDelta(falta) + (m.idx ? ` · ${(falta/m.idx*100).toFixed(1)}%` : '') : '—'),
         el('td', { class:'num mono' }, m && m.delta != null ? (m.delta > 0 ? '+':'') + m.delta : '—'),
-        el('td', { class:'small muted' }, x.motivo || '—'),
+        el('td', { class:'small muted just', title:x.motivo || '' }, String(x.motivo || '—').split(' — ')[0]),
         el('td', { style:'text-align:right' }, el('button', { class:'btn sm',
           onclick:() => adicionarMembro(ativ.id, x.key, x.nome) }, 'Convocar'))));
     }
     t2.append(tb2); tw2.append(t2);
+    const inc = el('input', { type:'checkbox', style:'width:auto;margin:0' });
+    inc.checked = incluirNaoConv(ativ.id);
+    inc.addEventListener('change', () => {
+      c.incluirNaoConvocados = inc.checked; salvar();
+      toast(inc.checked
+        ? 'Os candidatos não convocados passam a constar do PDF, do Word, do Excel e do e-mail.'
+        : 'Os candidatos não convocados deixam de constar dos documentos exportados.');
+    });
     v.append(el('div', { class:'card' },
       el('header', {}, el('h3', {}, 'Candidatos não convocados'),
         el('span', { class:'sp', style:'flex:1' }),
-        el('span', { class:'small muted' }, `${r.excluidos.length} candidatos · mostrados os ${Math.min(60, r.excluidos.length)} primeiros`)),
+        el('span', { class:'small muted' }, `${r.excluidos.length} candidatos · mostrados os ${Math.min(80, r.excluidos.length)} primeiros · a coluna Falta indica quanto lhes falta para o índice`),
+        el('label', { class:'switch', title:'Aplica-se ao PDF, Word, Excel e ao corpo do e-mail desta convocatória' },
+          inc, el('span', {}, 'Incluir nos documentos'))),
       el('div', { class:'body tight' }, tw2)));
   }
 }
@@ -3191,17 +3448,55 @@ function vDefinicoes(v){
       el('div', { class:'small muted' }, 'O Plano de Atividades remete para o Ranking Nacional de Fundo e o Ranking Nacional do Nadador Completo sem definir a sua composição. Configure aqui como devem ser calculados.'))),
     rk));
 
+  /* documentos */
+  const gInc = el('input', { type:'checkbox', style:'width:auto' });
+  gInc.checked = !!c.incluirNaoConvocados;
+  gInc.addEventListener('change', () => {
+    c.incluirNaoConvocados = gInc.checked; salvar();
+    toast('Valor por defeito atualizado. Cada convocatória pode ter uma escolha diferente.');
+  });
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Documentos exportados')),
+    el('div', { class:'body' },
+      el('label', { class:'switch' }, gInc,
+        el('span', {}, 'Incluir por defeito a lista de candidatos não convocados e a sua distância ao critério')),
+      el('p', { class:'small muted', style:'margin:8px 0 0' },
+        'Aplica-se ao PDF, ao Word, ao Excel e ao corpo do e-mail. Em cada convocatória há um interruptor próprio que se sobrepõe a este.'))));
+
+  /* e-mail */
+  const ePara = el('input', { type:'text', placeholder:'destinatarios@fpnatacao.pt' });
+  ePara.value = c.email.para || '';
+  ePara.addEventListener('change', () => { c.email.para = ePara.value.trim(); salvar(); });
+  const eCc = el('input', { type:'text' }); eCc.value = c.email.cc || '';
+  eCc.addEventListener('change', () => { c.email.cc = eCc.value.trim(); salvar(); });
+  const eAss = el('textarea', { rows:3 }); eAss.value = c.email.assinatura || '';
+  eAss.addEventListener('change', () => { c.email.assinatura = eAss.value; salvar(); });
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Envio por e-mail'),
+      el('div', { class:'small muted' }, 'Valores usados por defeito em todas as convocatórias; cada uma pode ter destinatários próprios.'))),
+    el('div', { class:'body' },
+      el('div', { class:'grid g2' },
+        el('label', { class:'f' }, el('span', {}, 'Destinatários por defeito'), ePara),
+        el('label', { class:'f' }, el('span', {}, 'Cc por defeito'), eCc)),
+      el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Assinatura'), eAss))));
+
   /* dados */
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Dados e cópias de segurança')),
     el('div', { class:'body' },
       el('p', { class:'small muted' }, S.db
-        ? `Ficheiro atual: ${S.db.ficheiro} · ${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados · importado a ${fmtDate(S.db.importadoEm)}.`
+        ? `${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados · piscina ${(S.db.cursos||[]).join(' e ')}.`
         : 'Sem ficheiro de rankings importado.'),
+      S.db && (S.db.ficheiros || []).length ? el('div', { style:'margin-top:8px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Ficheiros carregados'),
+        el('ul', { class:'crit' }, ...(S.db.ficheiros || []).map(f =>
+          el('li', {}, `${f.nome} — ${(f.n||0).toLocaleString('pt-PT')} resultados, a ${fmtDate(f.em)}`)))) : null,
       el('div', { class:'note', style:'margin-top:10px' },
         'As convocatórias, justificações, provas escolhidas e índices editados ficam guardados neste navegador. Use “Guardar cópia (JSON)” para transferir o trabalho para outro computador. Quando o navegador não aceita o formato .xlsx, a aplicação entrega automaticamente o equivalente em .csv (abre no Excel).'),
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' },
-        el('button', { class:'btn', onclick:escolherFicheiro }, 'Importar rankings (.xlsx)'),
+        el('button', { class:'btn primary', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
+        el('button', { class:'btn', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'),
         el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia (JSON)'),
         el('button', { class:'btn', onclick:importarWorkspace }, 'Restaurar cópia'),
         el('button', { class:'btn', onclick:() => {
@@ -3243,6 +3538,310 @@ function gerarTodas(){
   salvar(); S._cache = {}; pintarNav(); render();
   toast(`${n} convocatórias geradas a partir dos critérios do PAR 2027.`);
 }
+
+/* ==========================================================================
+   INFORMAÇÕES DA CONVOCATÓRIA — pontos livres (alojamento, viagem, notas…)
+   ========================================================================== */
+function substituirMarcadores(txt, ativ){
+  return String(txt || '')
+    .replace(/\{dataIni\}/g, dataLonga(ativ.dataIni) || ativ.datas)
+    .replace(/\{dataFim\}/g, dataLonga(ativ.dataFim) || ativ.datas)
+    .replace(/\{datas\}/g, ativ.datas)
+    .replace(/\{local\}/g, ativ.local)
+    .replace(/\{atividade\}/g, ativ.nome);
+}
+function novoBloco(modeloId, ativ){
+  const m = BLOCOS_MODELO.find(x => x.id === modeloId) || BLOCOS_MODELO.find(x => x.id === 'livre');
+  return { uid: 'b' + Math.random().toString(36).slice(2, 9),
+    titulo: substituirMarcadores(m.titulo, ativ), tipo: m.tipo,
+    conteudo: substituirMarcadores(m.conteudo, ativ) };
+}
+const TIPO_BLOCO = { texto:'Parágrafo', lista:'Lista de pontos', tabela:'Tabela (colunas separadas por |)' };
+
+
+/* editor de tabela de um bloco: cabeçalho e células editáveis, linhas e colunas */
+function ajustarLargura(inp){
+  inp.size = Math.max(9, Math.min(44, (inp.value || '').length + 2));
+}
+function editorTabela(b, aoMudar){
+  const parse = () => {
+    const linhas = String(b.conteudo || '').split('\n').filter(l => l.trim() !== '' || true);
+    const grelha = linhas.map(l => l.split('|').map(x => x.trim()));
+    const nCols = Math.max(1, ...grelha.map(r => r.length));
+    grelha.forEach(r => { while (r.length < nCols) r.push(''); });
+    if (!grelha.length) grelha.push(['Coluna 1']);
+    if (grelha.length === 1) grelha.push(grelha[0].map(() => ''));
+    return grelha;
+  };
+  let dados = parse();
+  const gravar = () => { b.conteudo = dados.map(r => r.join(' | ')).join('\n'); aoMudar(); };
+  const caixa = el('div', { class:'tabela-ed' });
+
+  const pintar = () => {
+    caixa.replaceChildren();
+    const tw = el('div', { class:'tw' });
+    const t = el('table', { class:'grelha' });
+    const thead = el('thead', {}), trh = el('tr', {});
+    trh.append(el('th', { class:'gnum' }, ''));
+    dados[0].forEach((c, j) => {
+      const inp = el('input', { type:'text', placeholder:'Cabeçalho' });
+      inp.value = c; ajustarLargura(inp);
+      inp.addEventListener('input', () => { dados[0][j] = inp.value; ajustarLargura(inp); gravar(); });
+      trh.append(el('th', {}, el('div', { class:'gcol' }, inp,
+        el('button', { class:'gx', title:'Eliminar coluna', onclick:() => {
+          if (dados[0].length <= 1) return;
+          dados.forEach(r => r.splice(j, 1)); gravar(); dados = parse(); pintar();
+        } }, '×'))));
+    });
+    trh.append(el('th', { class:'gnum' }, ''));
+    thead.append(trh); t.append(thead);
+
+    const tb = el('tbody', {});
+    dados.slice(1).forEach((linha, i) => {
+      const tr = el('tr', {});
+      tr.append(el('td', { class:'gnum muted mono' }, String(i + 1)));
+      linha.forEach((c, j) => {
+        const inp = el('input', { type:'text' });
+        inp.value = c; ajustarLargura(inp);
+        inp.addEventListener('input', () => { dados[i + 1][j] = inp.value; ajustarLargura(inp); gravar(); });
+        tr.append(el('td', {}, inp));
+      });
+      tr.append(el('td', { class:'gnum' },
+        el('button', { class:'gx', title:'Eliminar linha', onclick:() => {
+          dados.splice(i + 1, 1);
+          if (dados.length === 1) dados.push(dados[0].map(() => ''));
+          gravar(); dados = parse(); pintar();
+        } }, '×')));
+      tb.append(tr);
+    });
+    t.append(tb); tw.append(t);
+    caixa.append(tw, el('div', { class:'tabela-btns' },
+      el('button', { class:'btn sm', onclick:() => { dados.push(dados[0].map(() => '')); gravar(); pintar(); } }, '+ Linha'),
+      el('button', { class:'btn sm', onclick:() => {
+        dados[0].push('Coluna ' + (dados[0].length + 1));
+        dados.slice(1).forEach(r => r.push(''));
+        gravar(); pintar();
+      } }, '+ Coluna'),
+      el('span', { class:'small muted', style:'align-self:center' },
+        'A primeira linha é o cabeçalho da tabela nos documentos.')));
+  };
+  pintar();
+  return caixa;
+}
+
+function cardBlocos(ativ){
+  const c = conv(ativ.id);
+  c.blocos = c.blocos || [];
+  const corpo = el('div', { class:'blocos' });
+
+  const pintar = () => {
+    corpo.replaceChildren();
+    if (!c.blocos.length)
+      corpo.append(el('p', { class:'muted small', style:'margin:0 0 12px' },
+        'Ainda não há pontos. Acrescente alojamento, horas de concentração, plano de viagem, notas — tudo o que deve seguir na convocatória.'));
+    c.blocos.forEach((b, i) => {
+      const tit = el('input', { type:'text', placeholder:'Título do ponto (ex.: Alojamento)' });
+      tit.value = b.titulo;
+      tit.addEventListener('input', () => { b.titulo = tit.value; salvar(); });
+
+      const tipo = el('select', {}, ...Object.entries(TIPO_BLOCO).map(([k, v]) => el('option', { value:k }, v)));
+      tipo.value = b.tipo;
+      tipo.addEventListener('change', () => { b.tipo = tipo.value; salvar(); pintar(); });
+
+      let cont;
+      if (b.tipo === 'tabela'){
+        cont = editorTabela(b, () => salvar());
+      } else {
+        cont = el('textarea', { rows: b.tipo === 'texto' ? 3 : 5,
+          placeholder: b.tipo === 'lista' ? 'Um ponto por linha' : 'Texto do ponto' });
+        cont.value = b.conteudo;
+        cont.addEventListener('input', () => { b.conteudo = cont.value; salvar(); });
+      }
+
+      corpo.append(el('div', { class:'bloco' },
+        el('div', { class:'bloco-top' },
+          el('span', { class:'bloco-n mono' }, String(i + 1)),
+          tit, tipo,
+          el('button', { class:'btn sm ghost', title:'Subir', disabled:i === 0,
+            onclick:() => { const [x] = c.blocos.splice(i, 1); c.blocos.splice(i - 1, 0, x); salvar(); pintar(); } }, '↑'),
+          el('button', { class:'btn sm ghost', title:'Descer', disabled:i === c.blocos.length - 1,
+            onclick:() => { const [x] = c.blocos.splice(i, 1); c.blocos.splice(i + 1, 0, x); salvar(); pintar(); } }, '↓'),
+          el('button', { class:'btn sm ghost', title:'Duplicar',
+            onclick:() => { c.blocos.splice(i + 1, 0, { ...b, uid:'b' + Math.random().toString(36).slice(2,9) }); salvar(); pintar(); } }, 'Duplicar'),
+          el('button', { class:'btn sm ghost', title:'Eliminar',
+            onclick:() => { c.blocos.splice(i, 1); salvar(); pintar(); } }, 'Eliminar')),
+        cont));
+    });
+  };
+  pintar();
+
+  const seletor = el('select', { style:'max-width:260px' },
+    el('option', { value:'' }, 'Acrescentar ponto…'),
+    ...BLOCOS_MODELO.map(m => el('option', { value:m.id }, m.titulo.replace(/\s*\(\{[^}]+\}\)/, ''))));
+  seletor.addEventListener('change', () => {
+    if (!seletor.value) return;
+    c.blocos.push(novoBloco(seletor.value, ativ));
+    seletor.value = ''; salvar(); pintar();
+  });
+
+  const conjunto = el('select', { style:'max-width:250px' },
+    el('option', { value:'' }, 'Inserir conjunto…'),
+    ...CONJUNTOS_BLOCOS.map(x => el('option', { value:x.id }, x.nome)));
+  conjunto.addEventListener('change', () => {
+    if (!conjunto.value) return;
+    const cj = CONJUNTOS_BLOCOS.find(x => x.id === conjunto.value);
+    cj.blocos.forEach(id => c.blocos.push(novoBloco(id, ativ)));
+    conjunto.value = ''; salvar(); pintar();
+    toast(`${cj.blocos.length} pontos acrescentados. Edite as datas, horas e voos.`);
+  });
+
+  return el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, 'Informações da convocatória'),
+        el('div', { class:'small muted' }, 'Estes pontos saem no PDF, no Word e no corpo do e-mail, pela ordem em que aqui estão.')),
+      el('span', { class:'sp', style:'flex:1' }), seletor, conjunto),
+    el('div', { class:'body' }, corpo));
+}
+
+/* ==========================================================================
+   ENVIO POR E-MAIL
+   ========================================================================== */
+function textoBlocos(c, prefixo){
+  const out = [];
+  for (const b of (c.blocos || [])){
+    if (!b.titulo && !b.conteudo) continue;
+    out.push((prefixo || '') + b.titulo.toUpperCase());
+    const linhas = String(b.conteudo || '').split('\n').filter(x => x.trim());
+    if (b.tipo === 'lista') linhas.forEach(l => out.push('  • ' + l.trim()));
+    else if (b.tipo === 'tabela'){
+      const grelha = linhas.map(l => l.split('|').map(x => x.trim()));
+      const nCols = Math.max(...grelha.map(r => r.length));
+      grelha.forEach(r => { while (r.length < nCols) r.push(''); });
+      const larg = [];
+      for (let j = 0; j < nCols; j++) larg[j] = Math.max(...grelha.map(r => (r[j] || '').length));
+      grelha.forEach((r, i) => {
+        out.push('  ' + r.map((c, j) => c.padEnd(larg[j])).join('   ').trimEnd());
+        if (i === 0) out.push('  ' + larg.map(w => '─'.repeat(w)).join('───'));
+      });
+    }
+    else linhas.forEach(l => out.push(l.trim()));
+    out.push('');
+  }
+  return out.join('\n');
+}
+
+function mensagemEmail(ativId){
+  const ass = S.cfg.email.assinatura || '';
+  if (!ativId){
+    const st = estatisticas();
+    return [`Junta-se o painel de convocatórias do Plano de Atividades 2027 das Seleções Nacionais de Natação Pura.`, '',
+      `Convocatórias geradas: ${st.convs.length} de ${ATIVIDADES.length} atividades.`,
+      `Nadadores distintos convocados: ${st.convocados.size}, de ${Object.keys(st.porClube).length} clubes.`,
+      `Documento gerado a ${HOJE()}.`, '',
+      'O ficheiro PDF segue em anexo.', '', ass].join('\n');
+  }
+  const d = dadosConv(ativId);
+  const linhas = [
+    `Convocatória ${d.ativ.id} — ${d.ativ.nome}`,
+    `${d.sel.nome} · ${d.ativ.datas}${d.ativ.aDefinir ? ' (a confirmar)' : ''} · ${d.ativ.local}`, '',
+    `Nadadores convocados (${d.ativos.length}):`];
+  d.ativos.forEach((l, i) => linhas.push(`  ${i + 1}. ${l.nome}${l.clube ? ' — ' + l.clube : ''}` +
+    (d.ativ.tipo !== 'Estágio' && (l.provas || []).length ? '  [' + l.provas.join(', ') + ']' : '')));
+  if (d.c.treinadores && d.c.treinadores.length){
+    linhas.push('', 'Treinadores convidados:');
+    d.c.treinadores.forEach(t => linhas.push(`  • ${t.nome} — ${t.clube}`));
+  }
+  const bl = textoBlocos(d.c);
+  if (bl) linhas.push('', bl.trimEnd());
+  if (d.c.nota) linhas.push('', d.c.nota);
+  if (incluirNaoConv(ativId)){
+    const rr = resultado(ativId);
+    const quase = (rr.excluidos || []).slice(0, 15);
+    if (quase.length){
+      linhas.push('', 'CANDIDATOS NÃO CONVOCADOS — DISTÂNCIA AO CRITÉRIO');
+      quase.forEach(x => {
+        const m = x.melhor || x.melhorGeral;
+        const falta = (m && m.idx != null) ? m.t - m.idx : null;
+        linhas.push(`  • ${x.nome}${x.clube ? ' (' + x.clube + ')' : ''}` +
+          (m ? ` — ${m.ev} ${fmtTime(m.t)}, índice ${fmtTime(m.idx)}` : '') +
+          (falta != null ? `, falta ${fmtDelta(falta)}` : '') +
+          (m && m.delta != null ? ` (${m.delta > 0 ? '+' : ''}${m.delta} pts WA)` : ''));
+      });
+    }
+  }
+  linhas.push('', 'A convocatória completa segue em anexo, em PDF.', '', ass);
+  return linhas.join('\n');
+}
+
+function modalEmail(opts){
+  const ativId = opts.ativId;
+  const ativ = ativId ? ATIVIDADES.find(a => a.id === ativId) : null;
+  const c = ativId ? conv(ativId) : null;
+  const guardado = (c && c.email) || {};
+  const assuntoPadrao = ativ
+    ? `Convocatória ${ativ.id} — ${ativ.nome} (${ativ.datas})`
+    : 'Plano de Atividades 2027 — Painel de convocatórias';
+
+  const para = el('input', { type:'text', placeholder:'destinatarios@exemplo.pt, separados por vírgula' });
+  para.value = guardado.para || S.cfg.email.para || '';
+  const cc = el('input', { type:'text', placeholder:'em cópia (opcional)' });
+  cc.value = guardado.cc || S.cfg.email.cc || '';
+  const assunto = el('input', { type:'text' });
+  assunto.value = guardado.assunto || assuntoPadrao;
+  const msg = el('textarea', { rows:14, style:'min-height:230px;font-family:var(--font-b)' });
+  msg.value = guardado.mensagem || mensagemEmail(ativId);
+
+  const guardarCampos = () => {
+    const dados = { para:para.value.trim(), cc:cc.value.trim(), assunto:assunto.value, mensagem:msg.value };
+    if (c) c.email = dados;
+    S.cfg.email.para = dados.para; S.cfg.email.cc = dados.cc;
+    salvar();
+    return dados;
+  };
+
+  const abrirCliente = () => {
+    const d = guardarCampos();
+    const corpo = d.mensagem.length > 1600
+      ? d.mensagem.slice(0, 1600) + '\n\n[…] Texto completo copiado para a área de transferência.'
+      : d.mensagem;
+    if (d.mensagem.length > 1600 && navigator.clipboard) navigator.clipboard.writeText(d.mensagem).catch(() => {});
+    const url = 'mailto:' + encodeURIComponent(d.para) +
+      '?subject=' + encodeURIComponent(d.assunto) +
+      (d.cc ? '&cc=' + encodeURIComponent(d.cc) : '') +
+      '&body=' + encodeURIComponent(corpo);
+    window.open(url, '_blank');
+    toast('Rascunho aberto no seu cliente de e-mail. Anexe o PDF que acabou de guardar.');
+  };
+
+  const box = el('div', {},
+    el('div', { class:'note warn', style:'margin-bottom:14px' },
+      el('b', {}, 'Como funciona: '),
+      'por razões de segurança, um navegador não pode anexar ficheiros a um e-mail. A aplicação guarda o PDF no seu computador e abre o rascunho já preenchido no seu programa de e-mail — só falta arrastar o ficheiro para o anexo.'),
+    el('div', { class:'grid g2' },
+      el('label', { class:'f' }, el('span', {}, 'Para'), para),
+      el('label', { class:'f' }, el('span', {}, 'Cc'), cc)),
+    el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Assunto'), assunto),
+    el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Mensagem'), msg),
+    el('div', { style:'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap' },
+      el('button', { class:'btn sm', onclick:() => { msg.value = mensagemEmail(ativId); guardarCampos(); toast('Mensagem reposta a partir da convocatória.'); } }, 'Repor mensagem'),
+      el('button', { class:'btn sm', onclick:async () => {
+        const d = guardarCampos();
+        try{ await navigator.clipboard.writeText(d.mensagem); toast('Mensagem copiada.'); }
+        catch{ msg.select(); toast('Selecione e copie a mensagem (Ctrl+C).'); }
+      } }, 'Copiar mensagem')));
+
+  abrirModal(ativ ? 'Enviar convocatória ' + ativ.id : 'Enviar painel de convocatórias', box, [
+    el('button', { class:'btn', onclick:fecharModal }, 'Fechar'),
+    el('button', { class:'btn', onclick:async () => {
+      guardarCampos();
+      toast('A gerar o PDF…');
+      if (ativId) await exportarConvPdf(ativId); else await exportarPainelPdf();
+    } }, '1 · Guardar PDF'),
+    el('button', { class:'btn primary', onclick:abrirCliente }, '2 · Abrir e-mail')]);
+}
+
+function guardarEEnviarTudo(){ modalEmail({}); }
 </script>
 <script>
 /* ==========================================================================
@@ -3261,25 +3860,37 @@ function dadosConv(ativId){
   return { ativ, c, sel, linhas, ativos, removidos };
 }
 
-const COLS_CONV = ['#','Nadador','Data nasc.','Idade','Género','Clube','Assoc.','Prova de apuramento',
-  'Piscina','Tempo','Pts WA','Índice','Δ pts WA','Via','Estado','Provas a inscrever','Justificação'];
+const COLS_BASE = ['#','Nadador','Data nasc.','Idade','Género','Clube','Assoc.','Prova de apuramento',
+  'Piscina','Tempo','Pts WA','Índice','Δ pts WA','Via','Estado'];
+const colsConv = d => d.ativ.tipo === 'Estágio'
+  ? [...COLS_BASE, 'Justificação']
+  : [...COLS_BASE, 'Provas a inscrever', 'Justificação'];
 
 function linhasTabela(d){
+  const estagio = d.ativ.tipo === 'Estágio';
   return d.ativos.map((l, i) => {
     const m = l.melhor;
-    return [ i+1, l.nome, fmtDate(l.nasc), l.idade ?? '', l.g || '', l.clube || '', l.regiao || '',
+    const base = [ i+1, l.nome, fmtDate(l.nasc), l.idade ?? '', l.g || '', l.clube || '', l.regiao || '',
       m ? m.ev : (l.detalhe || ''), m ? m.curso : '', m ? fmtTime(m.t) : '',
       m && m.pts != null ? m.pts : '', m && m.idx ? fmtTime(m.idx) : '',
       m && m.delta != null ? (m.delta > 0 ? '+' : '') + m.delta : '',
-      l.via || '', l.estado === 'adicionado' ? 'Adicionado (DTN)' : 'Automático',
-      (l.provas || []).join(', '), l.justificacao || '' ];
+      l.via || '', l.estado === 'adicionado' ? 'Adicionado (DTN)' : 'Automático' ];
+    return estagio ? [...base, l.justificacao || ''] : [...base, (l.provas || []).join(', '), l.justificacao || ''];
   });
+}
+
+/* pontos livres da convocatória, prontos para as tabelas/blocos de saída */
+function blocosInfo(c){
+  return (c && c.blocos ? c.blocos : []).filter(b => (b.titulo || '').trim() || (b.conteudo || '').trim());
+}
+function linhasBloco(b){
+  return String(b.conteudo || '').split('\n').map(x => x.trim()).filter(Boolean);
 }
 
 /* ---------- Excel ---------- */
 function folhaConv(ativId){
   const d = dadosConv(ativId);
-  const rows = [COLS_CONV, ...linhasTabela(d)];
+  const rows = [colsConv(d), ...linhasTabela(d)];
   if (d.removidos.length){
     rows.push([], ['NADADORES REMOVIDOS DA CONVOCATÓRIA']);
     rows.push(['','Nadador','Data nasc.','Idade','Género','Clube','Assoc.','','','','','','','','Estado','','Justificação']);
@@ -3290,10 +3901,40 @@ function folhaConv(ativId){
     rows.push([], ['TREINADORES CONVIDADOS'], ['','Clube','Atletas','Treinador']);
     d.c.treinadores.forEach((t, i) => rows.push([i+1, t.clube, t.n, t.nome]));
   }
+  if (incluirNaoConv(ativId)){
+    const quase = (resultado(ativId).excluidos || []).slice(0, 40);
+    if (quase.length){
+      rows.push([], ['CANDIDATOS NÃO CONVOCADOS — DISTÂNCIA AO CRITÉRIO']);
+      rows.push(['','Nadador','Data nasc.','Idade','Género','Clube','Assoc.','Melhor prova elegível','Piscina',
+        'Tempo','Pts WA','Índice','Δ pts WA','Falta','Falta %','Situação']);
+      quase.forEach(x => {
+        const m = x.melhor || x.melhorGeral;
+        const falta = (m && m.idx != null) ? m.t - m.idx : null;
+        rows.push(['', x.nome, fmtDate(x.nasc), x.idade ?? '', x.g || '', x.clube || '', x.regiao || '',
+          m ? m.ev : '', m ? m.curso : '', m ? fmtTime(m.t) : '',
+          m && m.pts != null ? m.pts : '', m && m.idx ? fmtTime(m.idx) : '',
+          m && m.delta != null ? (m.delta > 0 ? '+' : '') + m.delta : '',
+          falta != null ? fmtDelta(falta) : '',
+          (falta != null && m.idx) ? +(falta / m.idx * 100).toFixed(2) : '',
+          x.motivo || '']);
+      });
+    }
+  }
+  const info = blocosInfo(d.c);
+  if (info.length){
+    rows.push([], ['INFORMAÇÕES DA CONVOCATÓRIA']);
+    for (const b of info){
+      rows.push([], [b.titulo]);
+      if (b.tipo === 'tabela') linhasBloco(b).forEach(l => rows.push(['', ...l.split('|').map(x => x.trim())]));
+      else linhasBloco(b).forEach(l => rows.push(['', (b.tipo === 'lista' ? '• ' : '') + l]));
+    }
+  }
   if (d.c && d.c.nota) rows.push([], ['NOTA'], ['', d.c.nota]);
   return { name: ativId, titulo: `${d.ativ.id} · ${d.ativ.nome}`,
     sub: `${d.sel.nome} — ${d.ativ.datas} — ${d.ativ.local} · ${d.ativos.length} nadadores · gerado a ${HOJE()}`,
-    rows, widths:[4,30,11,6,7,30,8,18,8,10,8,10,10,16,16,26,42] };
+    rows, widths: d.ativ.tipo === 'Estágio'
+      ? [4,30,11,6,7,30,8,18,8,10,8,10,10,16,16,42]
+      : [4,30,11,6,7,30,8,18,8,10,8,10,10,16,16,26,42] };
 }
 
 async function exportarConvXlsx(ativId){
@@ -3444,11 +4085,13 @@ function blocosConv(ativId, comCapa){
     }});
   } else b.push({ p:'Sem nadadores convocados.' });
 
-  const comProvas = d.ativos.filter(l => (l.provas||[]).length);
-  if (comProvas.length){
-    b.push({ h3:'Provas a inscrever' });
-    b.push({ table:{ head:['Nadador','Provas'], widths:[28,72],
-      rows:comProvas.map(l => [l.nome, (l.provas||[]).join(', ')]) } });
+  if (d.ativ.tipo !== 'Estágio'){
+    const comProvas = d.ativos.filter(l => (l.provas||[]).length);
+    if (comProvas.length){
+      b.push({ h3:'Provas a inscrever' });
+      b.push({ table:{ head:['Nadador','Provas'], widths:[28,72],
+        rows:comProvas.map(l => [l.nome, (l.provas||[]).join(', ')]) } });
+    }
   }
   const justificados = d.ativos.filter(l => l.justificacao);
   if (justificados.length){
@@ -3466,9 +4109,41 @@ function blocosConv(ativId, comCapa){
     b.push({ table:{ head:['#','Treinador','Clube','Atletas'], widths:[5,34,45,12],
       rows:d.c.treinadores.map((t,i) => [String(i+1), t.nome, t.clube, String(t.n)]) } });
   }
+  for (const bl of blocosInfo(d.c)){
+    b.push({ h3: bl.titulo });
+    const linhas = linhasBloco(bl);
+    if (!linhas.length) continue;
+    if (bl.tipo === 'lista') b.push({ bullets: linhas });
+    else if (bl.tipo === 'tabela'){
+      const celulas = linhas.map(l => l.split('|').map(x => x.trim()));
+      const nCols = Math.max(...celulas.map(x => x.length));
+      const norm = celulas.map(x => { const y = x.slice(); while (y.length < nCols) y.push(''); return y; });
+      const larg = [];
+      for (let j = 0; j < nCols; j++)
+        larg[j] = Math.max(6, ...norm.map(f => (f[j] || '').length));   // colunas proporcionais ao conteúdo
+      b.push({ table:{ head:norm[0], rows:norm.slice(1), widths:larg } });
+    }
+    else linhas.forEach(l => b.push({ p:l }));
+  }
   if (d.c && d.c.nota) b.push({ h3:'Nota' }, { p:d.c.nota });
   if (d.ativ.observacoes) b.push({ h3:'Observações do Plano de Atividades' }, { small:d.ativ.observacoes });
   if (d.ativ.objetivos && d.ativ.objetivos.length) b.push({ h3:'Objetivos da atividade' }, { bullets:d.ativ.objetivos });
+
+  const r = incluirNaoConv(ativId) ? resultado(ativId) : { excluidos: [] };
+  const quase = (r.excluidos || []).slice(0, 20);
+  if (quase.length){
+    b.push({ h3:'Candidatos não convocados — distância ao critério' });
+    b.push({ small:'“Falta” é o tempo que o nadador precisa de melhorar na sua melhor prova elegível para atingir o índice; um valor negativo indica que já o cumpre e que ficou de fora por outro motivo.' });
+    b.push({ table:{ head:['Nadador','Clube','Prova','Tempo','Índice','Falta','%','Pts','Situação'],
+      widths:[19,17,8,7,7,8,6,5,23],
+      rows:quase.map(x => { const m = x.melhor || x.melhorGeral;
+        const falta = (m && m.idx != null) ? m.t - m.idx : null;
+        return [x.nome, x.clube || '', m ? m.ev : '', m ? fmtTime(m.t) : '',
+          m && m.idx ? fmtTime(m.idx) : '', falta != null ? fmtDelta(falta) : '',
+          (falta != null && m.idx) ? (falta/m.idx*100).toFixed(1).replace('.', ',') + '%' : '',
+          m && m.delta != null ? (m.delta > 0 ? '+':'') + m.delta : '',
+          String(x.motivo || '').split(' — ')[0]]; }) } });
+  }
   return b;
 }
 
