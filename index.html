@@ -484,6 +484,20 @@ const BASE_FALLBACK = {
   'LCM|F|4x50|Est':105.38,'LCM|F|4x100|Est':229.25
 };
 
+/* Estafetas — provas coletivas que a seleção pode inscrever */
+const ESTAFETAS = [
+  { ev:'4x50 Liv',  nome:'4 x 50 m Livres',   piscina:['PC'] },
+  { ev:'4x100 Liv', nome:'4 x 100 m Livres',  piscina:['PL','PC'] },
+  { ev:'4x200 Liv', nome:'4 x 200 m Livres',  piscina:['PL','PC'] },
+  { ev:'4x50 Est',  nome:'4 x 50 m Estilos',  piscina:['PC'] },
+  { ev:'4x100 Est', nome:'4 x 100 m Estilos', piscina:['PL','PC'] }
+];
+const GENEROS_EST = [
+  { id:'M', label:'Masculina', curto:'M' },
+  { id:'F', label:'Feminina',  curto:'F' },
+  { id:'X', label:'Mista',     curto:'Misto' }
+];
+
 /* Grupos de provas usados nos critérios adicionais do PAR */
 const GRUPOS_PROVA = {
   'Mariposa':          ['50 Mar','100 Mar','200 Mar'],
@@ -2518,6 +2532,7 @@ function gerarConvocatoria(ativId, silencioso){
     ativId, geradaEm:new Date().toISOString(), membros,
     treinadores: antiga ? antiga.treinadores || [] : [],
     blocos: antiga ? antiga.blocos || [] : [],
+    estafetas: antiga ? antiga.estafetas || [] : [],
     email: antiga ? antiga.email : undefined,
     nota: antiga ? antiga.nota || '' : '',
     estado: antiga ? antiga.estado || 'rascunho' : 'rascunho'
@@ -3016,6 +3031,9 @@ function vConvDetalhe(v){
   /* treinadores */
   v.append(cardTreinadores(ativ, ativos));
 
+  /* estafetas */
+  if (ativ.tipo !== 'Estágio') v.append(cardEstafetas(ativ));
+
   /* informações da convocatória */
   v.append(cardBlocos(ativ));
 
@@ -3224,8 +3242,11 @@ function modalProvas(ativId, key){
     else box.append(tw);
     // provas fora da janela / manuais
     const extra = el('div', { style:'margin-top:12px' },
-      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Acrescentar outra prova'),
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Acrescentar outra prova individual'),
       el('div', { class:'chips' }, ...EV_PC.filter(e => !p.provas.some(x => x.ev === e)).map(e =>
+        chip(e, sel.has(e), () => { sel.has(e) ? sel.delete(e) : sel.add(e); pintar(); }))),
+      el('div', { class:'eyebrow', style:'margin:12px 0 6px' }, 'Estafetas'),
+      el('div', { class:'chips' }, ...nomesEstafetas(ativ).map(e =>
         chip(e, sel.has(e), () => { sel.has(e) ? sel.delete(e) : sel.add(e); pintar(); }))));
     box.append(extra);
   };
@@ -3539,6 +3560,161 @@ function gerarTodas(){
   toast(`${n} convocatórias geradas a partir dos critérios do PAR 2027.`);
 }
 
+
+/* ==========================================================================
+   ESTAFETAS
+   ========================================================================== */
+function nomesEstafetas(ativ){
+  const cursos = (ativ.regra && ativ.regra.piscina) || ['PL'];
+  const evs = ESTAFETAS.filter(e => e.piscina.some(p => cursos.includes(p)));
+  const out = [];
+  for (const e of evs){ out.push(e.ev); out.push(e.ev + ' Misto'); }
+  return out;
+}
+/* percursos de cada estafeta: os estilos vão na ordem costas, bruços, mariposa, livres */
+function pernasEstafeta(ev){
+  const m = String(ev).match(/^4x(\d+)\s+(\w+)/);
+  if (!m) return [];
+  const d = m[1];
+  return m[2] === 'Est'
+    ? [`${d} Cos`, `${d} Bru`, `${d} Mar`, `${d} Liv`]
+    : [`${d} Liv`, `${d} Liv`, `${d} Liv`, `${d} Liv`];
+}
+function melhorEm(nadKey, ev, ativ){
+  const n = S.db && S.db.nadadores.get(nadKey);
+  if (!n) return null;
+  const cursos = (ativ.regra && ativ.regra.piscina) || ['PL'];
+  let melhor = null;
+  for (const r of n.res){
+    if (r.ev !== ev || !cursos.includes(r.curso)) continue;
+    if (r.lap && !S.cfg.incluirLap) continue;
+    if (!melhor || r.t < melhor.t) melhor = r;
+  }
+  return melhor;
+}
+
+function sincronizarProvasEstafetas(ativId){
+  const c = conv(ativId);
+  const todas = new Set();
+  (c.estafetas || []).forEach(e => todas.add(rotuloEstafeta(e)));
+  for (const m of c.membros){
+    m.provas = (m.provas || []).filter(p => !/^4x/.test(p) || todas.has(p));
+    for (const e of (c.estafetas || [])){
+      const rot = rotuloEstafeta(e);
+      if ((e.nadadores || []).includes(m.key) && !m.provas.includes(rot)) m.provas.push(rot);
+      if (!(e.nadadores || []).includes(m.key)) m.provas = m.provas.filter(p => p !== rot);
+    }
+  }
+  salvar();
+}
+const rotuloEstafeta = e => e.ev + (e.genero === 'X' ? ' Misto' : '');
+
+function cardEstafetas(ativ){
+  const c = conv(ativ.id);
+  c.estafetas = c.estafetas || [];
+  const membros = linhasConvocatoria(ativ.id).filter(l => l.estado !== 'removido');
+  const corpo = el('div', { style:'display:flex;flex-direction:column;gap:14px' });
+
+  const pintar = () => {
+    corpo.replaceChildren();
+    if (!c.estafetas.length)
+      corpo.append(el('p', { class:'muted small', style:'margin:0' },
+        'Sem estafetas inscritas. Escolha a prova acima para acrescentar uma e depois indique os nadadores de cada percurso.'));
+
+    c.estafetas.forEach((e, i) => {
+      const pernas = pernasEstafeta(e.ev);
+      e.nadadores = e.nadadores || ['', '', '', ''];
+      while (e.nadadores.length < 4) e.nadadores.push('');
+      const elegiveis = membros.filter(m => e.genero === 'X' || m.g === e.genero);
+
+      const tw = el('div', { class:'tw' });
+      const t = el('table', { class:'grelha' });
+      t.append(el('thead', {}, el('tr', {},
+        el('th', { class:'gnum' }, '#'), el('th', {}, 'Percurso'),
+        el('th', {}, 'Nadador'), el('th', { class:'num' }, 'Melhor tempo'),
+        el('th', { class:'num' }, 'Pts WA'), el('th', { class:'gnum' }, ''))));
+      const tb = el('tbody', {});
+      let soma = 0, completa = true;
+
+      e.nadadores.forEach((key, j) => {
+        const evPerna = pernas[Math.min(j, 3)];
+        const usados = new Set(e.nadadores.filter((k, x) => k && x !== j));
+        const sel = el('select', { style:'min-width:200px' },
+          el('option', { value:'' }, j < 4 ? '— escolher nadador —' : '— reserva —'),
+          ...elegiveis.filter(m => !usados.has(m.key) || m.key === key)
+            .map(m => el('option', { value:m.key }, `${m.nome} (${m.g})`)));
+        sel.value = key || '';
+        sel.addEventListener('change', () => {
+          e.nadadores[j] = sel.value;
+          sincronizarProvasEstafetas(ativ.id);
+          pintar();
+        });
+        const r = key ? melhorEm(key, evPerna, ativ) : null;
+        if (j < 4){
+          if (r) soma += r.t; else completa = false;
+        }
+        tb.append(el('tr', {},
+          el('td', { class:'gnum muted mono' }, j < 4 ? String(j + 1) : 'R'),
+          el('td', { class:'small' }, j < 4 ? evPerna : 'reserva'),
+          el('td', {}, sel),
+          el('td', { class:'num' }, r ? fmtTime(r.t) : '—'),
+          el('td', { class:'num' }, r ? String(ptsDe(S.db, r)) : '—'),
+          el('td', { class:'gnum' }, j >= 4
+            ? el('button', { class:'gx', title:'Remover reserva',
+                onclick:() => { e.nadadores.splice(j, 1); sincronizarProvasEstafetas(ativ.id); pintar(); } }, '×')
+            : '')));
+      });
+      t.append(tb); tw.append(t);
+
+      const nota = el('input', { type:'text', placeholder:'Observação (ordem a confirmar, decisão em estágio…)' });
+      nota.value = e.nota || '';
+      nota.addEventListener('input', () => { e.nota = nota.value; salvar(); });
+
+      corpo.append(el('div', { class:'bloco' },
+        el('div', { class:'bloco-top' },
+          el('span', { class:'bloco-n mono' }, String(i + 1)),
+          el('strong', { style:'font-family:var(--font-d);font-size:15px' }, e.ev),
+          el('span', { class:'pill ' + (e.genero === 'X' ? 'acc' : 'good') },
+            (GENEROS_EST.find(g => g.id === e.genero) || {}).label),
+          completa
+            ? el('span', { class:'pill acc' }, 'soma dos parciais ' + fmtTime(soma))
+            : el('span', { class:'pill warn' }, 'equipa incompleta'),
+          el('span', { class:'sp', style:'flex:1' }),
+          el('button', { class:'btn sm ghost', onclick:() => {
+            e.nadadores.push(''); pintar();
+          } }, '+ Reserva'),
+          el('button', { class:'btn sm ghost', onclick:() => {
+            c.estafetas.splice(i, 1); sincronizarProvasEstafetas(ativ.id); pintar();
+          } }, 'Eliminar')),
+        tw,
+        el('div', { style:'margin-top:8px' }, nota)));
+    });
+  };
+  pintar();
+
+  const evSel = el('select', { style:'max-width:200px' },
+    ...nomesEstafetas(ativ).filter(x => !/Misto$/.test(x)).map(x =>
+      el('option', { value:x }, (ESTAFETAS.find(e => e.ev === x) || {}).nome || x)));
+  const gSel = el('select', { style:'max-width:140px' },
+    ...GENEROS_EST.map(g => el('option', { value:g.id }, g.label)));
+
+  return el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, 'Estafetas'),
+        el('div', { class:'small muted' },
+          'A composição entra nas provas a inscrever de cada nadador e sai nos documentos e no e-mail.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('div', { class:'grupo-btn' }, evSel, gSel,
+        el('button', { class:'btn primary', onclick:() => {
+          c.estafetas.push({ uid:'e' + Math.random().toString(36).slice(2, 9),
+            ev:evSel.value, genero:gSel.value, nadadores:['', '', '', ''], nota:'' });
+          salvar(); pintar();
+          toast('Estafeta acrescentada. Escolha os nadadores de cada percurso.');
+        } }, 'Acrescentar'))),
+    el('div', { class:'body' }, corpo));
+}
+
 /* ==========================================================================
    INFORMAÇÕES DA CONVOCATÓRIA — pontos livres (alojamento, viagem, notas…)
    ========================================================================== */
@@ -3752,6 +3928,23 @@ function mensagemEmail(ativId){
     linhas.push('', 'Treinadores convidados:');
     d.c.treinadores.forEach(t => linhas.push(`  • ${t.nome} — ${t.clube}`));
   }
+  const est = (d.c.estafetas || []).filter(e => (e.nadadores || []).some(Boolean));
+  if (est.length){
+    linhas.push('', 'Estafetas:');
+    est.forEach(e => {
+      const pernas = pernasEstafeta(e.ev);
+      linhas.push(`  • ${rotuloEstafeta(e)} — ${(GENEROS_EST.find(g => g.id === e.genero) || {}).label}` +
+        (e.nota ? ` (${e.nota})` : ''));
+      (e.nadadores || []).slice(0, 4).forEach((k, j) => {
+        const m = d.ativos.find(x => x.key === k);
+        linhas.push(`      ${j + 1}. ${pernas[j]} — ${m ? m.nome : '(por definir)'}`);
+      });
+      const res = (e.nadadores || []).slice(4).filter(Boolean).map(k => {
+        const m = d.ativos.find(x => x.key === k); return m ? m.nome : null;
+      }).filter(Boolean);
+      if (res.length) linhas.push(`      reservas: ${res.join(' · ')}`);
+    });
+  }
   const bl = textoBlocos(d.c);
   if (bl) linhas.push('', bl.trimEnd());
   if (d.c.nota) linhas.push('', d.c.nota);
@@ -3879,6 +4072,33 @@ function linhasTabela(d){
   });
 }
 
+/* estafetas prontas para as tabelas de saída */
+function linhasEstafetas(d){
+  return (d.c && d.c.estafetas ? d.c.estafetas : [])
+    .filter(e => (e.nadadores || []).some(Boolean))
+    .map(e => {
+      const nome = k => { const m = d.linhas.find(x => x.key === k); return m ? m.nome : ''; };
+      const clube = k => { const m = d.linhas.find(x => x.key === k); return m ? (m.clube || '') : ''; };
+      const pernas = pernasEstafeta(e.ev);
+      const titulares = (e.nadadores || []).slice(0, 4);
+      let soma = 0, completa = true;
+      const percursos = titulares.map((k, j) => {
+        const rr = k ? melhorEm(k, pernas[j], d.ativ) : null;
+        if (rr) soma += rr.t; else completa = false;
+        return { n:j + 1, ev:pernas[j], nome: k ? nome(k) : '(por definir)', clube: k ? clube(k) : '',
+          tempo: rr ? fmtTime(rr.t) : '—', pts: rr ? String(ptsDe(S.db, rr)) : '—' };
+      });
+      return {
+        prova: rotuloEstafeta(e),
+        genero: (GENEROS_EST.find(g => g.id === e.genero) || {}).label || '',
+        percursos,
+        reservas: (e.nadadores || []).slice(4).filter(Boolean).map(nome).filter(Boolean).join(' · '),
+        soma: completa ? fmtTime(soma) : '—',
+        nota: e.nota || ''
+      };
+    });
+}
+
 /* pontos livres da convocatória, prontos para as tabelas/blocos de saída */
 function blocosInfo(c){
   return (c && c.blocos ? c.blocos : []).filter(b => (b.titulo || '').trim() || (b.conteudo || '').trim());
@@ -3900,6 +4120,14 @@ function folhaConv(ativId){
   if (d.c && d.c.treinadores && d.c.treinadores.length){
     rows.push([], ['TREINADORES CONVIDADOS'], ['','Clube','Atletas','Treinador']);
     d.c.treinadores.forEach((t, i) => rows.push([i+1, t.clube, t.n, t.nome]));
+  }
+  const est = linhasEstafetas(d);
+  if (est.length){
+    rows.push([], ['ESTAFETAS']);
+    rows.push(['','Prova','Equipa','#','Percurso','Nadador','Clube','Melhor tempo','Pts WA','Soma dos parciais','Reservas','Observação']);
+    est.forEach(e => e.percursos.forEach((p, j) => rows.push(['',
+      j === 0 ? e.prova : '', j === 0 ? e.genero : '', p.n, p.ev, p.nome, p.clube, p.tempo, p.pts,
+      j === 0 ? e.soma : '', j === 0 ? e.reservas : '', j === 0 ? e.nota : ''])));
   }
   if (incluirNaoConv(ativId)){
     const quase = (resultado(ativId).excluidos || []).slice(0, 40);
@@ -4093,6 +4321,21 @@ function blocosConv(ativId, comCapa){
         rows:comProvas.map(l => [l.nome, (l.provas||[]).join(', ')]) } });
     }
   }
+  const est = linhasEstafetas(d);
+  if (est.length){
+    est.forEach(e => {
+      b.push({ h3:`Estafeta ${e.prova} — ${e.genero}` });
+      b.push({ table:{ head:['#', 'Percurso', 'Nadador', 'Clube', 'Melhor tempo', 'Pts'],
+        widths:[4,12,26,26,12,8],
+        rows:e.percursos.map(p => [String(p.n), p.ev, p.nome, p.clube, p.tempo, p.pts]) } });
+      const rodape = [`Soma dos parciais: ${e.soma}`];
+      if (e.reservas) rodape.push(`Reservas: ${e.reservas}`);
+      if (e.nota) rodape.push(e.nota);
+      b.push({ small: rodape.join(' · ') });
+    });
+    b.push({ small:'A soma dos parciais resulta dos melhores tempos individuais de cada nadador no percurso indicado e não considera as passagens.' });
+  }
+
   const justificados = d.ativos.filter(l => l.justificacao);
   if (justificados.length){
     b.push({ h3:'Justificações' });
