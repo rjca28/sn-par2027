@@ -182,6 +182,9 @@ textarea{resize:vertical;min-height:56px;font-family:var(--font-b)}
 .actgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
 .act{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:7px;box-shadow:var(--shadow)}
+.act .r1{width:100%}
+.act .edit-a{opacity:0;transition:.12s}
+.act:hover .edit-a,.act:focus-within .edit-a{opacity:1}
 .act:hover{border-color:var(--accent)}
 .act .r1{display:flex;align-items:center;gap:7px}
 .act .cod{font-family:var(--font-m);font-size:11.5px;color:var(--ink-3)}
@@ -205,6 +208,12 @@ textarea{resize:vertical;min-height:56px;font-family:var(--font-b)}
 .fich-n{width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:5px;
   background:var(--surface-3);color:var(--ink-2);font-size:11px}
 .card>header .grupo-btn{display:flex;gap:8px;flex-wrap:wrap}
+.faixa-row{display:grid;grid-template-columns:auto 78px auto 78px auto minmax(140px,1fr) auto;
+  gap:8px;align-items:center}
+.faixa-row input{width:100%}
+@media (max-width:560px){.faixa-row{grid-template-columns:auto 1fr auto 1fr;}
+  .faixa-row>:nth-child(5),.faixa-row>:nth-child(6),.faixa-row>:nth-child(7){grid-column:1/-1}}
+
 label.switch{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--ink-2)}
 label.switch span{font-family:var(--font-d);font-weight:600}
 
@@ -483,6 +492,11 @@ const BASE_FALLBACK = {
   'LCM|F|4x50|Liv':95.56,'LCM|F|4x100|Liv':207.88,'LCM|F|4x200|Liv':457.29,
   'LCM|F|4x50|Est':105.38,'LCM|F|4x100|Est':229.25
 };
+
+/* Funções de staff da FPN que acompanham as comitivas */
+const FUNCOES_STAFF = ['Responsável', 'Fisiologista', 'Biomecânico', 'Fisioterapeuta', 'Médico',
+  'Psicólogo', 'Nutricionista', 'Chefe de missão', 'Delegado', 'Outra função'];
+const STAFF_BASE = ['Responsável', 'Fisiologista', 'Biomecânico', 'Fisioterapeuta', 'Médico'];
 
 /* Estafetas — provas coletivas que a seleção pode inscrever */
 const ESTAFETAS = [
@@ -2345,12 +2359,35 @@ const cfgPadrao = () => ({
     completo:{ nome:'Ranking Nacional do Nadador Completo', provas:['100 Liv','100 Cos','100 Bru','100 Mar','200 Est'], metodo:'soma', nProvas:5 }
   },
   provasRegulamento:{},
+  ativEditadas:{},          /* id -> campos alterados face ao Plano de Atividades */
+  ativNovas:[],             /* atividades criadas pelo utilizador */
+  ativOcultas:[],           /* atividades do plano retiradas do calendário */
   incluirNaoConvocados:false,
   convocatorias:{},
+  staffPadrao: STAFF_BASE.map(f => ({ funcao:f, nome:'', contacto:'' })),
   email:{ para:'', cc:'', assinatura:'Com os melhores cumprimentos,\nDireção Técnica Nacional\nFederação Portuguesa de Natação' },
   notas:{}
 });
 const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, _cache:{} };
+
+/* Lista efetiva de atividades: as do Plano de Atividades, com as alterações
+   guardadas, sem as ocultadas, mais as criadas pelo utilizador. */
+let ATIVS = ATIVIDADES.slice();
+function reconstruirAtividades(){
+  const ocultas = new Set(S.cfg.ativOcultas || []);
+  const base = ATIVIDADES.filter(a => !ocultas.has(a.id)).map(a => {
+    const ed = (S.cfg.ativEditadas || {})[a.id];
+    return ed ? mesclarAtividade(a, ed) : a;
+  });
+  ATIVS = base.concat((S.cfg.ativNovas || []).map(a => ({ ...a, criada:true })));
+  ATIVS.sort((a, b) => (a.dataIni || '').localeCompare(b.dataIni || '') || a.id.localeCompare(b.id));
+  S._cache = {};
+}
+function mesclarAtividade(base, ed){
+  const a = { ...base, ...ed, editada:true };
+  a.regra = { ...(base.regra || {}), ...(ed.regra || {}) };
+  return a;
+}
 
 async function salvar(){ await store.set('cfg', S.cfg); }
 async function salvarDb(){ await store.set('db', S.db ? serializarDb(S.db) : null); }
@@ -2490,7 +2527,7 @@ const escolherFicheiro = (modo) => { modoImportacao = (typeof modo === 'string')
 function resultado(ativId){
   const k = ativId + '|' + S.cfg.refIdade + '|' + (S.db ? S.db.importadoEm : '') + '|' + JSON.stringify(S.cfg.provasRegulamento[ativId] || null) + '|' + S.cfg.apenasPOR + '|' + S.cfg.incluirLap;
   if (S._cache[k]) return S._cache[k];
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const r = avaliar(ativ, S.db, S.cfg);
   S._cache = { [k]: r };
   return r;
@@ -2538,7 +2575,7 @@ function incluirNaoConv(ativId){
 }
 
 function gerarConvocatoria(ativId, silencioso){
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const r = resultado(ativId);
   const antiga = conv(ativId);
   const manuais = new Map();
@@ -2565,6 +2602,7 @@ function gerarConvocatoria(ativId, silencioso){
     treinadores: antiga ? antiga.treinadores || [] : [],
     blocos: antiga ? antiga.blocos || [] : [],
     estafetas: antiga ? antiga.estafetas || [] : [],
+    staff: antiga && antiga.staff ? antiga.staff : clone(S.cfg.staffPadrao || []),
     email: antiga ? antiga.email : undefined,
     nota: antiga ? antiga.nota || '' : '',
     estado: antiga ? antiga.estado || 'rascunho' : 'rascunho'
@@ -2574,7 +2612,7 @@ function gerarConvocatoria(ativId, silencioso){
 }
 
 function linhasConvocatoria(ativId){
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId); if (!c) return [];
   const r = resultado(ativId);
   const byKey = new Map(r.apurados.map(a => [a.key, a]));
@@ -2596,7 +2634,7 @@ function render(){
   $('#pgActions').replaceChildren();
   const p = PAGINAS.find(x => x.id === S.page);
   $('#pgTitle').textContent = S.page === 'convDet'
-    ? (ATIVIDADES.find(a => a.id === S.ativo) || {}).id || 'Convocatória'
+    ? (ATIVS.find(a => a.id === S.ativo) || {}).id || 'Convocatória'
     : (p ? p.nome : 'Painel');
   ({ painel:vPainel, ativ:vAtividades, conv:vConvocatorias, convDet:vConvDetalhe,
      nad:vNadadores, idx:vIndices, cfg:vDefinicoes }[S.page] || vPainel)(v);
@@ -2688,7 +2726,7 @@ function reporAplicacao(){
     [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
       el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia primeiro'),
       el('button', { class:'btn primary', onclick:async () => {
-        S.cfg = cfgPadrao(); S.db = null; S._cache = {};
+        S.cfg = cfgPadrao(); S.db = null; S._cache = {}; reconstruirAtividades();
         await salvar(); await salvarDb();
         fecharModal(); pintarNav(); irPara('painel');
         toast('Aplicação reposta no estado inicial.');
@@ -2774,7 +2812,7 @@ function estatisticas(){
   const porSel = {}, porRegiao = {}, porClube = {}, porIdade = {};
   const vistosSel = {};
   for (const c of convs){
-    const ativ = ATIVIDADES.find(a => a.id === c.ativId); if (!ativ) continue;
+    const ativ = ATIVS.find(a => a.id === c.ativId); if (!ativ) continue;
     vistosSel[ativ.sel] = vistosSel[ativ.sel] || new Set();
     for (const l of linhasConvocatoria(c.ativId)){
       if (l.estado === 'removido') continue;
@@ -2807,14 +2845,14 @@ function vPainel(v){
 
   const st = estatisticas();
   const nCon = st.convocados.size;
-  const nAtiv = ATIVIDADES.filter(a => a.regra.modo !== 'nominal').length;
+  const nAtiv = ATIVS.filter(a => a.regra.modo !== 'nominal').length;
 
   v.append(cardFicheiros());
 
   v.append(el('div', { class:'grid g4' },
     kpi(String(S.db.nadadores.size), 'Nadadores no ficheiro', S.db.periodo || ''),
     kpi(S.db.resultados.length.toLocaleString('pt-PT'), 'Resultados válidos', (S.db.cursos||[]).join(' + ') || '—'),
-    kpi(`${st.convs.length}/${ATIVIDADES.length}`, 'Convocatórias geradas', `${nAtiv} atividades com critérios automáticos`),
+    kpi(`${st.convs.length}/${ATIVS.length}`, 'Convocatórias geradas', `${nAtiv} atividades com critérios automáticos`),
     kpi(String(nCon), 'Nadadores convocados', `${Object.keys(st.porClube).length} clubes representados`)));
 
   const box = el('div', { class:'grid g2', style:'margin-top:18px' });
@@ -2849,7 +2887,7 @@ function vPainel(v){
   t.append(el('thead', {}, el('tr', {},
     ...['Cód.','Atividade','Seleção','Datas','Local','Tipo','Convocados','Estado'].map(h => el('th', {}, h)))));
   const tb = el('tbody', {});
-  for (const a of [...ATIVIDADES].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||''))){
+  for (const a of [...ATIVS].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||''))){
     const c = conv(a.id);
     const n = c ? c.membros.filter(m => m.estado !== 'removido').length : null;
     tb.append(el('tr', { style:'cursor:pointer', onclick:() => irPara('convDet', a.id) },
@@ -2899,12 +2937,14 @@ function contarPorNivel(){
 }
 
 /* ==========================================================================
-   ATIVIDADES
+   ATIVS
    ========================================================================== */
 let filtroSel = 'todas', filtroTipo = 'todos';
 function vAtividades(v){
   if (!S.db) return semDados(v);
-  $('#pgActions').append(el('button', { class:'btn primary', onclick:gerarTodas }, 'Gerar todas as convocatórias'));
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:() => editarAtividade(null) }, '+ Nova atividade'),
+    el('button', { class:'btn primary', onclick:gerarTodas }, 'Gerar todas as convocatórias'));
 
   const filtros = el('div', { class:'card' }, el('div', { class:'body', style:'display:flex;gap:18px;flex-wrap:wrap;align-items:center' },
     el('div', {}, el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Seleção'),
@@ -2920,17 +2960,21 @@ function vAtividades(v){
 
   for (const s of SELECOES){
     if (filtroSel !== 'todas' && filtroSel !== s.id) continue;
-    const lista = ATIVIDADES.filter(a => a.sel === s.id && (filtroTipo === 'todos' || a.tipo === filtroTipo));
+    const lista = ATIVS.filter(a => a.sel === s.id && (filtroTipo === 'todos' || a.tipo === filtroTipo));
     if (!lista.length) continue;
     const g = el('div', { class:'actgrid' });
     for (const a of lista){
       const c = conv(a.id);
       const n = c ? c.membros.filter(m => m.estado !== 'removido').length : null;
-      g.append(el('button', { class:'act', onclick:() => irPara('convDet', a.id) },
+      g.append(el('div', { class:'act', onclick:(ev) => { if (!ev.target.closest('.edit-a')) irPara('convDet', a.id); } },
         el('div', { class:'r1' },
           el('span', { class:'cod' }, a.id),
           el('span', { class:'pill ' + (a.tipo === 'Estágio' ? 'est':'comp') }, a.tipo),
-          a.aDefinir ? el('span', { class:'pill' }, 'a definir') : null),
+          a.aDefinir ? el('span', { class:'pill' }, 'a definir') : null,
+          a.criada ? el('span', { class:'pill acc' }, 'criada') : (a.editada ? el('span', { class:'pill acc' }, 'editada') : null),
+          el('span', { class:'sp', style:'flex:1' }),
+          el('button', { class:'btn sm ghost edit-a', title:'Editar atividade',
+            onclick:(ev) => { ev.stopPropagation(); editarAtividade(a.id); } }, 'Editar')),
         el('h4', {}, a.nome),
         el('div', { class:'meta' }, el('span', {}, a.datas), el('span', {}, a.local)),
         el('div', { class:'foot' },
@@ -2971,14 +3015,14 @@ function vConvocatorias(v){
     return;
   }
   for (const s of SELECOES){
-    const lista = convs.filter(c => (ATIVIDADES.find(a => a.id === c.ativId)||{}).sel === s.id);
+    const lista = convs.filter(c => (ATIVS.find(a => a.id === c.ativId)||{}).sel === s.id);
     if (!lista.length) continue;
     const tw = el('div', { class:'tw' }); const t = el('table');
     t.append(el('thead', {}, el('tr', {}, ...['Cód.','Atividade','Datas','Nadadores','Adicionados','Removidos','Estado','']
       .map(h => el('th', {}, h)))));
     const tb = el('tbody', {});
     for (const c of lista){
-      const a = ATIVIDADES.find(x => x.id === c.ativId);
+      const a = ATIVS.find(x => x.id === c.ativId);
       const ativos = c.membros.filter(m => m.estado !== 'removido');
       tb.append(el('tr', {},
         el('td', { class:'mono small' }, a.id),
@@ -2999,7 +3043,7 @@ function vConvocatorias(v){
    DETALHE DA CONVOCATÓRIA
    ========================================================================== */
 function vConvDetalhe(v){
-  const ativ = ATIVIDADES.find(a => a.id === S.ativo);
+  const ativ = ATIVS.find(a => a.id === S.ativo);
   if (!ativ){ irPara('ativ'); return; }
   if (!S.db && ativ.regra.modo !== 'nominal') return semDados(v);
   const c = conv(ativ.id);
@@ -3021,7 +3065,9 @@ function vConvDetalhe(v){
         el('div', { class:'eyebrow' }, `${ativ.id} · ${sel.nome}`),
         el('h3', { style:'font-size:20px;margin-top:2px' }, ativ.nome)),
       el('span', { class:'sp', style:'flex:1' }),
-      el('span', { class:'pill ' + (ativ.tipo === 'Estágio' ? 'est':'comp') }, ativ.tipo)),
+      ativ.criada ? el('span', { class:'pill acc' }, 'criada') : (ativ.editada ? el('span', { class:'pill acc' }, 'editada') : null),
+      el('span', { class:'pill ' + (ativ.tipo === 'Estágio' ? 'est':'comp') }, ativ.tipo),
+      el('button', { class:'btn sm', onclick:() => editarAtividade(ativ.id) }, 'Editar atividade')),
     el('div', { class:'body' },
       el('div', { class:'grid g4', style:'margin-bottom:14px' },
         mini('Datas', ativ.datas + (ativ.aDefinir ? ' (a confirmar)' : '')),
@@ -3140,6 +3186,9 @@ function vConvDetalhe(v){
 
   /* treinadores */
   v.append(cardTreinadores(ativ, ativos));
+
+  /* staff da FPN */
+  v.append(cardStaff(ativ));
 
   /* estafetas */
   if (ativ.tipo !== 'Estágio') v.append(cardEstafetas(ativ));
@@ -3275,7 +3324,7 @@ function adicionarMembro(ativId, key, nome, justificacao){
   const ex = c.membros.find(x => x.key === key);
   if (ex){ ex.estado = 'adicionado'; if (justificacao) ex.justificacao = justificacao; }
   else {
-    const ativ = ATIVIDADES.find(a => a.id === ativId);
+    const ativ = ATIVS.find(a => a.id === ativId);
     const n = S.db.nadadores.get(key);
     const p = n ? perfil(n, ativ) : null;
     c.membros.push({ key, nome: nome || (n ? n.nome : key), estado:'adicionado',
@@ -3286,7 +3335,7 @@ function adicionarMembro(ativId, key, nome, justificacao){
   toast('Nadador adicionado à convocatória.');
 }
 function modalAdicionar(ativId){
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId);
   const jaLa = new Set(c.membros.filter(m => m.estado !== 'removido').map(m => m.key));
   const inp = el('input', { type:'text', placeholder:'Procurar por nome ou clube…' });
@@ -3321,7 +3370,7 @@ function modalAdicionar(ativId){
   setTimeout(() => inp.focus(), 40);
 }
 function modalProvas(ativId, key){
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId); const m = c.membros.find(x => x.key === key);
   const n = S.db && S.db.nadadores.get(key);
   const p = n ? perfil(n, ativ) : { provas:[] };
@@ -3594,6 +3643,55 @@ function vDefinicoes(v){
       el('p', { class:'small muted', style:'margin:8px 0 0' },
         'Aplica-se ao PDF, ao Word, ao Excel e ao corpo do e-mail. Em cada convocatória há um interruptor próprio que se sobrepõe a este.'))));
 
+  /* atividades */
+  const ocult = (c.ativOcultas || []);
+  const editadas = Object.keys(c.ativEditadas || {});
+  const criadas = (c.ativNovas || []);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Atividades do plano'),
+      el('div', { class:'small muted' }, `${ATIVS.length} atividades no calendário · ${editadas.length} editadas · ${criadas.length} criadas · ${ocult.length} retiradas`)),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('button', { class:'btn', onclick:() => editarAtividade(null) }, '+ Nova atividade')),
+    el('div', { class:'body' },
+      ocult.length ? el('div', {},
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Atividades retiradas do calendário'),
+        el('div', { class:'chips' }, ...ocult.map(id => {
+          const orig = ATIVIDADES.find(x => x.id === id) || { nome:id };
+          return el('button', { class:'chip', title:'Repor no calendário', onclick:() => {
+            c.ativOcultas = c.ativOcultas.filter(x => x !== id);
+            salvar(); reconstruirAtividades(); pintarNav(); render();
+            toast(`${id} reposta no calendário.`);
+          } }, `${id} — ${orig.nome} ↩`);
+        }))) : el('p', { class:'small muted', style:'margin:0' },
+          'Nenhuma atividade retirada. Pode editar qualquer atividade a partir do separador Atividades, ou criar novas.'),
+      editadas.length ? el('div', { style:'margin-top:14px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Atividades alteradas face ao Plano de Atividades'),
+        el('div', { class:'chips' }, ...editadas.map(id =>
+          el('button', { class:'chip', title:'Repor o texto original do plano', onclick:() => {
+            delete c.ativEditadas[id]; salvar(); reconstruirAtividades();
+            if (c.convocatorias[id]) gerarConvocatoria(id, true);
+            salvar(); render(); toast(`${id} reposta como está no plano.`);
+          } }, `${id} ↩`)))) : null)));
+
+  /* staff por defeito */
+  const staffBox = el('div', {});
+  const pintarStaff = () => {
+    c.staffPadrao = c.staffPadrao || [];
+    staffBox.replaceChildren(
+      tabelaStaff(c.staffPadrao, (estrutural) => { salvar(); if (estrutural) pintarStaff(); }),
+      el('div', { style:'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap' },
+        el('button', { class:'btn sm', onclick:() => {
+          c.staffPadrao.push({ funcao:'Outra função', nome:'', contacto:'' }); salvar(); pintarStaff();
+        } }, '+ Acrescentar função')));
+  };
+  pintarStaff();
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Staff da FPN por defeito'),
+      el('div', { class:'small muted' }, 'Preenche automaticamente as convocatórias novas. Em cada uma pode alterar ou acrescentar.'))),
+    el('div', { class:'body' }, staffBox)));
+
   /* e-mail */
   const ePara = el('input', { type:'text', placeholder:'destinatarios@fpnatacao.pt' });
   ePara.value = c.email.para || '';
@@ -3662,7 +3760,7 @@ function importarWorkspace(){
       const j = JSON.parse(await f.text());
       if (j.cfg) S.cfg = { ...cfgPadrao(), ...j.cfg };
       if (j.db) S.db = desserializarDb(j.db);
-      S._cache = {}; await salvar(); await salvarDb(); pintarNav(); render();
+      S._cache = {}; reconstruirAtividades(); await salvar(); await salvarDb(); pintarNav(); render();
       toast('Cópia restaurada.');
     } catch(e){ toast('Ficheiro inválido: ' + e.message, true); }
   });
@@ -3672,11 +3770,296 @@ function importarWorkspace(){
 function gerarTodas(){
   if (!S.db){ toast('Importe primeiro o ficheiro de rankings.', true); return; }
   let n = 0;
-  for (const a of ATIVIDADES){ gerarConvocatoria(a.id, true); n++; }
+  for (const a of ATIVS){ gerarConvocatoria(a.id, true); n++; }
   salvar(); S._cache = {}; pintarNav(); render();
   toast(`${n} convocatórias geradas a partir dos critérios do PAR 2027.`);
 }
 
+
+
+
+/* ==========================================================================
+   EDITOR DE ATIVIDADES
+   ========================================================================== */
+const MODOS_REGRA = [
+  { id:'indice',  label:'Índice de integração (por escalão)' },
+  { id:'ranking', label:'Ranking nacional (Infantis)' },
+  { id:'nominal', label:'Lista nominal (Sénior Elite)' },
+  { id:'manual',  label:'Sem apuramento automático' }
+];
+
+function atividadeVazia(){
+  const n = (S.cfg.ativNovas || []).length + 1;
+  return {
+    id:'NOVA' + n, sel:'SEN', tipo:'Competição', n,
+    nome:'Nova atividade', local:'A definir', datas:'a definir',
+    dataIni:'2027-01-01', dataFim:'2027-01-02', aDefinir:true,
+    regra:{ modo:'indice', piscina:['PL'], faixas:[{ min:19, max:99, nivel:'SEN_A' }],
+      prazo:'', validadeIni:'', validadeFim:'' },
+    criterios:[], treinadores:[], objetivos:[], observacoes:''
+  };
+}
+
+function editarAtividade(ativId){
+  const base = ativId ? ATIVS.find(a => a.id === ativId) : atividadeVazia();
+  if (!base) return;
+  const a = clone(base);
+  a.regra = a.regra || {};
+  a.regra.faixas = (a.regra.faixas || []).map(f => ({ ...f }));
+  const original = ativId ? ATIVIDADES.find(x => x.id === ativId) : null;
+
+  const campo = (rot, inp, ajuda) => el('label', { class:'f' }, el('span', {}, rot), inp,
+    ajuda ? el('span', { class:'small muted' }, ajuda) : null);
+  const txt = (val, ph) => { const i = el('input', { type:'text', placeholder:ph }); i.value = val ?? ''; return i; };
+  const data = (val) => { const i = el('input', { type:'date' }); i.value = val || ''; return i; };
+  const num = (val, ph) => { const i = el('input', { type:'number', min:0, placeholder:ph }); i.value = (val ?? ''); return i; };
+  const area = (val, ph, rows) => { const t = el('textarea', { rows:rows || 4, placeholder:ph }); t.value = (val || []).join('\n'); return t; };
+
+  const fId = txt(a.id, 'ex.: C7_AS_SEN');
+  const fNome = txt(a.nome, 'Nome da atividade');
+  const fLocal = txt(a.local, 'Cidade (País)');
+  const fDatas = txt(a.datas, 'ex.: 11–18 jul');
+  const fIni = data(a.dataIni), fFim = data(a.dataFim);
+  const fSel = el('select', {}, ...SELECOES.map(s => el('option', { value:s.id }, s.nome)));
+  fSel.value = a.sel;
+  const fTipo = el('select', {}, el('option', { value:'Estágio' }, 'Estágio'), el('option', { value:'Competição' }, 'Competição'));
+  fTipo.value = a.tipo;
+  const fADef = el('input', { type:'checkbox', style:'width:auto' }); fADef.checked = !!a.aDefinir;
+
+  const fModo = el('select', {}, ...MODOS_REGRA.map(m => el('option', { value:m.id }, m.label)));
+  fModo.value = a.regra.modo || 'indice';
+  const fPL = el('input', { type:'checkbox', style:'width:auto' });
+  const fPC = el('input', { type:'checkbox', style:'width:auto' });
+  fPL.checked = (a.regra.piscina || ['PL']).includes('PL');
+  fPC.checked = (a.regra.piscina || []).includes('PC');
+  const fCota = num(a.regra.cota, 'sem limite');
+  const fMax = num(a.regra.maxPorProva, 'sem limite');
+  const fPrazo = data(a.regra.prazo), fVIni = data(a.regra.validadeIni), fVFim = data(a.regra.validadeFim);
+  const fReg = el('input', { type:'checkbox', style:'width:auto' });
+  fReg.checked = !!a.regra.apenasProvasRegulamento;
+
+  /* escalões e níveis de índice */
+  const faixasBox = el('div', { style:'display:flex;flex-direction:column;gap:8px' });
+  const pintarFaixas = () => {
+    faixasBox.replaceChildren();
+    if (!a.regra.faixas.length)
+      faixasBox.append(el('p', { class:'small muted', style:'margin:0' }, 'Sem escalões definidos — nenhum nadador será apurado por índice.'));
+    a.regra.faixas.forEach((f, i) => {
+      const min = num(f.min, 'mín'); min.style.width = '78px';
+      const max = num(f.max, 'máx'); max.style.width = '78px';
+      const niv = el('select', { style:'min-width:130px' },
+        ...Object.keys(NIVEIS).sort((x, y) => NIVEIS[x].ordem - NIVEIS[y].ordem)
+          .map(k => el('option', { value:k }, `${NIVEIS[k].label} (índice ${NIVEIS[k].num})`)));
+      niv.value = f.nivel;
+      min.addEventListener('input', () => f.min = +min.value || 0);
+      max.addEventListener('input', () => f.max = +max.value || 0);
+      niv.addEventListener('change', () => f.nivel = niv.value);
+      faixasBox.append(el('div', { class:'faixa-row' },
+        el('span', { class:'small muted' }, 'dos'), min,
+        el('span', { class:'small muted' }, 'aos'), max,
+        el('span', { class:'small muted' }, 'anos →'), niv,
+        el('button', { class:'gx', title:'Eliminar escalão',
+          onclick:() => { a.regra.faixas.splice(i, 1); pintarFaixas(); } }, '×')));
+    });
+    faixasBox.append(el('button', { class:'btn sm', style:'align-self:flex-start', onclick:() => {
+      a.regra.faixas.push({ min:15, max:18, nivel:'JUN_A' }); pintarFaixas();
+    } }, '+ Escalão'));
+  };
+  pintarFaixas();
+
+  const fCrit = area(a.criterios, 'Um critério por linha', 5);
+  const fTrein = area(a.treinadores, 'Um critério por linha', 3);
+  const fObj = area(a.objetivos, 'Um objetivo por linha', 3);
+  const fObs = el('textarea', { rows:2, placeholder:'Observações' }); fObs.value = a.observacoes || '';
+
+  const secao = (t, ...kids) => el('div', { style:'margin-top:16px' },
+    el('div', { class:'eyebrow', style:'margin-bottom:8px' }, t), ...kids);
+
+  const corpo = el('div', {},
+    el('div', { class:'grid g2' },
+      campo('Código', fId, 'Identifica a atividade nos documentos e nos ficheiros exportados.'),
+      campo('Nome', fNome)),
+    el('div', { class:'grid g3', style:'margin-top:10px' },
+      campo('Seleção', fSel), campo('Tipo', fTipo), campo('Local', fLocal)),
+    el('div', { class:'grid g3', style:'margin-top:10px' },
+      campo('Datas (texto)', fDatas, 'Como aparece nos documentos.'),
+      campo('Data de início', fIni), campo('Data de fim', fFim)),
+    el('label', { class:'switch', style:'margin-top:10px' }, fADef, el('span', {}, 'Datas ou local por confirmar')),
+
+    secao('Apuramento',
+      el('div', { class:'grid g3' },
+        campo('Modo', fModo),
+        campo('Cota de participação', fCota),
+        campo('Máximo por prova', fMax)),
+      el('div', { style:'display:flex;gap:18px;margin-top:10px;flex-wrap:wrap' },
+        el('label', { class:'switch' }, fPL, el('span', {}, 'Aceita Piscina Longa')),
+        el('label', { class:'switch' }, fPC, el('span', {}, 'Aceita Piscina Curta')),
+        el('label', { class:'switch' }, fReg, el('span', {}, 'Só provas do regulamento'))),
+      el('div', { class:'grid g3', style:'margin-top:10px' },
+        campo('Prazo dos resultados', fPrazo),
+        campo('Validade — início', fVIni),
+        campo('Validade — fim', fVFim))),
+
+    secao('Escalões e índices', faixasBox),
+    secao('Critérios de seleção — nadadores', fCrit),
+    secao('Critérios — treinadores convidados', fTrein),
+    secao('Objetivos', fObj),
+    secao('Observações', fObs));
+
+  const guardar = () => {
+    const nova = {
+      id: fId.value.trim() || a.id,
+      sel: fSel.value, tipo: fTipo.value, n: a.n || 1,
+      nome: fNome.value.trim() || 'Atividade sem nome',
+      local: fLocal.value.trim(), datas: fDatas.value.trim(),
+      dataIni: fIni.value, dataFim: fFim.value, aDefinir: fADef.checked,
+      regra: {
+        ...a.regra,
+        modo: fModo.value,
+        piscina: [fPL.checked ? 'PL' : null, fPC.checked ? 'PC' : null].filter(Boolean),
+        faixas: a.regra.faixas,
+        cota: fCota.value ? +fCota.value : undefined,
+        maxPorProva: fMax.value ? +fMax.value : undefined,
+        prazo: fPrazo.value || undefined,
+        validadeIni: fVIni.value || undefined,
+        validadeFim: fVFim.value || undefined,
+        apenasProvasRegulamento: fReg.checked || undefined
+      },
+      criterios: fCrit.value.split('\n').map(x => x.trim()).filter(Boolean),
+      treinadores: fTrein.value.split('\n').map(x => x.trim()).filter(Boolean),
+      objetivos: fObj.value.split('\n').map(x => x.trim()).filter(Boolean),
+      observacoes: fObs.value.trim()
+    };
+    if (!nova.regra.piscina.length) nova.regra.piscina = ['PL'];
+
+    const idAntigo = ativId;
+    if (idAntigo && idAntigo !== nova.id){          // mudou o código: renomear o que lhe está associado
+      for (const mapa of [S.cfg.convocatorias, S.cfg.provasRegulamento]){
+        if (mapa[idAntigo]){ mapa[nova.id] = mapa[idAntigo]; delete mapa[idAntigo]; }
+      }
+      if (S.cfg.convocatorias[nova.id]) S.cfg.convocatorias[nova.id].ativId = nova.id;
+      if ((S.cfg.ativEditadas || {})[idAntigo]) delete S.cfg.ativEditadas[idAntigo];
+    }
+    if (!ativId || base.criada){
+      S.cfg.ativNovas = (S.cfg.ativNovas || []).filter(x => x.id !== (ativId || ''));
+      S.cfg.ativNovas.push(nova);
+    } else {
+      S.cfg.ativEditadas = S.cfg.ativEditadas || {};
+      S.cfg.ativEditadas[nova.id] = nova;
+    }
+    salvar(); reconstruirAtividades();
+    if (S.cfg.convocatorias[nova.id]) gerarConvocatoria(nova.id, true);
+    salvar(); fecharModal(); pintarNav();
+    if (S.page === 'convDet') irPara('convDet', nova.id); else render();
+    toast(ativId ? `Atividade ${nova.id} atualizada.` : `Atividade ${nova.id} criada.`);
+  };
+
+  const botoes = [el('button', { class:'btn', onclick:fecharModal }, 'Cancelar')];
+  if (ativId && original && !base.criada && (S.cfg.ativEditadas || {})[ativId])
+    botoes.push(el('button', { class:'btn', onclick:() => {
+      delete S.cfg.ativEditadas[ativId]; salvar(); reconstruirAtividades();
+      if (S.cfg.convocatorias[ativId]) gerarConvocatoria(ativId, true);
+      salvar(); fecharModal(); render(); toast('Atividade reposta como está no Plano de Atividades.');
+    } }, 'Repor original'));
+  if (ativId)
+    botoes.push(el('button', { class:'btn', onclick:() => eliminarAtividade(ativId) }, 'Eliminar'));
+  botoes.push(el('button', { class:'btn primary', onclick:guardar }, ativId ? 'Guardar alterações' : 'Criar atividade'));
+
+  abrirModal(ativId ? 'Editar atividade ' + ativId : 'Nova atividade', corpo, botoes);
+}
+
+function eliminarAtividade(ativId){
+  const a = ATIVS.find(x => x.id === ativId); if (!a) return;
+  const temConv = !!S.cfg.convocatorias[ativId];
+  abrirModal('Eliminar atividade', el('div', {},
+    el('p', {}, `Vai retirar ${esc(a.id)} — ${esc(a.nome)} do calendário.`),
+    temConv ? el('div', { class:'note warn', style:'margin-top:12px' },
+      'A convocatória desta atividade, com as justificações, provas, estafetas e staff, será também apagada.') : null,
+    a.criada ? null : el('div', { class:'note', style:'margin-top:12px' },
+      'É uma atividade do Plano de Atividades 2027. Pode voltar a mostrá-la em Definições → Atividades retiradas.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:() => {
+        delete S.cfg.convocatorias[ativId];
+        delete (S.cfg.ativEditadas || {})[ativId];
+        if (a.criada) S.cfg.ativNovas = (S.cfg.ativNovas || []).filter(x => x.id !== ativId);
+        else S.cfg.ativOcultas = (S.cfg.ativOcultas || []).concat([ativId]);
+        salvar(); reconstruirAtividades(); fecharModal(); pintarNav(); irPara('ativ');
+        toast(`${ativId} retirada do calendário.`);
+      } }, 'Eliminar') ]);
+}
+
+/* ==========================================================================
+   STAFF DA FPN
+   ========================================================================== */
+function tabelaStaff(lista, aoMudar, comContacto){
+  const tw = el('div', { class:'tw' });
+  const t = el('table', { class:'grelha' });
+  t.append(el('thead', {}, el('tr', {},
+    el('th', { class:'gnum' }, ''), el('th', {}, 'Função'), el('th', {}, 'Nome'),
+    comContacto === false ? null : el('th', {}, 'Contacto'), el('th', { class:'gnum' }, ''))));
+  const tb = el('tbody', {});
+  lista.forEach((s, i) => {
+    const fSel = el('select', { style:'min-width:150px' },
+      ...FUNCOES_STAFF.map(f => el('option', { value:f }, f)),
+      ...(FUNCOES_STAFF.includes(s.funcao) ? [] : [el('option', { value:s.funcao }, s.funcao)]));
+    fSel.value = s.funcao;
+    fSel.addEventListener('change', () => { s.funcao = fSel.value; aoMudar(); });
+
+    const nome = el('input', { type:'text', placeholder:'nome (deixar vazio para não constar)', style:'min-width:230px' });
+    nome.value = s.nome || '';
+    nome.addEventListener('input', () => { s.nome = nome.value; aoMudar(); });
+
+    const cont = el('input', { type:'text', placeholder:'e-mail ou telemóvel', style:'min-width:180px' });
+    cont.value = s.contacto || '';
+    cont.addEventListener('input', () => { s.contacto = cont.value; aoMudar(); });
+
+    tb.append(el('tr', {},
+      el('td', { class:'gnum muted mono' }, s.nome ? String(i + 1) : '·'),
+      el('td', {}, fSel), el('td', {}, nome),
+      comContacto === false ? null : el('td', {}, cont),
+      el('td', { class:'gnum' }, el('button', { class:'gx', title:'Eliminar linha',
+        onclick:() => { lista.splice(i, 1); aoMudar(true); } }, '×'))));
+  });
+  t.append(tb); tw.append(t);
+  return tw;
+}
+
+function cardStaff(ativ){
+  const c = conv(ativ.id);
+  c.staff = c.staff || clone(S.cfg.staffPadrao || []);
+  const corpo = el('div', {});
+  const pintar = () => {
+    corpo.replaceChildren(
+      tabelaStaff(c.staff, (estrutural) => { salvar(); if (estrutural) pintar(); }),
+      el('div', { class:'tabela-btns', style:'border:0;background:none;padding:10px 0 0' },
+        el('button', { class:'btn sm', onclick:() => {
+          c.staff.push({ funcao:'Outra função', nome:'', contacto:'' }); salvar(); pintar();
+        } }, '+ Acrescentar função'),
+        el('button', { class:'btn sm', onclick:() => {
+          const faltam = STAFF_BASE.filter(f => !c.staff.some(s => s.funcao === f));
+          faltam.forEach(f => c.staff.push({ funcao:f, nome:'', contacto:'' }));
+          salvar(); pintar();
+          toast(faltam.length ? `${faltam.length} funções repostas.` : 'As funções base já estão todas na lista.');
+        } }, 'Repor funções base'),
+        el('button', { class:'btn sm', onclick:() => {
+          c.staff = clone(S.cfg.staffPadrao || []); salvar(); pintar();
+          toast('Staff preenchido a partir das Definições.');
+        } }, 'Usar staff por defeito'),
+        el('span', { class:'small muted', style:'align-self:center' },
+          'As funções sem nome não aparecem nos documentos nem no e-mail.')));
+  };
+  pintar();
+  const preenchidos = c.staff.filter(s => (s.nome || '').trim()).length;
+  return el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, 'Staff da FPN'),
+        el('div', { class:'small muted' }, 'Equipa de apoio que acompanha a comitiva.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + (preenchidos ? 'good' : '') },
+        preenchidos ? `${preenchidos} indicado${preenchidos > 1 ? 's' : ''}` : 'nenhum indicado')),
+    el('div', { class:'body' }, corpo));
+}
 
 /* ==========================================================================
    ESTAFETAS
@@ -4029,7 +4412,7 @@ function mensagemEmail(ativId){
   if (!ativId){
     const st = estatisticas();
     return [`Junta-se o painel de convocatórias do Plano de Atividades 2027 das Seleções Nacionais de Natação Pura.`, '',
-      `Convocatórias geradas: ${st.convs.length} de ${ATIVIDADES.length} atividades.`,
+      `Convocatórias geradas: ${st.convs.length} de ${ATIVS.length} atividades.`,
       `Nadadores distintos convocados: ${st.convocados.size}, de ${Object.keys(st.porClube).length} clubes.`,
       `Documento gerado a ${HOJE()}.`, '',
       'O ficheiro PDF segue em anexo.', '', ass].join('\n');
@@ -4044,6 +4427,11 @@ function mensagemEmail(ativId){
   if (d.c.treinadores && d.c.treinadores.length){
     linhas.push('', 'Treinadores convidados:');
     d.c.treinadores.forEach(t => linhas.push(`  • ${t.nome} — ${t.clube}`));
+  }
+  const staff = (d.c.staff || []).filter(s => (s.nome || '').trim());
+  if (staff.length){
+    linhas.push('', 'Staff da FPN:');
+    staff.forEach(s => linhas.push(`  • ${s.funcao}: ${s.nome}${s.contacto ? ' — ' + s.contacto : ''}`));
   }
   const est = (d.c.estafetas || []).filter(e => (e.nadadores || []).some(Boolean));
   if (est.length){
@@ -4086,7 +4474,7 @@ function mensagemEmail(ativId){
 
 function modalEmail(opts){
   const ativId = opts.ativId;
-  const ativ = ativId ? ATIVIDADES.find(a => a.id === ativId) : null;
+  const ativ = ativId ? ATIVS.find(a => a.id === ativId) : null;
   const c = ativId ? conv(ativId) : null;
   const guardado = (c && c.email) || {};
   const assuntoPadrao = ativ
@@ -4161,7 +4549,7 @@ const HOJE = () => new Date().toLocaleDateString('pt-PT', { day:'2-digit', month
 const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 function dadosConv(ativId){
-  const ativ = ATIVIDADES.find(a => a.id === ativId);
+  const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId);
   const sel = SELECOES.find(s => s.id === ativ.sel);
   const linhas = c ? linhasConvocatoria(ativId) : [];
@@ -4216,6 +4604,11 @@ function linhasEstafetas(d){
     });
 }
 
+/* staff da FPN: só as funções com nome preenchido */
+function staffPreenchido(c){
+  return (c && c.staff ? c.staff : []).filter(s => (s.nome || '').trim());
+}
+
 /* pontos livres da convocatória, prontos para as tabelas/blocos de saída */
 function blocosInfo(c){
   return (c && c.blocos ? c.blocos : []).filter(b => (b.titulo || '').trim() || (b.conteudo || '').trim());
@@ -4237,6 +4630,11 @@ function folhaConv(ativId){
   if (d.c && d.c.treinadores && d.c.treinadores.length){
     rows.push([], ['TREINADORES CONVIDADOS'], ['','Clube','Atletas','Treinador']);
     d.c.treinadores.forEach((t, i) => rows.push([i+1, t.clube, t.n, t.nome]));
+  }
+  const staff = staffPreenchido(d.c);
+  if (staff.length){
+    rows.push([], ['STAFF DA FPN'], ['','Função','Nome','Contacto']);
+    staff.forEach((s, i) => rows.push([i + 1, s.funcao, s.nome, s.contacto || '']));
   }
   const est = linhasEstafetas(d);
   if (est.length){
@@ -4317,7 +4715,7 @@ async function exportarTodasXlsx(){
 async function exportarPainelXlsx(){
   const st = estatisticas();
   const cal = [['Cód.','Seleção','Atividade','Tipo','Data início','Data fim','Datas','Local','Convocados','Estado']];
-  for (const a of [...ATIVIDADES].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||''))){
+  for (const a of [...ATIVS].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||''))){
     const c = conv(a.id);
     cal.push([a.id, (SELECOES.find(s => s.id === a.sel)||{}).curto, a.nome, a.tipo, a.dataIni||'', a.dataFim||'',
       a.datas, a.local, c ? c.membros.filter(m => m.estado !== 'removido').length : '',
@@ -4375,7 +4773,7 @@ function blocosPainel(){
     { h3:'Números do ciclo' },
     { bullets:[
       `${st.convocados.size} nadadores distintos convocados, de ${Object.keys(st.porClube).length} clubes.`,
-      `${st.convs.length} convocatórias geradas em ${ATIVIDADES.length} atividades do plano.`,
+      `${st.convs.length} convocatórias geradas em ${ATIVS.length} atividades do plano.`,
       `Idade de referência: ${fmtDate(S.cfg.refIdade)}.` ]},
     { h3:'Convocados por seleção' },
     { table:{ head:['Seleção','Masculinos','Femininos','Total'], widths:[52,16,16,16],
@@ -4387,7 +4785,7 @@ function blocosPainel(){
     { pagebreak:true },
     { h2:'Calendário de atividades 2027' },
     { table:{ head:['Cód.','Seleção','Atividade','Datas','Local','Convocados'], widths:[9,9,38,13,22,9],
-      rows:[...ATIVIDADES].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||'')).map(a => {
+      rows:[...ATIVS].sort((x,y) => (x.dataIni||'').localeCompare(y.dataIni||'')).map(a => {
         const c = conv(a.id);
         return [a.id, (SELECOES.find(s => s.id === a.sel)||{}).curto, a.nome, a.datas, a.local,
           c ? String(c.membros.filter(m => m.estado !== 'removido').length) : '—']; }) } }];
@@ -4438,6 +4836,18 @@ function blocosConv(ativId, comCapa){
         rows:comProvas.map(l => [l.nome, (l.provas||[]).join(', ')]) } });
     }
   }
+  const staff = staffPreenchido(d.c);
+  if (staff.length){
+    b.push({ h3:'Staff da FPN' });
+    const temContacto = staff.some(s => (s.contacto || '').trim());
+    b.push({ table:{
+      head: temContacto ? ['#','Função','Nome','Contacto'] : ['#','Função','Nome'],
+      widths: temContacto ? [5,24,42,29] : [5,30,65],
+      rows: staff.map((s, i) => temContacto
+        ? [String(i + 1), s.funcao, s.nome, s.contacto || '']
+        : [String(i + 1), s.funcao, s.nome]) } });
+  }
+
   const est = linhasEstafetas(d);
   if (est.length){
     est.forEach(e => {
@@ -4589,6 +4999,7 @@ async function entregar(nome, blob, tipo, folhas){
     const db = await store.get('db');
     if (db) S.db = desserializarDb(db);
   } catch(e){ console.warn('Sem armazenamento persistente:', e); }
+  reconstruirAtividades();
   pintarNav();
   render();
 })();
