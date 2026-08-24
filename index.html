@@ -248,6 +248,37 @@ table.grelha tbody tr:hover td{background:transparent}
 .modal .content{padding:16px 18px;overflow:auto}
 .modal footer{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
 
+/* acesso */
+#login{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;
+  padding:24px;background:var(--ground)}
+#login.on{display:flex}
+#login::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 80% at 50% -10%, var(--accent-soft), transparent 60%);opacity:.9}
+.login-box{position:relative;width:min(390px,100%);background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:28px 26px 22px;box-shadow:0 26px 70px -28px rgba(8,26,42,.55)}
+.login-box .lanes{display:flex;gap:2px;margin-bottom:16px}
+.login-box .lanes i{height:3px;flex:1;border-radius:2px;background:var(--accent);opacity:.22}
+.login-box .lanes i:nth-child(2){opacity:.42}.login-box .lanes i:nth-child(3){opacity:.66}
+.login-box .lanes i:nth-child(4){opacity:.9}
+.login-box h1{font-size:24px;font-weight:700;line-height:1.05}
+.login-sub{margin:4px 0 0;font-family:var(--font-d);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--ink-3)}
+.login-erro{margin:12px 0 0;font-size:13px;color:var(--bad);min-height:18px}
+.login-nota{margin:16px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+.sessao{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.sessao b{display:block;font-size:12.5px;color:var(--ink-2)}
+.sessao .pill{margin-top:2px}
+
+/* sessão de consulta: sem controlos de edição */
+body.somenteLeitura .ed{display:none!important}
+body.somenteLeitura .gx{display:none!important}
+body.somenteLeitura .ed-inline{pointer-events:none;color:var(--ink-3)}
+body.somenteLeitura #view .chip{pointer-events:none;opacity:.8}
+body.somenteLeitura #view input:disabled,
+body.somenteLeitura #view select:disabled,
+body.somenteLeitura #view textarea:disabled{opacity:1;color:var(--ink-2);background:var(--surface-2);
+  border-color:var(--line-2);cursor:default}
+
 /* toast */
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:200;
   background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:8px;font-size:13.5px;
@@ -314,6 +345,7 @@ ul.crit b{color:var(--ink)}
     <footer id="mFoot"></footer>
   </div>
 </div>
+<div class="modal" id="login" role="dialog" aria-modal="true" aria-label="Acesso"></div>
 <div id="toast"></div>
 <input type="file" id="fileInput" accept=".xlsx" hidden>
 <script>
@@ -2368,7 +2400,7 @@ const cfgPadrao = () => ({
   email:{ para:'', cc:'', assinatura:'Com os melhores cumprimentos,\nDireção Técnica Nacional\nFederação Portuguesa de Natação' },
   notas:{}
 });
-const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, _cache:{} };
+const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, sessao:null, _cache:{} };
 
 /* Lista efetiva de atividades: as do Plano de Atividades, com as alterações
    guardadas, sem as ocultadas, mais as criadas pelo utilizador. */
@@ -2408,6 +2440,91 @@ function desserializarDb(s){
     res.forEach(r => { if (!r.fid) r.fid = fid; });
   }
   return { ...s, resultados:res, ficheiros, nadadores: indexarNadadores(res) };
+}
+
+
+/* ==========================================================================
+   ACESSO
+   Duas contas: FPN (edição) e guest (consulta). As palavras-passe não estão
+   escritas em claro no ficheiro, mas isto é um controlo de acesso à interface
+   e não uma cifra: quem tiver o ficheiro pode contorná-lo. Serve para separar
+   quem edita de quem consulta, não para proteger dados confidenciais.
+   ========================================================================== */
+function hashAcesso(s){
+  let x = 5381;
+  for (const c of String(s)) x = ((x * 33) ^ c.codePointAt(0)) >>> 0;
+  return x.toString(36);
+}
+const CONTAS = {
+  'jsqwmc':  { user:'FPN',   papel:'edicao',  nome:'Direção Técnica Nacional' },
+  '1xd1c5t': { user:'guest', papel:'leitura', nome:'Consulta' }
+};
+const podeEditar = () => S.sessao && S.sessao.papel === 'edicao';
+function semPermissao(){
+  toast('Sessão de consulta: não é possível alterar dados. Entre como FPN para editar.', true);
+  return false;
+}
+
+function guardarSessao(s, lembrar){
+  S.sessao = s;
+  try{
+    sessionStorage.setItem('par:sessao', JSON.stringify(s));
+    if (lembrar) localStorage.setItem('par:sessao', JSON.stringify(s));
+    else localStorage.removeItem('par:sessao');
+  } catch {}
+}
+function lerSessao(){
+  try{
+    const s = sessionStorage.getItem('par:sessao') || localStorage.getItem('par:sessao');
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+function terminarSessao(){
+  S.sessao = null;
+  try{ sessionStorage.removeItem('par:sessao'); localStorage.removeItem('par:sessao'); } catch {}
+  ecraLogin();
+}
+
+function ecraLogin(){
+  const alvo = $('#login');
+  const user = el('input', { type:'text', autocomplete:'username', placeholder:'FPN ou guest' });
+  const pass = el('input', { type:'password', autocomplete:'current-password', placeholder:'palavra-passe' });
+  const lembrar = el('input', { type:'checkbox', style:'width:auto' });
+  const erro = el('p', { class:'login-erro' }, '');
+
+  const entrar = () => {
+    const conta = CONTAS[hashAcesso(`${user.value.trim()}|${pass.value}`)];
+    if (!conta){
+      erro.textContent = 'Utilizador ou palavra-passe incorretos.';
+      pass.value = ''; pass.focus();
+      return;
+    }
+    guardarSessao({ user:conta.user, papel:conta.papel, nome:conta.nome }, lembrar.checked);
+    alvo.classList.remove('on');
+    document.body.classList.toggle('somenteLeitura', !podeEditar());
+    pintarNav(); render();
+    toast(conta.papel === 'edicao'
+      ? 'Sessão iniciada com permissões de edição.'
+      : 'Sessão de consulta: pode ver e exportar, mas não alterar.');
+  };
+  [user, pass].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); }));
+
+  alvo.replaceChildren(el('div', { class:'login-box' },
+    el('div', { class:'lanes' }, el('i'), el('i'), el('i'), el('i')),
+    el('h1', {}, 'Convocatórias PAR'),
+    el('p', { class:'login-sub' }, 'Federação Portuguesa de Natação · Natação Pura · 2027'),
+    el('label', { class:'f', style:'margin-top:18px' }, el('span', {}, 'Utilizador'), user),
+    el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Palavra-passe'), pass),
+    el('label', { class:'switch', style:'margin-top:12px' }, lembrar,
+      el('span', {}, 'Manter sessão iniciada neste computador')),
+    erro,
+    el('button', { class:'btn primary', style:'width:100%;justify-content:center;margin-top:14px',
+      onclick:entrar }, 'Entrar'),
+    el('p', { class:'login-nota' },
+      'A conta de consulta permite ver e exportar convocatórias, sem alterar dados. ' +
+      'Este acesso separa perfis de utilização; não protege o conteúdo de quem tenha o ficheiro.')));
+  alvo.classList.add('on');
+  setTimeout(() => user.focus(), 60);
 }
 
 /* ---------- utilitários de interface ---------- */
@@ -2458,6 +2575,14 @@ function pintarNav(){
   }
   const f = $('#railFoot');
   f.replaceChildren();
+  if (S.sessao){
+    f.append(el('div', { class:'sessao' },
+      el('div', {},
+        el('b', {}, S.sessao.user),
+        el('span', { class:'pill ' + (podeEditar() ? 'good' : '') },
+          podeEditar() ? 'edição' : 'consulta')),
+      el('button', { class:'btn sm ghost', onclick:terminarSessao }, 'Terminar sessão')));
+  }
   if (S.db){
     f.append(el('b', {}, S.db.ficheiro || 'Ficheiro importado'),
       el('div', {}, `${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados`),
@@ -2472,6 +2597,7 @@ function irPara(p, ativo){
 
 /* ---------- importação ---------- */
 async function importarFicheiro(file, modo){
+  if (!podeEditar()) return semPermissao();
   toast('A ler ' + file.name + '…');
   let db;
   try{
@@ -2521,7 +2647,7 @@ $('#fileInput').addEventListener('change', e => {
   e.target.value = ''; modoImportacao = 'perguntar';
   if (f) importarFicheiro(f, modo);
 });
-const escolherFicheiro = (modo) => { modoImportacao = (typeof modo === 'string') ? modo : 'perguntar'; $('#fileInput').click(); };
+const escolherFicheiro = (modo) => { if (!podeEditar()) return semPermissao(); modoImportacao = (typeof modo === 'string') ? modo : 'perguntar'; $('#fileInput').click(); };
 
 /* ---------- avaliação com cache ---------- */
 function resultado(ativId){
@@ -2575,6 +2701,7 @@ function incluirNaoConv(ativId){
 }
 
 function gerarConvocatoria(ativId, silencioso){
+  if (!podeEditar()) return semPermissao();
   const ativ = ATIVS.find(a => a.id === ativId);
   const r = resultado(ativId);
   const antiga = conv(ativId);
@@ -2638,6 +2765,19 @@ function render(){
     : (p ? p.nome : 'Painel');
   ({ painel:vPainel, ativ:vAtividades, conv:vConvocatorias, convDet:vConvDetalhe,
      nad:vNadadores, idx:vIndices, cfg:vDefinicoes }[S.page] || vPainel)(v);
+  if (!podeEditar()) bloquearEdicao();
+}
+
+/* Em sessão de consulta, nenhum campo do ecrã aceita alterações.
+   Os campos de pesquisa e filtros ficam de fora (classe ro-ok). */
+function bloquearEdicao(){
+  for (const alvo of [$('#view'), $('#mBody')]){
+    if (!alvo) continue;
+    alvo.querySelectorAll('input, select, textarea').forEach(c => {
+      if (c.classList.contains('ro-ok')) return;
+      c.disabled = true;
+    });
+  }
 }
 
 function semDados(v, msg){
@@ -2648,8 +2788,8 @@ function semDados(v, msg){
       el('div', { class:'drop', id:'drop', style:'margin-top:18px' },
         el('p', { style:'margin:0 0 12px' }, 'Arraste o ficheiro .xlsx para aqui'),
         el('div', { style:'display:flex;gap:8px;justify-content:center;flex-wrap:wrap' },
-          el('button', { class:'btn primary', onclick:() => escolherFicheiro() }, 'Escolher ficheiro'),
-          el('button', { class:'btn', onclick:importarWorkspace }, 'Restaurar cópia de trabalho'))),
+          el('button', { class:'btn primary ed', onclick:() => escolherFicheiro() }, 'Escolher ficheiro'),
+          el('button', { class:'btn ed', onclick:importarWorkspace }, 'Restaurar cópia de trabalho'))),
       Object.keys(S.cfg.convocatorias).length
         ? el('div', { class:'note', style:'margin-top:18px;text-align:left' },
             el('b', {}, `${Object.keys(S.cfg.convocatorias).length} convocatórias continuam guardadas`),
@@ -2681,6 +2821,7 @@ async function aplicarRemocao(novoDb, msg){
 }
 
 function removerFicheiro(fid){
+  if (!podeEditar()) return semPermissao();
   const f = (S.db.ficheiros || []).find(x => x.fid === fid);
   if (!f) return;
   const resultante = removerFicheiroDb(S.db, fid);
@@ -2703,6 +2844,7 @@ function removerFicheiro(fid){
 }
 
 function removerTodosFicheiros(){
+  if (!podeEditar()) return semPermissao();
   const n = (S.db && S.db.ficheiros || []).length;
   abrirModal('Remover todos os rankings', el('div', {},
     el('p', {}, `Vai apagar ${n} ficheiro(s) e ${S.db.resultados.length.toLocaleString('pt-PT')} resultados.`),
@@ -2714,6 +2856,7 @@ function removerTodosFicheiros(){
 }
 
 function reporAplicacao(){
+  if (!podeEditar()) return semPermissao();
   abrirModal('Repor a aplicação', el('div', {},
     el('p', {}, 'Vai apagar tudo e voltar ao estado inicial:'),
     el('ul', { class:'crit' },
@@ -2746,7 +2889,7 @@ function cardFicheiros(){
       el('div', { class:'nome', style:'overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, f.nome),
       el('div', { class:'small muted' }, `${(f.n || 0).toLocaleString('pt-PT')} resultados · carregado a ${fmtDate(f.em)}`)),
     i === 0 ? el('span', { class:'pill' }, 'base') : el('span', { class:'pill acc' }, 'acrescentado'),
-    el('button', { class:'btn sm ghost', title:'Retirar este ficheiro dos dados',
+    el('button', { class:'btn sm ghost ed', title:'Retirar este ficheiro dos dados',
       onclick:() => removerFicheiro(f.fid) }, 'Remover'))));
 
   return el('div', { class:'card' },
@@ -2757,13 +2900,13 @@ function cardFicheiros(){
           'Os dados ficam guardados neste navegador — não é preciso voltar a carregá-los na próxima sessão.')),
       el('span', { class:'sp', style:'flex:1' }),
       el('div', { class:'grupo-btn' },
-        el('button', { class:'btn primary', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
-        el('button', { class:'btn', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'))),
+        el('button', { class:'btn primary ed', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
+        el('button', { class:'btn ed', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'))),
     el('div', { class:'body' }, lista,
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
         el('button', { class:'btn sm', onclick:exportarWorkspace }, 'Guardar cópia de trabalho (.json)'),
-        el('button', { class:'btn sm', onclick:importarWorkspace }, 'Restaurar cópia'),
-        fich.length ? el('button', { class:'btn sm', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null),
+        el('button', { class:'btn sm ed', onclick:importarWorkspace }, 'Restaurar cópia'),
+        fich.length ? el('button', { class:'btn sm ed', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null),
       el('p', { class:'small muted', style:'margin:12px 0 0' },
         'Acrescentar junta os resultados novos aos que já existem — para somar a piscina curta à longa, ou para atualizar com um ranking mais recente. ' +
         'Substituir apaga os resultados anteriores. Em qualquer dos casos, as convocatórias, justificações, provas, treinadores e índices editados mantêm-se, e as convocatórias já geradas são recalculadas com os dados novos.')));
@@ -2836,7 +2979,7 @@ function estatisticas(){
 function vPainel(v){
   if (!S.db) return semDados(v);
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:gerarTodas }, 'Gerar todas as convocatórias'),
+    el('button', { class:'btn ed', onclick:gerarTodas }, 'Gerar todas as convocatórias'),
     el('span', { class:'small muted', style:'margin-left:4px' }, 'Exportar painel:'),
     el('button', { class:'btn', onclick:exportarPainelXlsx }, 'Excel'),
     el('button', { class:'btn', onclick:exportarPainelDocx }, 'Word'),
@@ -2943,8 +3086,8 @@ let filtroSel = 'todas', filtroTipo = 'todos';
 function vAtividades(v){
   if (!S.db) return semDados(v);
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:() => editarAtividade(null) }, '+ Nova atividade'),
-    el('button', { class:'btn primary', onclick:gerarTodas }, 'Gerar todas as convocatórias'));
+    el('button', { class:'btn ed', onclick:() => editarAtividade(null) }, '+ Nova atividade'),
+    el('button', { class:'btn primary ed', onclick:gerarTodas }, 'Gerar todas as convocatórias'));
 
   const filtros = el('div', { class:'card' }, el('div', { class:'body', style:'display:flex;gap:18px;flex-wrap:wrap;align-items:center' },
     el('div', {}, el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Seleção'),
@@ -2973,7 +3116,7 @@ function vAtividades(v){
           a.aDefinir ? el('span', { class:'pill' }, 'a definir') : null,
           a.criada ? el('span', { class:'pill acc' }, 'criada') : (a.editada ? el('span', { class:'pill acc' }, 'editada') : null),
           el('span', { class:'sp', style:'flex:1' }),
-          el('button', { class:'btn sm ghost edit-a', title:'Editar atividade',
+          el('button', { class:'btn sm ghost edit-a ed', title:'Editar atividade',
             onclick:(ev) => { ev.stopPropagation(); editarAtividade(a.id); } }, 'Editar')),
         el('h4', {}, a.nome),
         el('div', { class:'meta' }, el('span', {}, a.datas), el('span', {}, a.local)),
@@ -3000,7 +3143,7 @@ function vConvocatorias(v){
   if (!S.db) return semDados(v);
   const convs = Object.values(S.cfg.convocatorias);
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:gerarTodas }, 'Gerar todas'),
+    el('button', { class:'btn ed', onclick:gerarTodas }, 'Gerar todas'),
     el('button', { class:'btn', onclick:() => exportarTodasWord() }, 'Word (todas)'),
     el('button', { class:'btn', onclick:() => exportarTodasPdf() }, 'PDF (todas)'),
     el('button', { class:'btn primary', onclick:() => exportarTodasXlsx() }, 'Excel (todas)'));
@@ -3010,7 +3153,7 @@ function vConvocatorias(v){
       el('h3', {}, 'Ainda não há convocatórias'),
       el('p', {}, 'Gere as convocatórias a partir dos critérios do Plano de Atividades ou abra uma atividade para a preparar individualmente.'),
       el('div', { style:'margin-top:16px;display:flex;gap:8px;justify-content:center' },
-        el('button', { class:'btn primary', onclick:gerarTodas }, 'Gerar todas as convocatórias'),
+        el('button', { class:'btn primary ed', onclick:gerarTodas }, 'Gerar todas as convocatórias'),
         el('button', { class:'btn', onclick:() => irPara('ativ') }, 'Ver atividades'))))));
     return;
   }
@@ -3050,7 +3193,7 @@ function vConvDetalhe(v){
 
   $('#pgActions').append(
     el('button', { class:'btn ghost', onclick:() => irPara('ativ') }, '← Atividades'),
-    el('button', { class:'btn', onclick:() => { gerarConvocatoria(ativ.id); render(); } }, c ? 'Regerar' : 'Gerar convocatória'),
+    el('button', { class:'btn ed', onclick:() => { gerarConvocatoria(ativ.id); render(); } }, c ? 'Regerar' : 'Gerar convocatória'),
     ...(c ? [
       el('button', { class:'btn', onclick:() => exportarConvXlsx(ativ.id) }, 'Excel'),
       el('button', { class:'btn', onclick:() => exportarConvDocx(ativ.id) }, 'Word'),
@@ -3067,7 +3210,7 @@ function vConvDetalhe(v){
       el('span', { class:'sp', style:'flex:1' }),
       ativ.criada ? el('span', { class:'pill acc' }, 'criada') : (ativ.editada ? el('span', { class:'pill acc' }, 'editada') : null),
       el('span', { class:'pill ' + (ativ.tipo === 'Estágio' ? 'est':'comp') }, ativ.tipo),
-      el('button', { class:'btn sm', onclick:() => editarAtividade(ativ.id) }, 'Editar atividade')),
+      el('button', { class:'btn sm ed', onclick:() => editarAtividade(ativ.id) }, 'Editar atividade')),
     el('div', { class:'body' },
       el('div', { class:'grid g4', style:'margin-bottom:14px' },
         mini('Datas', ativ.datas + (ativ.aDefinir ? ' (a confirmar)' : '')),
@@ -3099,8 +3242,8 @@ function vConvDetalhe(v){
         el('h3', {}, 'Provas do regulamento da competição'),
         el('div', { class:'small muted' }, 'Apenas contam os índices das provas aqui assinaladas.')),
         el('span', { class:'sp', style:'flex:1' }),
-        el('button', { class:'btn sm', onclick:() => { S.cfg.provasRegulamento[ativ.id] = evs.slice(); salvar(); S._cache={}; render(); } }, 'Todas'),
-        el('button', { class:'btn sm', onclick:() => { S.cfg.provasRegulamento[ativ.id] = []; salvar(); S._cache={}; render(); } }, 'Nenhuma')),
+        el('button', { class:'btn sm ed', onclick:() => { S.cfg.provasRegulamento[ativ.id] = evs.slice(); salvar(); S._cache={}; render(); } }, 'Todas'),
+        el('button', { class:'btn sm ed', onclick:() => { S.cfg.provasRegulamento[ativ.id] = []; salvar(); S._cache={}; render(); } }, 'Nenhuma')),
       el('div', { class:'body' }, chipsBox)));
   }
 
@@ -3109,7 +3252,7 @@ function vConvDetalhe(v){
       el('h3', {}, 'Convocatória por gerar'),
       el('p', {}, 'Aplique os critérios do Plano de Atividades aos rankings importados.'),
       el('div', { style:'margin-top:14px' },
-        el('button', { class:'btn primary', onclick:() => { gerarConvocatoria(ativ.id); render(); } }, 'Gerar convocatória'))))));
+        el('button', { class:'btn primary ed', onclick:() => { gerarConvocatoria(ativ.id); render(); } }, 'Gerar convocatória'))))));
     return;
   }
 
@@ -3158,15 +3301,15 @@ function vConvDetalhe(v){
       el('td', {}, el('span', { class:'pill ' + (l.estado === 'adicionado' ? 'acc' : l.estado === 'removido' ? 'bad' : 'good') },
         l.estado === 'adicionado' ? 'Adicionado' : l.estado === 'removido' ? 'Removido' : 'Automático')),
       el('td', { class:'small just', title: l.justificacao || 'Clique para escrever a justificação' },
-        el('span', { style:'cursor:pointer;' + (l.justificacao ? '' : 'color:var(--ink-3)'),
+        el('span', { class:'ed-inline', style:'cursor:pointer;' + (l.justificacao ? '' : 'color:var(--ink-3)'),
           onclick:() => editarJustificacao(ativ.id, l.key) },
-          l.justificacao || 'adicionar…')),
+          l.justificacao || (podeEditar() ? 'adicionar…' : '—'))),
       el('td', { style:'text-align:right;white-space:nowrap' },
         ativ.tipo === 'Estágio' ? null
-          : el('button', { class:'btn sm', title:'Escolher provas a inscrever',
+          : el('button', { class:'btn sm ed', title:'Escolher provas a inscrever',
               onclick:() => modalProvas(ativ.id, l.key) }, `Provas ${(l.provas||[]).length}`),
         ativ.tipo === 'Estágio' ? null : ' ',
-        el('button', { class:'btn sm', onclick:() => alternarMembro(ativ.id, l.key) },
+        el('button', { class:'btn sm ed', onclick:() => alternarMembro(ativ.id, l.key) },
           l.estado === 'removido' ? 'Repor' : 'Remover')));
     tb.append(tr);
   }
@@ -3178,8 +3321,8 @@ function vConvDetalhe(v){
       el('span', { class:'pill good' }, `${ativos.length} nadadores`),
       el('span', { class:'sp', style:'flex:1' }),
       el('span', { class:'small muted' }, `Gerada a ${fmtDate(c.geradaEm)}`),
-      el('button', { class:'btn sm', onclick:() => modalAdicionar(ativ.id) }, '+ Adicionar nadador'),
-      el('button', { class:'btn sm ' + (c.estado === 'final' ? 'primary':''), onclick:() => {
+      el('button', { class:'btn sm ed', onclick:() => modalAdicionar(ativ.id) }, '+ Adicionar nadador'),
+      el('button', { class:'btn sm ed ' + (c.estado === 'final' ? 'primary':''), onclick:() => {
         c.estado = c.estado === 'final' ? 'rascunho' : 'final'; salvar(); render();
       } }, c.estado === 'final' ? 'Marcar rascunho' : 'Marcar final')),
     el('div', { class:'body tight' }, tw)));
@@ -3226,7 +3369,7 @@ function vConvDetalhe(v){
           falta != null ? fmtDelta(falta) + (m.idx ? ` · ${(falta/m.idx*100).toFixed(1)}%` : '') : '—'),
         el('td', { class:'num mono' }, m && m.delta != null ? (m.delta > 0 ? '+':'') + m.delta : '—'),
         el('td', { class:'small muted just', title:x.motivo || '' }, String(x.motivo || '—').split(' — ')[0]),
-        el('td', { style:'text-align:right' }, el('button', { class:'btn sm',
+        el('td', { style:'text-align:right' }, el('button', { class:'btn sm ed',
           onclick:() => adicionarMembro(ativ.id, x.key, x.nome) }, 'Convocar'))));
     }
     t2.append(tb2); tw2.append(t2);
@@ -3295,6 +3438,7 @@ function cardTreinadores(ativ, ativos){
 
 /* ---------- ações sobre membros ---------- */
 function alternarMembro(ativId, key){
+  if (!podeEditar()) return semPermissao();
   const c = conv(ativId);
   const m = c.membros.find(x => x.key === key); if (!m) return;
   if (m.estado === 'removido'){ m.estado = m.viaOriginal === 'adicionado' ? 'adicionado' : 'auto'; salvar(); render(); return; }
@@ -3311,6 +3455,7 @@ function alternarMembro(ativId, key){
   setTimeout(() => ta.focus(), 40);
 }
 function editarJustificacao(ativId, key){
+  if (!podeEditar()) return semPermissao();
   const c = conv(ativId); const m = c.membros.find(x => x.key === key); if (!m) return;
   const ta = el('textarea', {}); ta.value = m.justificacao || '';
   abrirModal('Justificação — ' + m.nome,
@@ -3320,6 +3465,7 @@ function editarJustificacao(ativId, key){
   setTimeout(() => ta.focus(), 40);
 }
 function adicionarMembro(ativId, key, nome, justificacao){
+  if (!podeEditar()) return semPermissao();
   const c = conv(ativId);
   const ex = c.membros.find(x => x.key === key);
   if (ex){ ex.estado = 'adicionado'; if (justificacao) ex.justificacao = justificacao; }
@@ -3335,6 +3481,7 @@ function adicionarMembro(ativId, key, nome, justificacao){
   toast('Nadador adicionado à convocatória.');
 }
 function modalAdicionar(ativId){
+  if (!podeEditar()) return semPermissao();
   const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId);
   const jaLa = new Set(c.membros.filter(m => m.estado !== 'removido').map(m => m.key));
@@ -3370,6 +3517,7 @@ function modalAdicionar(ativId){
   setTimeout(() => inp.focus(), 40);
 }
 function modalProvas(ativId, key){
+  if (!podeEditar()) return semPermissao();
   const ativ = ATIVS.find(a => a.id === ativId);
   const c = conv(ativId); const m = c.membros.find(x => x.key === key);
   const n = S.db && S.db.nadadores.get(key);
@@ -3421,7 +3569,7 @@ function modalProvas(ativId, key){
 let qNad = '';
 function vNadadores(v){
   if (!S.db) return semDados(v);
-  const inp = el('input', { type:'text', placeholder:'Procurar por nome, clube ou associação…' });
+  const inp = el('input', { type:'text', class:'ro-ok', placeholder:'Procurar por nome, clube ou associação…' });
   inp.value = qNad;
   inp.addEventListener('input', () => { qNad = inp.value; pintar(); });
   const cont = el('div', {});
@@ -3519,7 +3667,7 @@ function modalNadador(key){
 let tabIdx = 'PL';
 function vIndices(v){
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:() => {
+    el('button', { class:'btn ed', onclick:() => {
       if (!confirm('Repor todos os índices com os valores do Plano de Atividades 2027?')) return;
       S.cfg.indices = { PL: clone(IDX_PL), PC: clone(IDX_PC) }; salvar(); S._cache={}; render(); toast('Índices repostos.');
     } }, 'Repor valores do PAR'),
@@ -3652,7 +3800,7 @@ function vDefinicoes(v){
       el('h3', {}, 'Atividades do plano'),
       el('div', { class:'small muted' }, `${ATIVS.length} atividades no calendário · ${editadas.length} editadas · ${criadas.length} criadas · ${ocult.length} retiradas`)),
       el('span', { class:'sp', style:'flex:1' }),
-      el('button', { class:'btn', onclick:() => editarAtividade(null) }, '+ Nova atividade')),
+      el('button', { class:'btn ed', onclick:() => editarAtividade(null) }, '+ Nova atividade')),
     el('div', { class:'body' },
       ocult.length ? el('div', {},
         el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Atividades retiradas do calendário'),
@@ -3681,7 +3829,7 @@ function vDefinicoes(v){
     staffBox.replaceChildren(
       tabelaStaff(c.staffPadrao, (estrutural) => { salvar(); if (estrutural) pintarStaff(); }),
       el('div', { style:'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap' },
-        el('button', { class:'btn sm', onclick:() => {
+        el('button', { class:'btn sm ed', onclick:() => {
           c.staffPadrao.push({ funcao:'Outra função', nome:'', contacto:'' }); salvar(); pintarStaff();
         } }, '+ Acrescentar função')));
   };
@@ -3725,20 +3873,20 @@ function vDefinicoes(v){
             el('div', { style:'min-width:0;flex:1' },
               el('div', { class:'nome' }, f.nome),
               el('div', { class:'small muted' }, `${(f.n||0).toLocaleString('pt-PT')} resultados · ${fmtDate(f.em)}`)),
-            el('button', { class:'btn sm ghost', onclick:() => removerFicheiro(f.fid) }, 'Remover'))))) : null,
+            el('button', { class:'btn sm ghost ed', onclick:() => removerFicheiro(f.fid) }, 'Remover'))))) : null,
       el('div', { class:'note', style:'margin-top:10px' },
         'As convocatórias, justificações, provas escolhidas e índices editados ficam guardados neste navegador. Use “Guardar cópia (JSON)” para transferir o trabalho para outro computador. Quando o navegador não aceita o formato .xlsx, a aplicação entrega automaticamente o equivalente em .csv (abre no Excel).'),
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' },
-        el('button', { class:'btn primary', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
-        el('button', { class:'btn', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'),
+        el('button', { class:'btn primary ed', onclick:() => escolherFicheiro('juntar') }, 'Acrescentar ficheiro'),
+        el('button', { class:'btn ed', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'),
         el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia (JSON)'),
-        el('button', { class:'btn', onclick:importarWorkspace }, 'Restaurar cópia'),
-        S.db ? el('button', { class:'btn', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null,
-        el('button', { class:'btn', onclick:() => {
+        el('button', { class:'btn ed', onclick:importarWorkspace }, 'Restaurar cópia'),
+        S.db ? el('button', { class:'btn ed', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null,
+        el('button', { class:'btn ed', onclick:() => {
           if (!confirm('Apagar todas as convocatórias, justificações, provas, estafetas e treinadores? Os rankings, os índices e as definições mantêm-se.')) return;
           S.cfg.convocatorias = {}; salvar(); render(); toast('Convocatórias apagadas.');
         } }, 'Apagar convocatórias'),
-        el('button', { class:'btn', onclick:reporAplicacao }, 'Repor a aplicação')))));
+        el('button', { class:'btn ed', onclick:reporAplicacao }, 'Repor a aplicação')))));
 
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Critérios transversais do PAR 2027')),
@@ -3753,6 +3901,7 @@ async function exportarWorkspace(){
   catch(e){ toast(e.code === 'declined' ? 'Guardar cancelado.' : 'Não foi possível guardar: ' + (e.message||e.code), true); }
 }
 function importarWorkspace(){
+  if (!podeEditar()) return semPermissao();
   const i = el('input', { type:'file', accept:'.json' });
   i.addEventListener('change', async () => {
     const f = i.files[0]; if (!f) return;
@@ -3768,6 +3917,7 @@ function importarWorkspace(){
 }
 
 function gerarTodas(){
+  if (!podeEditar()) return semPermissao();
   if (!S.db){ toast('Importe primeiro o ficheiro de rankings.', true); return; }
   let n = 0;
   for (const a of ATIVS){ gerarConvocatoria(a.id, true); n++; }
@@ -3801,6 +3951,7 @@ function atividadeVazia(){
 }
 
 function editarAtividade(ativId){
+  if (!podeEditar()) return semPermissao();
   const base = ativId ? ATIVS.find(a => a.id === ativId) : atividadeVazia();
   if (!base) return;
   const a = clone(base);
@@ -3969,6 +4120,7 @@ function editarAtividade(ativId){
 }
 
 function eliminarAtividade(ativId){
+  if (!podeEditar()) return semPermissao();
   const a = ATIVS.find(x => x.id === ativId); if (!a) return;
   const temConv = !!S.cfg.convocatorias[ativId];
   abrirModal('Eliminar atividade', el('div', {},
@@ -4032,16 +4184,16 @@ function cardStaff(ativ){
     corpo.replaceChildren(
       tabelaStaff(c.staff, (estrutural) => { salvar(); if (estrutural) pintar(); }),
       el('div', { class:'tabela-btns', style:'border:0;background:none;padding:10px 0 0' },
-        el('button', { class:'btn sm', onclick:() => {
+        el('button', { class:'btn sm ed', onclick:() => {
           c.staff.push({ funcao:'Outra função', nome:'', contacto:'' }); salvar(); pintar();
         } }, '+ Acrescentar função'),
-        el('button', { class:'btn sm', onclick:() => {
+        el('button', { class:'btn sm ed', onclick:() => {
           const faltam = STAFF_BASE.filter(f => !c.staff.some(s => s.funcao === f));
           faltam.forEach(f => c.staff.push({ funcao:f, nome:'', contacto:'' }));
           salvar(); pintar();
           toast(faltam.length ? `${faltam.length} funções repostas.` : 'As funções base já estão todas na lista.');
         } }, 'Repor funções base'),
-        el('button', { class:'btn sm', onclick:() => {
+        el('button', { class:'btn sm ed', onclick:() => {
           c.staff = clone(S.cfg.staffPadrao || []); salvar(); pintar();
           toast('Staff preenchido a partir das Definições.');
         } }, 'Usar staff por defeito'),
@@ -4180,10 +4332,10 @@ function cardEstafetas(ativ){
             ? el('span', { class:'pill acc' }, 'soma dos parciais ' + fmtTime(soma))
             : el('span', { class:'pill warn' }, 'equipa incompleta'),
           el('span', { class:'sp', style:'flex:1' }),
-          el('button', { class:'btn sm ghost', onclick:() => {
+          el('button', { class:'btn sm ghost ed', onclick:() => {
             e.nadadores.push(''); pintar();
           } }, '+ Reserva'),
-          el('button', { class:'btn sm ghost', onclick:() => {
+          el('button', { class:'btn sm ghost ed', onclick:() => {
             c.estafetas.splice(i, 1); sincronizarProvasEstafetas(ativ.id); pintar();
           } }, 'Eliminar')),
         tw,
@@ -4206,7 +4358,7 @@ function cardEstafetas(ativ){
           'A composição entra nas provas a inscrever de cada nadador e sai nos documentos e no e-mail.')),
       el('span', { class:'sp', style:'flex:1' }),
       el('div', { class:'grupo-btn' }, evSel, gSel,
-        el('button', { class:'btn primary', onclick:() => {
+        el('button', { class:'btn primary ed', onclick:() => {
           c.estafetas.push({ uid:'e' + Math.random().toString(36).slice(2, 9),
             ev:evSel.value, genero:gSel.value, nadadores:['', '', '', ''], nota:'' });
           salvar(); pintar();
@@ -4292,8 +4444,8 @@ function editorTabela(b, aoMudar){
     });
     t.append(tb); tw.append(t);
     caixa.append(tw, el('div', { class:'tabela-btns' },
-      el('button', { class:'btn sm', onclick:() => { dados.push(dados[0].map(() => '')); gravar(); pintar(); } }, '+ Linha'),
-      el('button', { class:'btn sm', onclick:() => {
+      el('button', { class:'btn sm ed', onclick:() => { dados.push(dados[0].map(() => '')); gravar(); pintar(); } }, '+ Linha'),
+      el('button', { class:'btn sm ed', onclick:() => {
         dados[0].push('Coluna ' + (dados[0].length + 1));
         dados.slice(1).forEach(r => r.push(''));
         gravar(); pintar();
@@ -4338,13 +4490,13 @@ function cardBlocos(ativ){
         el('div', { class:'bloco-top' },
           el('span', { class:'bloco-n mono' }, String(i + 1)),
           tit, tipo,
-          el('button', { class:'btn sm ghost', title:'Subir', disabled:i === 0,
+          el('button', { class:'btn sm ghost ed', title:'Subir', disabled:i === 0,
             onclick:() => { const [x] = c.blocos.splice(i, 1); c.blocos.splice(i - 1, 0, x); salvar(); pintar(); } }, '↑'),
-          el('button', { class:'btn sm ghost', title:'Descer', disabled:i === c.blocos.length - 1,
+          el('button', { class:'btn sm ghost ed', title:'Descer', disabled:i === c.blocos.length - 1,
             onclick:() => { const [x] = c.blocos.splice(i, 1); c.blocos.splice(i + 1, 0, x); salvar(); pintar(); } }, '↓'),
-          el('button', { class:'btn sm ghost', title:'Duplicar',
+          el('button', { class:'btn sm ghost ed', title:'Duplicar',
             onclick:() => { c.blocos.splice(i + 1, 0, { ...b, uid:'b' + Math.random().toString(36).slice(2,9) }); salvar(); pintar(); } }, 'Duplicar'),
-          el('button', { class:'btn sm ghost', title:'Eliminar',
+          el('button', { class:'btn sm ghost ed', title:'Eliminar',
             onclick:() => { c.blocos.splice(i, 1); salvar(); pintar(); } }, 'Eliminar')),
         cont));
     });
@@ -5000,8 +5152,14 @@ async function entregar(nome, blob, tipo, folhas){
     if (db) S.db = desserializarDb(db);
   } catch(e){ console.warn('Sem armazenamento persistente:', e); }
   reconstruirAtividades();
-  pintarNav();
-  render();
+  const sessao = lerSessao();
+  if (sessao && sessao.papel){
+    S.sessao = sessao;
+    document.body.classList.toggle('somenteLeitura', !podeEditar());
+    pintarNav(); render();
+  } else {
+    ecraLogin();
+  }
 })();
 </script>
 
