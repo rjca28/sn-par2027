@@ -1403,7 +1403,11 @@ function normStroke(s){
   return STROKE_MAP[k] || (k.charAt(0).toUpperCase() + k.slice(1,3));
 }
 
+let _seqFid = 0;
+const novoFid = () => 'f' + (++_seqFid) + '-' + Math.random().toString(36).slice(2, 8);
+
 function buildDb(sheets, fileName){
+  const fid = novoFid();
   const HEAD = ['COURSE','GENDER','DISTANCE','STROKE','FULLNAME','BIRTHDATE','NATION','CLUBCODE',
                 'SWIMTIME','SWIMTIME_N','PTS_FINA','PTS_RUDOLPH','PLACE','MEETDATE','MEETCITY',
                 'MEETNAME','CLUBNAME','REGION'];
@@ -1444,7 +1448,7 @@ function buildDb(sheets, fileName){
         clubeCod: String(r[map.CLUBCODE]||'').trim(),
         clube: String(r[map.CLUBNAME]||r[map.CLUBCODE]||'').trim(),
         regiao: String(r[map.REGION]||'').trim(),
-        t, lap: ehLap, ptsFich: (typeof r[map.PTS_FINA] === 'number' ? r[map.PTS_FINA] : null),
+        t, lap: ehLap, fid, ptsFich: (typeof r[map.PTS_FINA] === 'number' ? r[map.PTS_FINA] : null),
         prova: String(r[map.MEETNAME]||'').trim(),
         cidade: String(r[map.MEETCITY]||'').trim(),
         data: toDate(r[map.MEETDATE])
@@ -1458,10 +1462,20 @@ function buildDb(sheets, fileName){
     if (seen.has(k)) continue;
     seen.add(k); lim.push(r);
   }
-  /* Tempos-base World Aquatics deduzidos dos próprios dados.
-     As folhas de tempos de percurso ("Lap") usam outra referência, por isso
-     ficam de fora da dedução. Usa-se a moda (valor mais repetido) e não a
-     média, para não ser afetada por linhas com pontuação inconsistente. */
+  const bases = calcularBases(lim);
+  const nad = indexarNadadores(lim);
+  const importadoEm = new Date().toISOString();
+  return { resultados: lim, nadadores: nad, bases, periodo, ficheiro: fileName,
+           importadoEm, avisos,
+           ficheiros: [{ fid, nome: fileName, em: importadoEm, n: lim.length }],
+           cursos: [...new Set(lim.map(r => r.curso))] };
+}
+
+/* Tempos-base World Aquatics deduzidos dos próprios dados.
+   As folhas de tempos de percurso ("Lap") usam outra referência, por isso ficam
+   de fora da dedução. Usa-se a moda (valor mais repetido) e não a média, para
+   não ser afetada por linhas com pontuação inconsistente. */
+function calcularBases(lim){
   const acc = {};
   for (const r of lim){
     if (r.lap || !r.ptsFich || !r.t) continue;
@@ -1478,8 +1492,10 @@ function buildDb(sheets, fileName){
     bases[k] = +(fonte[Math.floor(fonte.length/2)]).toFixed(2);
   }
   for (const [k, v] of Object.entries(BASE_FALLBACK)) if (bases[k] == null) bases[k] = v;
+  return bases;
+}
 
-  // nadadores
+function indexarNadadores(lim){
   const nad = new Map();
   for (const r of lim){
     const key = `${r.nome}|${r.nasc.getFullYear()}-${r.nasc.getMonth()+1}-${r.nasc.getDate()}`;
@@ -1489,38 +1505,55 @@ function buildDb(sheets, fileName){
     if (r.data && (!n.ultima || r.data > n.ultima)){ n.ultima = r.data; n.clube = r.clube; n.regiao = r.regiao; n.clubeCod = r.clubeCod; }
     n.res.push(r);
   }
-  return { resultados: lim, nadadores: nad, bases, periodo, ficheiro: fileName,
-           importadoEm: new Date().toISOString(), avisos,
-           cursos: [...new Set(lim.map(r => r.curso))] };
+  return nad;
 }
 
 /* ---------- juntar um novo ficheiro de rankings ao existente ---------- */
 function mergeDb(atual, novo){
   const chave = r => `${r.nome}|${+r.nasc}|${r.curso}|${r.ev}|${r.t}|${r.data ? +r.data : 0}|${r.lap ? 1 : 0}`;
-  const vistos = new Set(atual.resultados.map(chave));
+  const porChave = new Map();
+  for (const r of atual.resultados) porChave.set(chave(r), r);
   const juntos = atual.resultados.slice();
+  const fidNovo = (novo.ficheiros && novo.ficheiros[0] && novo.ficheiros[0].fid) || novoFid();
   let novos = 0;
-  for (const r of novo.resultados){ const k = chave(r); if (vistos.has(k)) continue; vistos.add(k); juntos.push(r); novos++; }
-
-  const bases = { ...atual.bases };
-  for (const [k, v] of Object.entries(novo.bases)) bases[k] = v;   // o ficheiro mais recente manda
-
-  const nad = new Map();
-  for (const r of juntos){
-    const key = `${r.nome}|${r.nasc.getFullYear()}-${r.nasc.getMonth()+1}-${r.nasc.getDate()}`;
-    let n = nad.get(key);
-    if (!n){ n = { key, nome:r.nome, nasc:r.nasc, g:r.g, nation:r.nation, clube:r.clube,
-                   clubeCod:r.clubeCod, regiao:r.regiao, res:[] }; nad.set(key, n); }
-    if (r.data && (!n.ultima || r.data > n.ultima)){ n.ultima = r.data; n.clube = r.clube; n.regiao = r.regiao; n.clubeCod = r.clubeCod; }
-    n.res.push(r);
+  for (const r of novo.resultados){
+    const k = chave(r);
+    const ex = porChave.get(k);
+    if (ex){                                   // já existia: passa a pertencer aos dois ficheiros
+      const fids = String(ex.fid || '').split(',').filter(Boolean);
+      if (!fids.includes(fidNovo)) ex.fid = fids.concat(fidNovo).join(',');
+      continue;
+    }
+    porChave.set(k, r); juntos.push(r); novos++;
   }
-  const ficheiros = (atual.ficheiros || [{ nome:atual.ficheiro, em:atual.importadoEm, n:atual.resultados.length }])
-    .concat([{ nome:novo.ficheiro, em:novo.importadoEm, n:novos }]);
-  return { resultados:juntos, nadadores:nad, bases,
+  const ficheirosAntes = atual.ficheiros && atual.ficheiros.length
+    ? atual.ficheiros
+    : [{ fid: novoFid(), nome:atual.ficheiro, em:atual.importadoEm, n:atual.resultados.length }];
+  const ficheiros = ficheirosAntes.concat([
+    { fid: fidNovo, nome: novo.ficheiro, em: novo.importadoEm, n: novos }]);
+  return { resultados:juntos, nadadores:indexarNadadores(juntos), bases:calcularBases(juntos),
     periodo: novo.periodo || atual.periodo, ficheiro: novo.ficheiro,
     importadoEm: novo.importadoEm, avisos: novo.avisos, ficheiros,
     novosResultados: novos,
     cursos: [...new Set(juntos.map(r => r.curso))] };
+}
+
+/* ---------- retirar um ficheiro de rankings ---------- */
+function removerFicheiroDb(db, fid){
+  const restantes = [];
+  for (const r of db.resultados){
+    const fids = String(r.fid || '').split(',').filter(Boolean);
+    const sobra = fids.filter(f => f !== fid);
+    if (!fids.length || sobra.length){ restantes.push(fids.length ? { ...r, fid: sobra.join(',') } : r); }
+  }
+  const ficheiros = (db.ficheiros || []).filter(f => f.fid !== fid);
+  if (!restantes.length || !ficheiros.length) return null;
+  const ultimo = ficheiros[ficheiros.length - 1];
+  return { resultados:restantes, nadadores:indexarNadadores(restantes), bases:calcularBases(restantes),
+    periodo: db.periodo, ficheiro: ultimo.nome, importadoEm: ultimo.em,
+    avisos: db.avisos, ficheiros,
+    removidos: db.resultados.length - restantes.length,
+    cursos: [...new Set(restantes.map(r => r.curso))] };
 }
 
 /* ---------- índices ---------- */
@@ -2330,15 +2363,14 @@ function serializarDb(db){
 function desserializarDb(s){
   if (!s) return null;
   const res = s.resultados.map(r => ({ ...r, nasc:new Date(r.nasc), data:r.data ? new Date(r.data) : null }));
-  const nad = new Map();
-  for (const r of res){
-    const key = `${r.nome}|${r.nasc.getFullYear()}-${r.nasc.getMonth()+1}-${r.nasc.getDate()}`;
-    let n = nad.get(key);
-    if (!n){ n = { key, nome:r.nome, nasc:r.nasc, g:r.g, nation:r.nation, clube:r.clube, clubeCod:r.clubeCod, regiao:r.regiao, res:[] }; nad.set(key, n); }
-    if (r.data && (!n.ultima || r.data > n.ultima)){ n.ultima = r.data; n.clube = r.clube; n.regiao = r.regiao; }
-    n.res.push(r);
+  let ficheiros = s.ficheiros && s.ficheiros.length ? s.ficheiros.slice() : null;
+  if (!ficheiros) ficheiros = [{ fid:'f0', nome:s.ficheiro, em:s.importadoEm, n:res.length }];
+  ficheiros.forEach((f, i) => { if (!f.fid) f.fid = 'f' + i; });
+  if (res.some(r => !r.fid)){                       // dados guardados antes de haver identificação por ficheiro
+    const fid = ficheiros[0].fid;
+    res.forEach(r => { if (!r.fid) r.fid = fid; });
   }
-  return { ...s, resultados:res, nadadores:nad };
+  return { ...s, resultados:res, ficheiros, nadadores: indexarNadadores(res) };
 }
 
 /* ---------- utilitários de interface ---------- */
@@ -2577,7 +2609,14 @@ function semDados(v, msg){
       el('p', {}, msg || 'As convocatórias são calculadas a partir de um ficheiro Excel de rankings no formato da FPN (colunas COURSE, GENDER, DISTANCE, STROKE, FULLNAME, BIRTHDATE, SWIMTIME, PTS_FINA, MEETDATE…).'),
       el('div', { class:'drop', id:'drop', style:'margin-top:18px' },
         el('p', { style:'margin:0 0 12px' }, 'Arraste o ficheiro .xlsx para aqui'),
-        el('button', { class:'btn primary', onclick:() => escolherFicheiro() }, 'Escolher ficheiro'))))));
+        el('div', { style:'display:flex;gap:8px;justify-content:center;flex-wrap:wrap' },
+          el('button', { class:'btn primary', onclick:() => escolherFicheiro() }, 'Escolher ficheiro'),
+          el('button', { class:'btn', onclick:importarWorkspace }, 'Restaurar cópia de trabalho'))),
+      Object.keys(S.cfg.convocatorias).length
+        ? el('div', { class:'note', style:'margin-top:18px;text-align:left' },
+            el('b', {}, `${Object.keys(S.cfg.convocatorias).length} convocatórias continuam guardadas`),
+            ' — com as justificações, provas, estafetas, treinadores e pontos de informação. Carregue um ficheiro de rankings para voltar a calcular tempos e índices.')
+        : null))));
   ligarDrop();
 }
 function ligarDrop(){
@@ -2587,6 +2626,74 @@ function ligarDrop(){
   d.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) importarFicheiro(f); });
 }
 
+
+
+/* ---------- remover ficheiros de rankings ---------- */
+async function aplicarRemocao(novoDb, msg){
+  S.db = novoDb;
+  S._cache = {};
+  await salvarDb();
+  /* só se recalcula com dados; sem rankings, as convocatórias ficam como estão */
+  if (novoDb && Object.keys(S.cfg.convocatorias).length){
+    for (const id of Object.keys(S.cfg.convocatorias)) gerarConvocatoria(id, true);
+    await salvar();
+  }
+  fecharModal(); pintarNav(); render();
+  toast(msg);
+}
+
+function removerFicheiro(fid){
+  const f = (S.db.ficheiros || []).find(x => x.fid === fid);
+  if (!f) return;
+  const resultante = removerFicheiroDb(S.db, fid);
+  const sobra = resultante ? resultante.resultados.length : 0;
+  abrirModal('Remover ficheiro de rankings', el('div', {},
+    el('p', {}, `Vai retirar ${esc(f.nome)} dos dados carregados.`),
+    el('p', { class:'small muted' }, resultante
+      ? `Ficam ${sobra.toLocaleString('pt-PT')} resultados de ${resultante.ficheiros.length} ficheiro(s). Os resultados que também constam de outro ficheiro carregado mantêm-se.`
+      : 'É o único ficheiro carregado — os rankings ficam vazios. As convocatórias mantêm os nomes e as edições, mas os tempos e os índices só voltam a ser calculados quando carregar um ficheiro.'),
+    el('div', { class:'note', style:'margin-top:12px' },
+      resultante
+        ? 'As convocatórias, justificações, provas, estafetas, treinadores e índices editados mantêm-se, e as convocatórias já geradas são recalculadas com os dados que sobram.'
+        : 'As convocatórias, justificações, provas, estafetas, treinadores e índices editados mantêm-se tal como estão.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:async () => {
+        if (resultante) await aplicarRemocao(resultante,
+          `${f.nome} removido — ${resultante.removidos.toLocaleString('pt-PT')} resultados retirados.`);
+        else await aplicarRemocao(null, 'Rankings vazios. Carregue um ficheiro para voltar a calcular as convocatórias.');
+      } }, 'Remover ficheiro') ]);
+}
+
+function removerTodosFicheiros(){
+  const n = (S.db && S.db.ficheiros || []).length;
+  abrirModal('Remover todos os rankings', el('div', {},
+    el('p', {}, `Vai apagar ${n} ficheiro(s) e ${S.db.resultados.length.toLocaleString('pt-PT')} resultados.`),
+    el('div', { class:'note', style:'margin-top:12px' },
+      'As convocatórias, justificações, provas, estafetas, treinadores, pontos de informação e índices editados mantêm-se tal como estão — voltam a ser calculados quando carregar um ficheiro novo. Para apagar também esses, use “Repor a aplicação” nas Definições.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:() =>
+        aplicarRemocao(null, 'Rankings apagados. Carregue um ficheiro para recomeçar.') }, 'Remover todos') ]);
+}
+
+function reporAplicacao(){
+  abrirModal('Repor a aplicação', el('div', {},
+    el('p', {}, 'Vai apagar tudo e voltar ao estado inicial:'),
+    el('ul', { class:'crit' },
+      el('li', {}, 'os ficheiros de rankings carregados;'),
+      el('li', {}, 'todas as convocatórias, justificações, provas, estafetas e treinadores;'),
+      el('li', {}, 'os pontos de informação e os destinatários de e-mail;'),
+      el('li', {}, 'os índices editados, que voltam aos valores do Plano de Atividades 2027.')),
+    el('div', { class:'note warn', style:'margin-top:12px' },
+      'Esta operação não pode ser desfeita. Guarde primeiro uma cópia de trabalho (.json) se quiser poder voltar atrás.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia primeiro'),
+      el('button', { class:'btn primary', onclick:async () => {
+        S.cfg = cfgPadrao(); S.db = null; S._cache = {};
+        await salvar(); await salvarDb();
+        fecharModal(); pintarNav(); irPara('painel');
+        toast('Aplicação reposta no estado inicial.');
+      } }, 'Repor tudo') ]);
+}
 
 /* ---------- ficheiros de rankings carregados ---------- */
 function cardFicheiros(){
@@ -2600,7 +2707,9 @@ function cardFicheiros(){
     el('div', { style:'min-width:0;flex:1' },
       el('div', { class:'nome', style:'overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, f.nome),
       el('div', { class:'small muted' }, `${(f.n || 0).toLocaleString('pt-PT')} resultados · carregado a ${fmtDate(f.em)}`)),
-    i === 0 ? el('span', { class:'pill' }, 'base') : el('span', { class:'pill acc' }, 'acrescentado'))));
+    i === 0 ? el('span', { class:'pill' }, 'base') : el('span', { class:'pill acc' }, 'acrescentado'),
+    el('button', { class:'btn sm ghost', title:'Retirar este ficheiro dos dados',
+      onclick:() => removerFicheiro(f.fid) }, 'Remover'))));
 
   return el('div', { class:'card' },
     el('header', {},
@@ -2615,7 +2724,8 @@ function cardFicheiros(){
     el('div', { class:'body' }, lista,
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
         el('button', { class:'btn sm', onclick:exportarWorkspace }, 'Guardar cópia de trabalho (.json)'),
-        el('button', { class:'btn sm', onclick:importarWorkspace }, 'Restaurar cópia')),
+        el('button', { class:'btn sm', onclick:importarWorkspace }, 'Restaurar cópia'),
+        fich.length ? el('button', { class:'btn sm', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null),
       el('p', { class:'small muted', style:'margin:12px 0 0' },
         'Acrescentar junta os resultados novos aos que já existem — para somar a piscina curta à longa, ou para atualizar com um ranking mais recente. ' +
         'Substituir apaga os resultados anteriores. Em qualquer dos casos, as convocatórias, justificações, provas, treinadores e índices editados mantêm-se, e as convocatórias já geradas são recalculadas com os dados novos.')));
@@ -3509,10 +3619,15 @@ function vDefinicoes(v){
       el('p', { class:'small muted' }, S.db
         ? `${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados · piscina ${(S.db.cursos||[]).join(' e ')}.`
         : 'Sem ficheiro de rankings importado.'),
-      S.db && (S.db.ficheiros || []).length ? el('div', { style:'margin-top:8px' },
+      S.db && (S.db.ficheiros || []).length ? el('div', { style:'margin-top:10px' },
         el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Ficheiros carregados'),
-        el('ul', { class:'crit' }, ...(S.db.ficheiros || []).map(f =>
-          el('li', {}, `${f.nome} — ${(f.n||0).toLocaleString('pt-PT')} resultados, a ${fmtDate(f.em)}`)))) : null,
+        el('div', { class:'fich' }, ...(S.db.ficheiros || []).map((f, i) =>
+          el('div', { class:'fich-item' },
+            el('span', { class:'fich-n mono' }, String(i + 1)),
+            el('div', { style:'min-width:0;flex:1' },
+              el('div', { class:'nome' }, f.nome),
+              el('div', { class:'small muted' }, `${(f.n||0).toLocaleString('pt-PT')} resultados · ${fmtDate(f.em)}`)),
+            el('button', { class:'btn sm ghost', onclick:() => removerFicheiro(f.fid) }, 'Remover'))))) : null,
       el('div', { class:'note', style:'margin-top:10px' },
         'As convocatórias, justificações, provas escolhidas e índices editados ficam guardados neste navegador. Use “Guardar cópia (JSON)” para transferir o trabalho para outro computador. Quando o navegador não aceita o formato .xlsx, a aplicação entrega automaticamente o equivalente em .csv (abre no Excel).'),
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' },
@@ -3520,10 +3635,12 @@ function vDefinicoes(v){
         el('button', { class:'btn', onclick:() => escolherFicheiro('substituir') }, 'Substituir ficheiro'),
         el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia (JSON)'),
         el('button', { class:'btn', onclick:importarWorkspace }, 'Restaurar cópia'),
+        S.db ? el('button', { class:'btn', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null,
         el('button', { class:'btn', onclick:() => {
-          if (!confirm('Apagar todas as convocatórias, justificações e treinadores? Os índices e definições mantêm-se.')) return;
+          if (!confirm('Apagar todas as convocatórias, justificações, provas, estafetas e treinadores? Os rankings, os índices e as definições mantêm-se.')) return;
           S.cfg.convocatorias = {}; salvar(); render(); toast('Convocatórias apagadas.');
-        } }, 'Apagar convocatórias')))));
+        } }, 'Apagar convocatórias'),
+        el('button', { class:'btn', onclick:reporAplicacao }, 'Repor a aplicação')))));
 
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Critérios transversais do PAR 2027')),
