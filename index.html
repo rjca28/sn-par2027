@@ -327,6 +327,77 @@ ul.crit b{color:var(--ink)}
 .cell-in:hover{border-color:var(--line)} .cell-in:focus{border-color:var(--accent);background:var(--surface)}
 .tw table td .cell-in{margin:-2px 0}
 </style>
+<style id="freshCss">
+.chart{overflow:visible}
+.chart .seg{transition:filter .12s}
+.chart-tip{position:absolute;transform:translate(-50%,calc(-100% - 12px));background:var(--ink);color:#fff;
+  padding:6px 10px;border-radius:9px;font-size:12px;line-height:1.45;white-space:nowrap;pointer-events:none;
+  opacity:0;transition:opacity .1s;box-shadow:0 8px 22px -8px rgba(0,0,0,.5);z-index:6}
+.chart-tip.on{opacity:1}
+.tw table thead th{cursor:pointer;user-select:none;white-space:nowrap}
+.tw table thead th:hover{color:var(--accent-ink)}
+.tw table thead th[data-sort="asc"]::after{content:" ▲";font-size:9px;color:var(--accent)}
+.tw table thead th[data-sort="desc"]::after{content:" ▼";font-size:9px;color:var(--accent)}
+
+/* ---- Paleta refrescada (aquática, mais viva e legível) ---- */
+:root{
+  --ground:#e9f3f9; --surface:#ffffff; --surface-2:#f1f8fc; --surface-3:#dfeef8;
+  --ink:#0b2233; --ink-3:#6d8499;
+}
+:root{
+  --ink-2:#405a6f;
+  --line:#d2e2ed; --line-2:#eaf2f8;
+  --accent:#1176bd; --accent-ink:#0a5183; --accent-soft:#e2f0fb;
+  --serie-a:#1a86cf; --serie-b:#ef8b3c;
+  --good:#0f8a5f; --good-soft:#e2f4ed;
+  --warn:#b5771a; --warn-soft:#fbf1db;
+  --bad:#c73a2b; --bad-soft:#fbe7e3;
+  --shadow:0 1px 2px rgba(11,34,51,.05), 0 14px 30px -20px rgba(11,34,51,.22);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ground:#08131d; --surface:#102232; --surface-2:#172c3d; --surface-3:#20384c;
+  --ink:#e8f0f7; --ink-2:#a9c0cf; --ink-3:#7a94a7;
+  --line:#274157; --line-2:#1a2e40;
+  --accent:#57b5e7; --accent-ink:#93d2f3; --accent-soft:#123243;
+  --serie-a:#46a7db; --serie-b:#eda45c;
+  --good:#4dc296; --good-soft:#123027; --warn:#e4b55b; --warn-soft:#33290f; --bad:#ef8a83; --bad-soft:#3a1f1d;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -18px rgba(0,0,0,.9);
+}}
+:root[data-theme="dark"]{
+  --ground:#08131d; --surface:#102232; --surface-2:#172c3d; --surface-3:#20384c;
+  --ink:#e8f0f7; --ink-2:#a9c0cf; --ink-3:#7a94a7;
+  --line:#274157; --line-2:#1a2e40;
+  --accent:#57b5e7; --accent-ink:#93d2f3; --accent-soft:#123243;
+  --serie-a:#46a7db; --serie-b:#eda45c;
+  --good:#4dc296; --good-soft:#123027; --warn:#e4b55b; --warn-soft:#33290f; --bad:#ef8a83; --bad-soft:#3a1f1d;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -18px rgba(0,0,0,.9);
+}
+/* ---- Legibilidade ---- */
+body{font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1{font-size:26px} h2{font-size:21px} h3{font-size:16.5px}
+a{color:var(--accent-ink)}
+.small,.muted{line-height:1.55}
+/* Navegação: indicador do item ativo */
+nav button{font-size:13.5px}
+nav button[aria-current="true"]{position:relative;font-weight:600}
+nav button[aria-current="true"]::before{content:"";position:absolute;left:3px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent)}
+/* KPIs com mais presença */
+.kpi{transition:border-color .15s, box-shadow .15s}
+.kpi:hover{border-color:var(--accent)}
+.kpi .v{color:var(--accent-ink)}
+/* Tabelas: zebra + realce da linha sob o cursor */
+.tw table tbody tr:nth-child(even){background:var(--surface-2)}
+.tw table tbody tr:hover{background:var(--accent-soft)}
+.tw table th{background:var(--surface-3);color:var(--ink-2)}
+/* Botões: transições e realce coerente */
+.btn{transition:background .15s,border-color .15s,color .15s,filter .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06);color:#fff}
+.chip[aria-pressed="true"]{font-weight:600}
+/* Barras dos gráficos com cantos suaves */
+.bars .tr i{border-radius:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
 
 <div class="app">
   <aside class="rail">
@@ -2751,6 +2822,7 @@ function gerarConvocatoria(ativId, silencioso){
     staff: antiga && antiga.staff ? antiga.staff : clone(S.cfg.staffPadrao || []),
     email: antiga ? antiga.email : undefined,
     nota: antiga ? antiga.nota || '' : '',
+    objetivos: antiga ? antiga.objetivos : undefined,
     estado: antiga ? antiga.estado || 'rascunho' : 'rascunho'
   };
   salvar();
@@ -2788,8 +2860,12 @@ function render(){
     S.page === 'equip' ? 'Equipamento · ' + _titAtiv :
     S.page === 'convDet' ? _titAtiv :
     (p ? p.nome : 'Painel');
+  try {
   ({ painel:vPainel, ativ:vAtividades, plano:vPlano, res:vRes, orc:vOrc, equip:vEquip, conv:vConvocatorias, convDet:vConvDetalhe,
      nad:vNadadores, idx:vIndices, cfg:vDefinicoes }[S.page] || vPainel)(v);
+  } catch(_e){ console.error(_e); v.replaceChildren(el('div', { class:'card' }, el('div', { class:'body' },
+    el('h3', {}, 'Erro ao mostrar esta secção'),
+    el('p', { class:'small muted' }, 'Recarregue a página; se persistir, veja a consola do navegador (F12).')))); }
   if (!podeEditar()) bloquearEdicao();
 }
 
@@ -2938,25 +3014,63 @@ function cardFicheiros(){
 }
 
 /* ---------- gráfico de barras ---------- */
+const fmtNum = v => Number(v).toLocaleString('pt-PT');
+function niceTicks(max, n){
+  if (max <= 0) return [0];
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), norm = raw / mag;
+  let step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  const t = []; for (let v = 0; v <= max + 1e-9; v += step) t.push(Math.round(v * 1000) / 1000);
+  if (t[t.length - 1] < max) t.push(t[t.length - 1] + step);
+  return t;
+}
 function barras(dados, opts = {}){
-  // dados: [{lb, a, b}] onde a/b são séries (b opcional)
-  const max = Math.max(1, ...dados.map(d => (d.a||0) + (d.b||0)));
-  const box = el('div', {});
-  if (opts.legenda){
-    box.append(el('div', { class:'legend', html:
-      `<span><b style="background:var(--serie-a)"></b>${esc(opts.legenda[0])}</span>` +
-      `<span><b style="background:var(--serie-b)"></b>${esc(opts.legenda[1])}</span>` }));
+  dados = dados || [];
+  const twoS = !!opts.legenda;
+  const n = dados.length || 1;
+  const max = Math.max(1, ...dados.map(d => (d.a || 0) + (d.b || 0)));
+  const W = 720, rowH = 30, top = twoS ? 30 : 12, padR = 58;
+  const left = Math.min(240, Math.max(72, ...dados.map(d => String(d.lb).length * 6.4)));
+  const barW = W - left - padR, H = top + n * rowH + 22;
+  const sx = v => left + (v / max) * barW;
+  const E = s => esc(String(s));
+  let g = `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMinYMin meet" style="display:block;font-family:inherit">`;
+  for (const t of niceTicks(max, 4)){
+    const x = sx(t).toFixed(1);
+    g += `<line x1="${x}" y1="${top - 4}" x2="${x}" y2="${top + n * rowH}" style="stroke:var(--line)" stroke-width="1"/>`;
+    g += `<text x="${x}" y="${top + n * rowH + 16}" font-size="10" text-anchor="middle" style="fill:var(--ink-3)">${fmtNum(t)}</text>`;
   }
-  const bars = el('div', { class:'bars' });
-  for (const d of dados){
-    const tot = (d.a||0) + (d.b||0);
-    const tr = el('div', { class:'tr' });
-    if (d.a) tr.append(el('i', { style:`width:${(d.a/max)*100}%;background:var(--serie-a)`, title:`${d.lb}: ${d.a}` }));
-    if (d.b) tr.append(el('i', { style:`width:${(d.b/max)*100}%;background:var(--serie-b)`, title:`${d.lb}: ${d.b}` }));
-    bars.append(el('div', { class:'bar', title:`${d.lb} — ${tot}` },
-      el('div', { class:'lb' }, d.lb), tr, el('div', { class:'vv' }, String(tot))));
+  if (twoS){
+    g += `<rect x="${left}" y="8" width="11" height="11" rx="2" style="fill:var(--serie-a)"/><text x="${left + 16}" y="18" font-size="11" style="fill:var(--ink-2)">${E(opts.legenda[0])}</text>`;
+    g += `<rect x="${left + 120}" y="8" width="11" height="11" rx="2" style="fill:var(--serie-b)"/><text x="${left + 136}" y="18" font-size="11" style="fill:var(--ink-2)">${E(opts.legenda[1])}</text>`;
   }
-  box.append(bars);
+  dados.forEach((d, i) => {
+    const y = top + i * rowH, a = d.a || 0, b = d.b || 0, tot = a + b;
+    const wa = (a / max) * barW, wb = (b / max) * barW;
+    g += `<text x="${left - 8}" y="${y + rowH / 2 + 4}" font-size="11.5" text-anchor="end" style="fill:var(--ink-2)">${E(String(d.lb).slice(0, 30))}</text>`;
+    g += `<g class="bar-hit" data-i="${i}">`;
+    g += `<rect x="${left}" y="${y + 3}" width="${barW}" height="${rowH - 6}" fill="transparent"/>`;
+    if (a) g += `<rect class="seg" x="${left}" y="${y + 5}" width="${Math.max(1, wa).toFixed(1)}" height="${rowH - 12}" rx="4" style="fill:var(--serie-a)"/>`;
+    if (b) g += `<rect class="seg" x="${(left + wa).toFixed(1)}" y="${y + 5}" width="${Math.max(1, wb).toFixed(1)}" height="${rowH - 12}" rx="4" style="fill:var(--serie-b)"/>`;
+    g += `<text x="${(left + wa + wb + 6).toFixed(1)}" y="${y + rowH / 2 + 4}" font-size="11" style="fill:var(--ink)">${fmtNum(tot)}</text>`;
+    g += `</g>`;
+  });
+  g += `</svg>`;
+  const box = el('div', { class:'chart', style:'position:relative', html:g });
+  const tip = el('div', { class:'chart-tip' }); box.append(tip);
+  box.querySelectorAll('.bar-hit').forEach(grp => {
+    const d = dados[+grp.dataset.i];
+    grp.addEventListener('mousemove', ev => {
+      const r = box.getBoundingClientRect();
+      tip.style.left = (ev.clientX - r.left) + 'px';
+      tip.style.top = (ev.clientY - r.top) + 'px';
+      tip.innerHTML = `<b>${esc(String(d.lb))}</b>` + (opts.legenda
+        ? `<br>${esc(opts.legenda[0])}: ${fmtNum(d.a || 0)}<br>${esc(opts.legenda[1])}: ${fmtNum(d.b || 0)}<br>Total: ${fmtNum((d.a || 0) + (d.b || 0))}`
+        : `<br>${fmtNum(d.a || 0)}`);
+      tip.classList.add('on');
+      grp.querySelectorAll('.seg').forEach(s => s.style.filter = 'brightness(1.12)');
+    });
+    grp.addEventListener('mouseleave', () => { tip.classList.remove('on'); grp.querySelectorAll('.seg').forEach(s => s.style.filter = ''); });
+  });
   return box;
 }
 
@@ -3015,6 +3129,7 @@ function vPainel(v){
   const nCon = st.convocados.size;
   const nAtiv = ATIVS.filter(a => a.regra.modo !== 'nominal').length;
 
+  v.append(fluxoCard());
   v.append(cardFicheiros());
 
   v.append(el('div', { class:'grid g4' },
@@ -3024,30 +3139,28 @@ function vPainel(v){
     kpi(String(nCon), 'Nadadores convocados', `${Object.keys(st.porClube).length} clubes representados`)));
 
   const box = el('div', { class:'grid g2', style:'margin-top:18px' });
-  box.append(cardGraf('Convocados por seleção',
+  box.append(cardGrafExp('Convocados por seleção',
     'Nadadores distintos convocados para pelo menos uma atividade de cada seleção.',
-    barras(SELECOES.filter(s => st.porSel[s.id]).map(s => ({ lb:s.breve, ...st.porSel[s.id] })),
-      { legenda:['Masculinos','Femininos'] })));
+    SELECOES.filter(s => st.porSel[s.id]).map(s => ({ lb:s.breve, ...st.porSel[s.id] })),
+    { legenda:['Masculinos','Femininos'] }));
 
   const nivelCount = contarPorNivel();
-  box.append(cardGraf('Nadadores que cumprem cada índice',
+  box.append(cardGrafExp('Nadadores que cumprem cada índice',
     'Melhor resultado de cada nadador no ficheiro, dentro do escalão etário aplicável.',
-    barras(nivelCount, {})));
+    nivelCount, {}));
 
   const reg = Object.entries(st.porRegiao).sort((a,b) => (b[1].a+b[1].b) - (a[1].a+a[1].b)).slice(0,12);
-  box.append(cardGraf('Convocados por associação regional', 'Nadadores distintos.',
-    reg.length ? barras(reg.map(([k,v2]) => ({ lb:k, ...v2 })), { legenda:['Masculinos','Femininos'] })
-      : el('p', { class:'muted small' }, 'Sem convocatórias geradas.')));
+  box.append(cardGrafExp('Convocados por associação regional', 'Nadadores distintos.',
+    reg.map(([k,v2]) => ({ lb:k, ...v2 })), { legenda:['Masculinos','Femininos'] }));
 
   const idades = Object.entries(st.porIdade).sort((a,b) => a[0]-b[0]);
-  box.append(cardGraf('Convocados por escalão etário', 'Idade a 31 de dezembro de 2027.',
-    idades.length ? barras(idades.map(([k,v2]) => ({ lb:`${k} anos`, ...v2 })), { legenda:['Masculinos','Femininos'] })
-      : el('p', { class:'muted small' }, 'Sem convocatórias geradas.')));
+  box.append(cardGrafExp('Convocados por escalão etário', 'Idade a 31 de dezembro de 2027.',
+    idades.map(([k,v2]) => ({ lb:`${k} anos`, ...v2 })), { legenda:['Masculinos','Femininos'] }));
   v.append(box);
 
   const clubes = Object.entries(st.porClube).sort((a,b) => b[1]-a[1]).slice(0,15);
-  if (clubes.length) v.append(cardGraf('Clubes com mais convocados', 'Nadadores distintos por clube.',
-    barras(clubes.map(([k,n]) => ({ lb:k, a:n })), {})));
+  if (clubes.length) v.append(cardGrafExp('Clubes com mais convocados', 'Nadadores distintos por clube.',
+    clubes.map(([k,n]) => ({ lb:k, a:n })), {}));
 
   cardMaterialDashboard(v);
 
@@ -3370,6 +3483,15 @@ function vConvDetalhe(v){
 
   /* informações da convocatória */
   v.append(cardBlocos(ativ));
+
+  /* objetivos (usados no relatório de provas) */
+  const _objIni = ((c.objetivos && c.objetivos.length) ? c.objetivos : (ativ.objetivos || [])).join('\n');
+  const taObj = el('textarea', { placeholder:'Um objetivo por linha. São usados no relatório de provas.' });
+  taObj.value = _objIni;
+  taObj.addEventListener('change', () => { c.objetivos = taObj.value.split('\n').map(x => x.trim()).filter(Boolean); salvar(); });
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {}, el('h3', {}, 'Objetivos da convocatória'), el('div', { class:'small muted' }, 'Herdados da atividade e editáveis. O relatório de provas usa estes objetivos.'))),
+    el('div', { class:'body' }, taObj)));
 
   /* nota geral */
   const ta = el('textarea', { placeholder:'Observações da convocatória (comunicado, logística, decisões da DTN…)' });
@@ -3921,6 +4043,8 @@ function vDefinicoes(v){
           S.cfg.convocatorias = {}; salvar(); render(); toast('Convocatórias apagadas.');
         } }, 'Apagar convocatórias'),
         el('button', { class:'btn ed', onclick:reporAplicacao }, 'Repor a aplicação')))));
+
+  cardGestaoDados(v);
 
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Critérios transversais do PAR 2027')),
@@ -4726,6 +4850,536 @@ function modalEmail(opts){
 }
 
 function guardarEEnviarTudo(){ modalEmail({}); }
+</script>
+<script>
+document.addEventListener('click', function(ev){
+  const th = ev.target.closest && ev.target.closest('.tw table thead th');
+  if (!th || !th.textContent.trim()) return;
+  const table = th.closest('table'); const head = [...th.parentNode.children]; const ci = head.indexOf(th);
+  const tb = table.tBodies[0]; if (!tb) return;
+  const dir = th.getAttribute('data-sort') === 'asc' ? -1 : 1;
+  head.forEach(x => x.removeAttribute('data-sort')); th.setAttribute('data-sort', dir === 1 ? 'asc' : 'desc');
+  const val = r => { const c = r.cells[ci]; if (!c) return { t:'', num:null }; const inp = c.querySelector('input,select');
+    const t = (inp ? inp.value : c.textContent).trim();
+    const num = parseFloat(t.replace(/[^0-9.,-]/g, '').replace('.', '').replace(',', '.'));
+    return { t, num: isNaN(num) || t === '' ? null : num }; };
+  [...tb.rows].sort((r1, r2) => { const a = val(r1), b = val(r2);
+    if (a.num != null && b.num != null) return (a.num - b.num) * dir;
+    return a.t.localeCompare(b.t, 'pt', { numeric:true }) * dir; })
+  .forEach(r => tb.appendChild(r));
+});
+</script>
+<script>
+/* ==========================================================================
+   MÓDULO FLUXO & GESTÃO DE DADOS
+   - Guia sequencial no painel que liga todos os menus.
+   - Reset/eliminação de cada "folha" de dados (em Definições e nos separadores).
+   ========================================================================== */
+
+function irRes(tab){ S.resTab = tab; irPara('res'); }
+
+function _confirmarReset(msg, fn){
+  if (!podeEditar()) return semPermissao();
+  if (!confirm(msg)) return;
+  fn(); salvar(); render(); toast('Concluído.');
+}
+
+/* ---------- resets por folha ---------- */
+function limparResultados(){ _confirmarReset('Apagar todos os resultados de competição importados (e o resumo por prova calculado)?', () => { const rc = RC(); rc.resultados = []; rc.resumoOv = {}; }); }
+function limparResumoOv(){ _confirmarReset('Repor os campos editáveis do resumo por prova (código, tipo, despesa, dias)?', () => { RC().resumoOv = {}; }); }
+function limparRecordesW(){ _confirmarReset('Apagar os recordes nacionais do separador Recordes?', () => { RC().recordes = []; }); }
+function limparPremiosW(){ _confirmarReset('Apagar as linhas de prémios do separador Prémios? (A tabela de valores/escala mantém-se.)', () => { RC().premios = []; }); }
+function reporEscalaPremios(){ _confirmarReset('Repor a tabela de prémios e as regras nos valores por defeito?', () => { const d = resPadrao(); RC().premiosEscala = d.premiosEscala; RC().premiosRN = d.premiosRN; }); }
+function limparMetas(){ _confirmarReset('Apagar os objetivos específicos guardados para os relatórios das ações?', () => { RC().metas = {}; }); }
+function limparEstatisticas(){ _confirmarReset('Eliminar TODAS as épocas das estatísticas (relatório de contas, prémios e recordes de todos os anos)?', () => { RC().anos = {}; S.estAno = null; }); }
+function eliminarEpoca(ano){ _confirmarReset('Eliminar a época ' + ano + ' das estatísticas (contas, prémios e recordes desse ano)?', () => { const a = anosStore(); delete a[ano]; if (S.estAno === ano) S.estAno = null; }); }
+function limparEquipamento(){ _confirmarReset('Apagar todo o equipamento/material associado aos nadadores (em todas as convocatórias)?', () => { S.cfg.equip = {}; }); }
+function limparOrcamentos(){ _confirmarReset('Apagar os pedidos de orçamento de todas as convocatórias?', () => { for (const id in (S.cfg.convocatorias || {})) if (S.cfg.convocatorias[id]) delete S.cfg.convocatorias[id].orc; }); }
+function limparAgenda(){ _confirmarReset('Apagar a agenda de fornecedores?', () => { S.cfg.orcAgenda = []; }); }
+function limparContasAno(ano){ _confirmarReset('Apagar a grelha do Relatório de Contas da época ' + ano + '?', () => { if (anosStore()[ano]) anosStore()[ano].contas = []; }); }
+
+/* ---------- cartão de gestão de dados (Definições) ---------- */
+function _n(x){ return (x || 0).toString(); }
+function cardGestaoDados(v){
+  const rc = (S.cfg && S.cfg.res) ? S.cfg.res : {};
+  const anos = rc.anos ? Object.keys(rc.anos) : [];
+  const equipN = Object.values(S.cfg.equip || {}).reduce((s, o) => s + Object.keys(o || {}).length, 0);
+  const orcN = Object.values(S.cfg.convocatorias || {}).filter(c => c && c.orc).length;
+  const linhas = [
+    ['Resultados de competição', _n((rc.resultados || []).length) + ' registos', 'Limpar', limparResultados],
+    ['Resumo por prova (edições)', _n(Object.keys(rc.resumoOv || {}).length) + ' competições', 'Repor', limparResumoOv],
+    ['Recordes nacionais (separador)', _n((rc.recordes || []).length) + ' recordes', 'Limpar', limparRecordesW],
+    ['Prémios (separador)', _n((rc.premios || []).length) + ' linhas', 'Limpar', limparPremiosW],
+    ['Tabela de prémios / regras', _n((rc.premiosEscala || []).length) + ' escalões', 'Repor', reporEscalaPremios],
+    ['Objetivos de relatório', _n(Object.keys(rc.metas || {}).length) + ' definidos', 'Limpar', limparMetas],
+    ['Estatísticas — épocas', anos.length ? anos.join(', ') : '—', 'Eliminar todas', limparEstatisticas],
+    ['Equipamento (material)', _n(equipN) + ' nadadores', 'Limpar', limparEquipamento],
+    ['Pedidos de orçamento', _n(orcN) + ' convocatórias', 'Limpar', limparOrcamentos],
+    ['Agenda de fornecedores', _n((S.cfg.orcAgenda || []).length) + ' contactos', 'Limpar', limparAgenda]
+  ];
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Folha de dados', 'Conteúdo', ''].map(h => el('th', {}, h)))));
+  const tb = el('tbody');
+  for (const [nome, info, lbl, fn] of linhas)
+    tb.append(el('tr', {},
+      el('td', {}, nome), el('td', { class:'small muted' }, info),
+      el('td', {}, el('button', { class:'btn sm ghost ed', style:'color:var(--bad)', onclick:fn }, lbl))));
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {}, el('h3', {}, 'Gestão de dados por folha'),
+      el('div', { class:'small muted' }, 'Faça reset ou elimine cada conjunto de dados de forma independente. Os rankings, convocatórias e a reposição total estão no cartão acima.'))),
+    el('div', { class:'body tight' }, tw)));
+}
+
+/* ---------- guia sequencial (Painel) ---------- */
+function fluxoPasso(n, titulo, desc, feito, opcional, acoes, primeiro){
+  const badge = el('div', { style:`flex:0 0 30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid var(--line);${feito ? 'background:var(--good);color:#fff;border-color:var(--good)' : 'color:var(--ink-2,#64748b)'}` }, feito ? '✓' : String(n));
+  return el('div', { style:'display:flex;gap:14px;padding:14px 0;' + (primeiro ? '' : 'border-top:1px solid var(--line)') },
+    badge,
+    el('div', { style:'flex:1;min-width:0' },
+      el('div', { style:'display:flex;gap:8px;align-items:center;flex-wrap:wrap' },
+        el('b', {}, titulo),
+        el('span', { class:'pill' + (feito ? ' ok' : '') }, feito ? 'Concluído' : (opcional ? 'Opcional' : 'Pendente'))),
+      el('div', { class:'small muted', style:'margin:3px 0 9px' }, desc),
+      el('div', { style:'display:flex;gap:8px;flex-wrap:wrap' }, ...acoes)));
+}
+function fluxoCard(){
+  const temDb = !!S.db;
+  const nConv = Object.keys(S.cfg.convocatorias || {}).length;
+  const nRes = (S.cfg.res && S.cfg.res.resultados) ? S.cfg.res.resultados.length : 0;
+  const nAnos = (S.cfg.res && S.cfg.res.anos) ? Object.keys(S.cfg.res.anos).length : 0;
+  const btn = (txt, fn, primary) => el('button', { class:'btn sm' + (primary ? ' primary' : ''), onclick:fn }, txt);
+  const passos = el('div', {});
+  passos.append(fluxoPasso(1, 'Importar rankings',
+    'Carregue o ficheiro Excel de rankings — é a base para gerar as convocatórias.', temDb, false,
+    temDb ? [btn('Gerir ficheiros', () => irPara('cfg')), btn('Acrescentar', () => escolherFicheiro('juntar'))]
+          : [btn('Importar ficheiro', () => escolherFicheiro('substituir'), true)], true));
+  passos.append(fluxoPasso(2, 'Rever atividades e plano',
+    'Confirme atividades, datas, locais e logística no Plano de Atividades.', false, true,
+    [btn('Atividades', () => irPara('ativ')), btn('Plano de Atividades', () => irPara('plano'))]));
+  passos.append(fluxoPasso(3, 'Gerar convocatórias',
+    'Gere as convocatórias das seleções a partir dos rankings importados.', nConv > 0, false,
+    temDb ? [btn('Gerar todas', () => gerarTodas(), nConv === 0), btn('Ver convocatórias', () => irPara('conv'))]
+          : [btn('Importe rankings primeiro', () => irPara('cfg'))]));
+  passos.append(fluxoPasso(4, 'Completar cada convocatória',
+    'Nadadores e provas, staff, objetivos, equipamento (material) e pedidos de orçamento — tudo a partir de cada convocatória.', false, false,
+    [btn('Abrir convocatórias', () => irPara('conv'))]));
+  passos.append(fluxoPasso(5, 'Resultados e relatórios',
+    'Importe os resultados das provas e gere os relatórios das ações (objetivos vindos da convocatória).', nRes > 0, false,
+    [btn('Resultados', () => irRes('resultados'), nRes === 0), btn('Relatórios', () => irRes('relatorios'))]));
+  passos.append(fluxoPasso(6, 'Estatísticas (multi-ano)',
+    'Importe épocas (contas, prémios e recordes) e analise em quadros e gráficos.', nAnos > 0, false,
+    [btn('Estatísticas', () => irRes('contas'))]));
+  return el('div', { class:'card', style:'margin-bottom:18px' },
+    el('header', {}, el('div', {}, el('h3', {}, 'Fluxo de trabalho'),
+      el('div', { class:'small muted' }, 'Siga os passos pela ordem — cada um liga diretamente ao menu respetivo. Os passos concluídos ficam assinalados.'))),
+    el('div', { class:'body' }, passos));
+}
+
+</script>
+<script>
+/* ==========================================================================
+   MÓDULO ESTATÍSTICAS (multi-ano) — Relatório de Contas + Prémios + Recordes
+   por época. Importa ficheiros como os anexos, deteta o ano, apresenta em
+   dashboard (KPIs, gráficos e quadros), tudo editável e exportável.
+   Também: Resultados com mais filtros.
+   ========================================================================== */
+
+function anosStore(){ const rc = RC(); if (!rc.anos) rc.anos = {}; return rc.anos; }
+function anosLista(){ return Object.keys(anosStore()).sort(); }
+function anoDetect(nome){
+  const m = String(nome || '').match(/(\d{2})\s*[-_ ]?\s*(\d{2})/);
+  if (m){ const a = +m[1], b = +m[2]; if (b === (a + 1) % 100) return `20${String(a).padStart(2,'0')}/${String(b).padStart(2,'0')}`; }
+  const y = String(nome || '').match(/20(\d{2})/); if (y) return `20${y[1]}`;
+  return 'Época';
+}
+
+/* ---------- parsers das folhas ---------- */
+function parseRecordesRows(rows){
+  let hr = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++){ const s = (rows[i]||[]).map(normH);
+    if (s.some(c => c.includes('prova/classe') || c.includes('prova classe')) && s.some(c => c.includes('praticante'))){ hr = i; break; } }
+  if (hr < 0) return [];
+  const H = (rows[hr]||[]).map(normH);
+  const c = { data:colIndex(H,['data']), prova:colIndex(H,['prova/classe','prova classe','prova']), prat:colIndex(H,['praticante']),
+    tempo:colIndex(H,['tempo']), clube:colIndex(H,['clubes','clube']), local:colIndex(H,['local']), piscina:colIndex(H,['piscina']),
+    disc:colIndex(H,['disciplina']), tipo:colIndex(H,['tipo rn','tipo']), quem:colIndex(H,['quem']) };
+  const out = [];
+  for (let i = hr+1; i < rows.length; i++){ const r = rows[i]||[];
+    const prova = c.prova>=0?String(r[c.prova]||'').trim():''; const prat = c.prat>=0?String(r[c.prat]||'').trim():'';
+    if (!prova && !prat) continue;
+    out.push({ id:resId(), data:rISO(r[c.data]), prova, praticante:prat, tempo:rTime(r[c.tempo]),
+      clube:c.clube>=0?String(r[c.clube]||'').trim():'', local:c.local>=0?String(r[c.local]||'').trim():'',
+      piscina:c.piscina>=0?String(r[c.piscina]||'').trim():'', disciplina:c.disc>=0?String(r[c.disc]||'').trim():'Pura-Natação',
+      tipo:c.tipo>=0?String(r[c.tipo]||'').trim():'', quem:c.quem>=0?String(r[c.quem]||'').trim():'' });
+  }
+  return out;
+}
+function parsePremiosRows(rows){
+  let hr = -1;
+  for (let i = 0; i < Math.min(rows.length, 30); i++){ const s = (rows[i]||[]).map(normH);
+    if (s.some(c => c.includes('nome nadador') || c === 'nome') && s.some(c => c.includes('valor'))){ hr = i; break; } }
+  if (hr < 0) return [];
+  const H = (rows[hr]||[]).map(normH);
+  const c = { nome:colIndex(H,['nome nadador','nome']), clube:colIndex(H,['clube']), data:colIndex(H,['data']),
+    prova:colIndex(H,['prova']), resultado:colIndex(H,['resultado']), rn:colIndex(H,['rn']), comp:colIndex(H,['competicao']),
+    classif:colIndex(H,['classificacao','classif']), valor:colIndex(H,['valor do premio','valor']),
+    n80:colIndex(H,['80% nadador','80%','nadador']), t20:colIndex(H,['20% treinador','20%']), treinador:colIndex(H,['treinador']) };
+  const out = [];
+  for (let i = hr+1; i < rows.length; i++){ const r = rows[i]||[];
+    const nome = c.nome>=0?String(r[c.nome]||'').trim():''; if (!nome) continue;
+    const valor = c.valor>=0 ? (Number(r[c.valor])||0) : 0;
+    out.push({ id:resId(), nome, clube:c.clube>=0?String(r[c.clube]||'').trim():'', data:rISO(r[c.data]),
+      prova:c.prova>=0?String(r[c.prova]||'').trim():'', resultado:rTime(r[c.resultado]),
+      rn:c.rn>=0?String(r[c.rn]||'').trim():'', competicao:c.comp>=0?String(r[c.comp]||'').trim():'',
+      classif:c.classif>=0?String(r[c.classif]||'').trim():'', valor,
+      nadador80:c.n80>=0?(Number(r[c.n80])||Math.round(valor*0.8)):Math.round(valor*0.8),
+      treinador20:c.t20>=0?(Number(r[c.t20])||Math.round(valor*0.2)):Math.round(valor*0.2),
+      treinador:c.treinador>=0?String(r[c.treinador]||'').trim():'' });
+  }
+  return out;
+}
+function parseContasGrid(sh){
+  const grid = (sh.rows||[]).map(r => (r||[]).map(v => v instanceof Date ? fmtDate(v) : (typeof v === 'number' ? v : String(v ?? ''))));
+  while (grid.length && grid[grid.length-1].every(x => x === '')) grid.pop();
+  return grid;
+}
+
+/* ---------- importação por ano ---------- */
+async function importarAnoEstat(file){
+  if (!podeEditar()) return semPermissao();
+  toast('A ler ' + file.name + '…');
+  let sheets; try{ sheets = await paReadSheets(await file.arrayBuffer()); }
+  catch(e){ console.error(e); return toast('Erro ao ler o Excel: ' + e.message, true); }
+  const ano = anoDetect(file.name);
+  const shC = pickSheet(sheets,'Relatório Contas') || pickSheet(sheets,'Relatorio Contas') || pickSheet(sheets,'Contas');
+  const shR = pickSheet(sheets,'Recordes');
+  const shP = pickSheet(sheets,'Prémios') || pickSheet(sheets,'Premios');
+  const dados = anosStore()[ano] || { contas:[], recordes:[], premios:[] };
+  if (shC) dados.contas = parseContasGrid(shC);
+  if (shR) dados.recordes = parseRecordesRows(shR.rows);
+  if (shP) dados.premios = parsePremiosRows(shP.rows);
+  anosStore()[ano] = dados;
+  await salvar();
+  toast(`Época ${ano}: ${dados.recordes.length} recordes, ${dados.premios.length} prémios, contas ${dados.contas.length?'✓':'—'}.`);
+  S.estAno = ano; render();
+}
+
+/* ---------- seletores de dados ---------- */
+function estRecordes(ano){ const A = anosStore(); return ano === 'todos' ? anosLista().flatMap(y => (A[y].recordes||[]).map(r => ({ ...r, _ano:y }))) : (A[ano] ? (A[ano].recordes||[]) : []); }
+function estPremios(ano){ const A = anosStore(); return ano === 'todos' ? anosLista().flatMap(y => (A[y].premios||[]).map(r => ({ ...r, _ano:y }))) : (A[ano] ? (A[ano].premios||[]) : []); }
+function contasFiliados(grid){
+  if (!grid) return null;
+  let hr = -1, cA = -1, cT = -1;
+  for (let i = 0; i < Math.min(grid.length, 10); i++){ const row = (grid[i]||[]).map(x => normH(x));
+    const ai = row.indexOf('ano'), ti = row.indexOf('total'); if (ai >= 0 && ti >= 0){ hr = i; cA = ai; cT = ti; break; } }
+  if (hr < 0) return null;
+  let best = null;
+  for (let i = hr+1; i < grid.length; i++){ const a = +String(grid[i][cA]||'').replace(/\D/g,''); const t = +String(grid[i][cT]||'').replace(/\D/g,'');
+    if (a > 1990 && t > 0 && (!best || a > best.ano)) best = { ano:a, total:t }; }
+  return best;
+}
+const contarPor = (arr, f) => { const m = {}; for (const x of arr){ const k = f(x) || '—'; m[k] = (m[k]||0) + 1; } return m; };
+const somarPor = (arr, f, g) => { const m = {}; for (const x of arr){ const k = f(x) || '—'; m[k] = (m[k]||0) + (g(x)||0); } return m; };
+const objBarras = (o, lim) => { let e = Object.entries(o).sort((a,b) => b[1]-a[1]); if (lim) e = e.slice(0,lim); return e.map(([lb,a]) => ({ lb, a })); };
+
+/* ==========================================================================
+   DASHBOARD
+   ========================================================================== */
+/* ---------- escalão dos recordes (da coluna Prova/Classe + Tipo RN) ---------- */
+function recEscalao(r){
+  if (/absolut/i.test(r.tipo || '')) return 'Absoluto';
+  const p = normH(r.prova);
+  if (/\bjun|junior/.test(p)) return 'Júnior';
+  if (/juv|juvenil/.test(p)) return 'Juvenil';
+  if (/\binf|infant/.test(p)) return 'Infantil';
+  if (/\bsen|senior/.test(p)) return 'Sénior';
+  if (/\babs\b|absolut/.test(p)) return 'Absoluto';
+  return 'Outro';
+}
+
+/* ---------- exportação de gráficos (SVG / PNG / Excel) ---------- */
+function baixar(nome, blob){
+  const u = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = u; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 1500);
+}
+function svgBarras(titulo, dados, opts = {}){
+  const W = 680, pad = 10, rowH = 26, top = 46;
+  const left = Math.min(240, Math.max(90, ...dados.map(d => String(d.lb).length * 6.2)));
+  const max = Math.max(1, ...dados.map(d => (d.a||0) + (d.b||0)));
+  const barW = W - left - 74;
+  const H = top + dados.length * rowH + 16;
+  const E = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Inter, Arial, sans-serif">`;
+  s += `<rect width="${W}" height="${H}" fill="#ffffff"/>`;
+  s += `<text x="${pad}" y="26" font-size="15" font-weight="700" fill="#0f172a">${E(titulo)}</text>`;
+  if (opts.legenda){
+    s += `<rect x="${left}" y="34" width="10" height="10" rx="2" fill="#2563eb"/><text x="${left+14}" y="43" font-size="11" fill="#334155">${E(opts.legenda[0])}</text>`;
+    s += `<rect x="${left+90}" y="34" width="10" height="10" rx="2" fill="#14b8a6"/><text x="${left+104}" y="43" font-size="11" fill="#334155">${E(opts.legenda[1])}</text>`;
+  }
+  dados.forEach((d, i) => {
+    const y = top + i * rowH; const a = d.a||0, b = d.b||0, tot = a + b;
+    const wa = (a/max)*barW, wb = (b/max)*barW;
+    s += `<text x="${left-6}" y="${y+15}" font-size="11" text-anchor="end" fill="#334155">${E(String(d.lb).slice(0,30))}</text>`;
+    if (a) s += `<rect x="${left}" y="${y+3}" width="${Math.max(1,wa).toFixed(1)}" height="16" rx="3" fill="#2563eb"/>`;
+    if (b) s += `<rect x="${(left+wa).toFixed(1)}" y="${y+3}" width="${Math.max(1,wb).toFixed(1)}" height="16" rx="3" fill="#14b8a6"/>`;
+    s += `<text x="${(left+wa+wb+6).toFixed(1)}" y="${y+16}" font-size="11" fill="#0f172a">${tot.toLocaleString('pt-PT')}</text>`;
+  });
+  return s + '</svg>';
+}
+function exportarGraficoSVG(titulo, dados, opts){ baixar(slug(titulo) + '.svg', new Blob([svgBarras(titulo, dados, opts)], { type:'image/svg+xml' })); }
+function exportarGraficoPNG(titulo, dados, opts){
+  const svg = svgBarras(titulo, dados, opts);
+  const img = new Image();
+  img.onload = () => { const sc = 2; const c = document.createElement('canvas'); c.width = img.width*sc; c.height = img.height*sc;
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height); ctx.scale(sc,sc); ctx.drawImage(img,0,0);
+    c.toBlob(b => baixar(slug(titulo) + '.png', b), 'image/png'); };
+  img.onerror = () => toast('Não foi possível gerar o PNG.', true);
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+function exportarGraficoXlsx(titulo, dados, opts){
+  opts = opts || {};
+  const head = opts.legenda ? ['Categoria', opts.legenda[0], opts.legenda[1], 'Total'] : ['Categoria', 'Valor'];
+  const rows = [head, ...dados.map(d => opts.legenda ? [d.lb, d.a||0, d.b||0, (d.a||0)+(d.b||0)] : [d.lb, d.a||0])];
+  const folhas = [{ name: titulo.slice(0,28), rows, widths:[30,12,12,10] }];
+  entregar(slug(titulo) + '.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+function cardGrafExp(titulo, sub, dados, opts){
+  opts = opts || {};
+  const temDados = dados && dados.length;
+  const tools = el('div', { class:'chips', style:'margin-top:10px' },
+    el('button', { class:'chip', onclick:() => exportarGraficoSVG(titulo, dados, opts) }, 'SVG'),
+    el('button', { class:'chip', onclick:() => exportarGraficoPNG(titulo, dados, opts) }, 'PNG'),
+    el('button', { class:'chip', onclick:() => exportarGraficoXlsx(titulo, dados, opts) }, 'Excel'));
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {}, el('h3', {}, titulo), sub ? el('div', { class:'small muted' }, sub) : null)),
+    el('div', { class:'body' }, temDados ? barras(dados, opts) : el('p', { class:'small muted' }, 'Sem dados.'), temDados ? tools : null));
+}
+
+function subEstatisticas(v){
+  const anos = anosLista();
+  $('#pgActions').append(
+    el('button', { class:'btn ed', onclick:() => escolherRes(importarAnoEstat) }, 'Importar época (Excel)'),
+    (anosLista().length && S.estAno && S.estAno !== 'todos') ? el('button', { class:'btn ed', style:'color:var(--bad)', onclick:() => eliminarEpoca(S.estAno) }, 'Eliminar época') : el('span'),
+    anosLista().length ? el('button', { class:'btn ed', style:'color:var(--bad)', onclick:limparEstatisticas }, 'Eliminar todas') : el('span'));
+  if (!anos.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem épocas importadas'),
+      el('p', {}, 'Importe ficheiros como os anexos (Relatório de Contas, Prémios FPN e Recordes Nacionais por época). O ano é detetado pelo nome do ficheiro e fica editável. Toda a informação é apresentada em quadros e gráficos, editável e exportável.')))));
+    return;
+  }
+  if (!S.estAno || (S.estAno !== 'todos' && !anos.includes(S.estAno))) S.estAno = anos[anos.length-1];
+  const ano = S.estAno;
+
+  /* seletor de épocas */
+  const chips = el('div', { class:'chips', style:'margin-bottom:16px' });
+  chips.append(el('button', { class:'chip ro-ok', 'aria-pressed':String(ano==='todos'), onclick:() => { S.estAno='todos'; render(); } }, 'Todas as épocas'));
+  for (const y of anos) chips.append(el('button', { class:'chip ro-ok', 'aria-pressed':String(ano===y), onclick:() => { S.estAno=y; render(); } }, y));
+  v.append(chips);
+
+  const recs = estRecordes(ano), prems = estPremios(ano);
+  const totalPremios = prems.reduce((s,p) => s + (Number(p.valor)||0), 0);
+  const grid = ano === 'todos' ? null : (anosStore()[ano].contas || []);
+  const fil = ano === 'todos' ? null : contasFiliados(grid);
+
+  /* KPIs */
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(recs.length), 'Recordes nacionais', ano === 'todos' ? `${anos.length} épocas` : ano),
+    kpi(String(prems.length), 'Prémios atribuídos', ano === 'todos' ? 'todas as épocas' : ano),
+    kpi(totalPremios.toLocaleString('pt-PT') + ' €', 'Valor total de prémios', ''),
+    fil ? kpi(fil.total.toLocaleString('pt-PT'), 'Praticantes filiados', 'Natação Pura · ' + fil.ano)
+        : kpi(String(anos.length), 'Épocas importadas', anos.join(' · '))));
+
+  /* gráficos */
+  const box = el('div', { class:'grid g2', style:'margin-top:18px' });
+  if (ano === 'todos'){
+    box.append(cardGrafExp('Recordes nacionais por época', 'Número de recordes registados em cada época.',
+      anos.map(y => ({ lb:y, a:(anosStore()[y].recordes||[]).length }))));
+    box.append(cardGrafExp('Valor de prémios por época (€)', 'Soma dos prémios atribuídos por época.',
+      anos.map(y => ({ lb:y, a:(anosStore()[y].premios||[]).reduce((s,p)=>s+(Number(p.valor)||0),0) }))));
+  } else {
+    box.append(cardGrafExp('Recordes por piscina', 'P50 vs P25.', objBarras(contarPor(recs, r => r.piscina))));
+    box.append(cardGrafExp('Recordes por tipo', 'Absoluto, Categoria, etc.', objBarras(contarPor(recs, r => r.tipo))));
+  }
+  box.append(cardGrafExp('Recordes por escalão', 'Extraído da coluna Prova/Classe e do Tipo RN.', objBarras(contarPor(recs, recEscalao))));
+  box.append(cardGrafExp('Prémios por competição (€)', 'Soma do valor por competição.',
+    objBarras(somarPor(prems, p => p.competicao, p => Number(p.valor)||0), 12)));
+  box.append(cardGrafExp('Nadadores com mais prémios (€)', 'Top por valor recebido.',
+    objBarras(somarPor(prems, p => p.nome, p => Number(p.valor)||0), 12)));
+  v.append(box);
+
+  /* quadro: recordes */
+  v.append(estTabelaRecordes(ano, recs));
+  /* quadro: prémios */
+  v.append(estTabelaPremios(ano, prems, totalPremios));
+  /* quadro: contas (grelha editável) por época */
+  if (ano === 'todos'){
+    for (const y of anos){ const g = anosStore()[y].contas || []; if (g.length) v.append(estCardContas(y, g)); }
+  } else {
+    v.append(estCardContas(ano, grid || []));
+  }
+}
+
+function estTabelaRecordes(ano, recs){
+  const filtro = el('input', { class:'ro-ok', placeholder:'Filtrar recordes (prova, praticante, clube, tipo, local)…', style:'width:100%;margin:10px 0' });
+  const cont = el('div');
+  const pintar = () => {
+    const q = normH(filtro.value);
+    const dados = recs.filter(r => !q || normH([r.prova,r.praticante,r.clube,r.tipo,r.local,r.piscina].join(' ')).includes(q));
+    const tw = el('div', { class:'tw' }); const t = el('table');
+    const head = ['Data','Prova/Classe','Praticante','Tempo','Clube','Local','Piscina','Tipo','Quem'].concat(ano==='todos'?['Época']:[]).concat(['']);
+    t.append(el('thead', {}, el('tr', {}, ...head.map(h => el('th', {}, h)))));
+    const tb = el('tbody');
+    for (const r of dados.slice(0,300)){
+      const tds = [el('td',{class:'small mono'}, r.data?fmtDate(r.data):''), el('td',{class:'small'},r.prova),
+        el('td',{class:'small'},r.praticante), el('td',{class:'mono'},r.tempo||''), el('td',{},r.clube),
+        el('td',{class:'small'},r.local), el('td',{},r.piscina), el('td',{class:'small'},r.tipo), el('td',{class:'small'},r.quem)];
+      if (ano==='todos') tds.push(el('td',{class:'small mono'}, r._ano||''));
+      tds.push(el('td',{}, ano==='todos'?el('span',{class:'small muted'},'—'):el('button',{class:'btn sm ghost ed',onclick:()=>editarRegistoAno('recordes',ano,r.id)},'Editar')));
+      tb.append(el('tr',{},...tds));
+    }
+    t.append(tb); tw.append(t);
+    cont.replaceChildren(el('div',{class:'card'}, el('div',{class:'body tight'}, tw)));
+    if (dados.length>300) cont.append(el('p',{class:'small muted'}, `A mostrar 300 de ${dados.length}.`));
+  };
+  filtro.addEventListener('input', pintar); pintar();
+  return el('div', { style:'margin-top:18px' },
+    el('div', { style:'display:flex;align-items:center;gap:10px' },
+      el('h3', { style:'margin:0' }, 'Recordes Nacionais'), el('span',{class:'sp',style:'flex:1'}),
+      ano!=='todos'?el('button',{class:'btn sm ed',onclick:()=>editarRegistoAno('recordes',ano,null)},'+ Recorde'):null,
+      ano!=='todos'?el('button',{class:'btn sm',onclick:()=>exportarDatasetAno('recordes',ano)},'Exportar'):null),
+    filtro, cont);
+}
+
+function estTabelaPremios(ano, prems, total){
+  const filtro = el('input', { class:'ro-ok', placeholder:'Filtrar prémios (nadador, competição, prova, treinador)…', style:'width:100%;margin:10px 0' });
+  const cont = el('div');
+  const pintar = () => {
+    const q = normH(filtro.value);
+    const dados = prems.filter(p => !q || normH([p.nome,p.competicao,p.prova,p.treinador,p.classif].join(' ')).includes(q));
+    const tw = el('div', { class:'tw' }); const t = el('table');
+    const head = ['Nadador','Clube','Data','Prova','Resultado','Comp.','Class.','Valor (€)','80% Nad.','20% Trein.','Treinador'].concat(ano==='todos'?['Época']:[]).concat(['']);
+    t.append(el('thead', {}, el('tr', {}, ...head.map(h => el('th', {}, h)))));
+    const tb = el('tbody');
+    for (const p of dados){
+      const tds = [el('td',{},p.nome), el('td',{class:'small'},p.clube||''), el('td',{class:'small mono'}, p.data?fmtDate(p.data):''),
+        el('td',{class:'small'},p.prova), el('td',{class:'mono small'},p.resultado||''), el('td',{class:'small'},p.competicao),
+        el('td',{class:'mono'},p.classif||''), el('td',{class:'mono'}, (Number(p.valor)||0).toLocaleString('pt-PT')),
+        el('td',{class:'mono'},String(p.nadador80??'')), el('td',{class:'mono'},String(p.treinador20??'')), el('td',{class:'small'},p.treinador||'')];
+      if (ano==='todos') tds.push(el('td',{class:'small mono'}, p._ano||''));
+      tds.push(el('td',{}, ano==='todos'?el('span',{class:'small muted'},'—'):el('button',{class:'btn sm ghost ed',onclick:()=>editarRegistoAno('premios',ano,p.id)},'Editar')));
+      tb.append(el('tr',{},...tds));
+    }
+    t.append(tb); tw.append(t);
+    cont.replaceChildren(el('div',{class:'card'}, el('div',{class:'body tight'}, tw)));
+  };
+  filtro.addEventListener('input', pintar); pintar();
+  return el('div', { style:'margin-top:18px' },
+    el('div', { style:'display:flex;align-items:center;gap:10px' },
+      el('h3', { style:'margin:0' }, 'Prémios'), el('span',{class:'sp',style:'flex:1'}),
+      el('span',{class:'pill'}, 'Total: ' + total.toLocaleString('pt-PT') + ' €'),
+      ano!=='todos'?el('button',{class:'btn sm ed',onclick:()=>editarRegistoAno('premios',ano,null)},'+ Prémio'):null,
+      ano!=='todos'?el('button',{class:'btn sm',onclick:()=>exportarDatasetAno('premios',ano)},'Exportar'):null),
+    filtro, cont);
+}
+
+function estCardContas(ano, grid){
+  const tw = el('div', { class:'tw' }); const t = el('table'); const tb = el('tbody');
+  grid.forEach((row, ri) => {
+    const tr = el('tr', {});
+    row.forEach((cell, ci) => tr.append(el('td', {}, inputCell(cell, val => { grid[ri][ci] = val; salvar(); }, { class:'cell-in ed', style:'min-width:80px' }))));
+    tb.append(tr);
+  });
+  t.append(tb); tw.append(t);
+  return el('div', { style:'margin-top:18px' },
+    el('div', { style:'display:flex;align-items:center;gap:10px' },
+      el('h3', { style:'margin:0' }, 'Relatório de Contas — ' + ano), el('span',{class:'sp',style:'flex:1'}),
+      el('button',{class:'btn sm ed',onclick:()=>{ { const _c = anosStore()[ano]; if(!_c.contas) _c.contas = []; _c.contas.push(new Array(Math.max(2,(grid[0]||[]).length)).fill('')); } salvar(); render(); }},'+ Linha'),
+      el('button',{class:'btn sm',onclick:()=>exportarDatasetAno('contas',ano)},'Exportar')),
+    el('div',{class:'card',style:'margin-top:8px'}, el('div',{class:'body tight'}, grid.length?tw:el('p',{class:'small muted'},'Sem dados de contas para esta época.'))));
+}
+
+/* ---------- edição de registos por ano ---------- */
+function editarRegistoAno(tipo, ano, id){
+  if (!podeEditar()) return semPermissao();
+  const arr = anosStore()[ano][tipo] || (anosStore()[ano][tipo] = []);
+  const obj = id ? arr.find(x => x.id === id) : null;
+  const campos = tipo === 'recordes'
+    ? [['data','Data (AAAA-MM-DD)'],['prova','Prova/Classe'],['praticante','Praticante'],['tempo','Tempo'],['clube','Clube'],['local','Local'],['piscina','Piscina'],['tipo','Tipo RN'],['quem','Quem']]
+    : [['nome','Nadador'],['clube','Clube'],['data','Data'],['prova','Prova'],['resultado','Resultado'],['rn','RN'],['competicao','Competição'],['classif','Classificação'],['valor','Valor (€)'],['treinador','Treinador']];
+  const base = obj || { id:resId() };
+  const ins = {}; const g = el('div', { class:'grid g2' });
+  for (const [k,l] of campos){ const inp = el('input', { value: base[k] ?? '' }); ins[k] = inp; g.append(el('label',{class:'f'},el('span',{},l),inp)); }
+  abrirModal((id?'Editar ':'Adicionar ')+(tipo==='recordes'?'recorde':'prémio')+' · '+ano, g, [
+    ...(id?[el('button',{class:'btn ghost',style:'color:var(--bad)',onclick:()=>{ const i=arr.indexOf(obj); if(i>=0)arr.splice(i,1); salvar(); fecharModal(); render(); }},'Remover')]:[]),
+    el('button',{class:'btn',onclick:fecharModal},'Cancelar'),
+    el('button',{class:'btn primary',onclick:()=>{
+      for (const [k] of campos) base[k] = k==='valor' ? (Number(ins[k].value)||0) : ins[k].value.trim();
+      if (tipo==='premios'){ base.nadador80 = Math.round((base.valor||0)*0.8); base.treinador20 = Math.round((base.valor||0)*0.2); }
+      if (!id) arr.push(base);
+      salvar(); fecharModal(); render();
+    }},'Guardar')]);
+}
+
+/* ---------- exportação ---------- */
+async function exportarDatasetAno(tipo, ano){
+  const d = anosStore()[ano]; if (!d) return;
+  let folhas;
+  if (tipo === 'recordes'){
+    folhas = [{ name:'Recordes '+ano, rows:[['Data','Prova/Classe','Praticante','Tempo','Clubes','Local','Piscina','Disciplina','Tipo RN','Quem'],
+      ...(d.recordes||[]).map(r => [r.data,r.prova,r.praticante,r.tempo,r.clube,r.local,r.piscina,r.disciplina,r.tipo,r.quem])], widths:[12,20,28,12,10,16,8,14,12,16] }];
+  } else if (tipo === 'premios'){
+    folhas = [{ name:'Prémios '+ano, rows:[['Nome Nadador','Clube','Data','Prova','Resultado','RN','Competição','Classificação','Valor do Prémio','80% Nadador','20% Treinador','Treinador'],
+      ...(d.premios||[]).map(p => [p.nome,p.clube,p.data,p.prova,p.resultado,p.rn,p.competicao,p.classif,p.valor,p.nadador80,p.treinador20,p.treinador])], widths:[26,8,12,16,12,10,14,12,14,12,12,20] }];
+  } else {
+    folhas = [{ name:'Contas '+ano, rows:(d.contas||[]), widths:(d.contas&&d.contas[0]?d.contas[0].map(()=>14):[14]) }];
+  }
+  await entregar(`${tipo}_${ano.replace(/\//g,'-')}.xlsx`, buildXlsx(folhas), 'xlsx', folhas);
+}
+
+/* ==========================================================================
+   RESULTADOS — versão com mais filtros
+   ========================================================================== */
+function subResultadosF(v){
+  const rc = RC();
+  $('#pgActions').append(
+    el('button', { class:'btn ed', onclick:() => escolherRes(importarResultados) }, 'Importar resultados (Excel)'),
+    el('button', { class:'btn ed', onclick:() => editarResultado(null) }, '+ Adicionar'),
+    el('button', { class:'btn', onclick:exportarResultadosXlsx }, 'Exportar Excel'),
+    el('button', { class:'btn ed', style:'color:var(--bad)', onclick:limparResultados }, 'Limpar'));
+  if (!rc.resultados.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem resultados'),
+      el('p', {}, 'Importe a folha de Resultados (estrutura da FPN) ou adicione à mão.')))));
+    return;
+  }
+  const distintos = k => [...new Set(rc.resultados.map(r => (r[k]||'').toString().trim()).filter(Boolean))].sort();
+  const selFrom = (arr, lbl, key) => { const s = el('select', { class:'ro-ok' }, el('option',{value:''}, lbl), ...arr.map(x => el('option',{value:x}, x)));
+    s.dataset.key = key; return s; };
+  const fTxt = el('input', { class:'ro-ok', placeholder:'Texto livre…', style:'flex:1;min-width:160px' });
+  const fComp = selFrom(distintos('competicao'), 'Competição', 'competicao');
+  const fEsc  = selFrom(distintos('escalao'), 'Escalão', 'escalao');
+  const fSexo = selFrom(['Masculino','Feminino','M','F'].filter(x => rc.resultados.some(r => (r.sexo||'')===x)) , 'Sexo', 'sexo');
+  const fFase = selFrom(distintos('fase'), 'Fase', 'fase');
+  const fProva = selFrom(distintos('prova'), 'Prova', 'prova');
+  const barra = el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px' }, fTxt, fComp, fEsc, fSexo, fProva, fFase);
+  v.append(barra);
+  const cont = el('div'); v.append(cont);
+  const pintar = () => {
+    const q = normH(fTxt.value);
+    const dados = rc.resultados.filter(r => {
+      if (q && !normH([r.nome,r.prova,r.competicao,r.classif,r.obs].join(' ')).includes(q)) return false;
+      for (const s of [fComp,fEsc,fSexo,fFase,fProva]){ if (s.value && (r[s.dataset.key]||'').toString().trim() !== s.value) return false; }
+      return true;
+    });
+    cont.replaceChildren(el('div',{class:'small muted',style:'margin-bottom:8px'}, `${dados.length} resultados`), tabelaResultados(dados.slice(0,400)));
+    if (dados.length > 400) cont.append(el('p', { class:'small muted' }, `A mostrar 400 de ${dados.length}. Refine os filtros.`));
+  };
+  [fTxt,fComp,fEsc,fSexo,fFase,fProva].forEach(x => x.addEventListener('input', pintar));
+  pintar();
+}
+
 </script>
 <script>
 /* ==========================================================================
@@ -5879,7 +6533,8 @@ function relatorioProvasBlocos(competicao, codigo){
 
   /* 2. Objetivos */
   B.push({ h2: '2. Objetivos Gerais e Específicos' });
-  if (ativ && ativ.objetivos) B.push({ bullets: ativ.objetivos });
+  const _objs = (c && c.objetivos && c.objetivos.length) ? c.objetivos : (ativ ? ativ.objetivos : null);
+  if (_objs && _objs.length) B.push({ bullets: _objs });
   const m = rc.metas[codigo] || rc.metas[competicao] || {};
   const metasBul = [];
   if (m.finais8 != null) metasBul.push(`Classificações nos 8 primeiros: ${m.finais8}.`);
@@ -5942,8 +6597,8 @@ function subtabs(v){
 }
 function vRes(v){
   subtabs(v);
-  ({ resultados:subResultados, resumo:subResumo, recordes:subRecordes,
-     premios:subPremios, contas:subContas, relatorios:subRelatorios }[S.resTab || 'resultados'])(v);
+  ({ resultados:subResultadosF, resumo:subResumo, recordes:subRecordes,
+     premios:subPremios, contas:subEstatisticas, relatorios:subRelatorios }[S.resTab || 'resultados'])(v);
 }
 
 /* pequena tabela editável genérica (para grelhas pequenas) */
@@ -6053,7 +6708,8 @@ function subRecordes(v){
   $('#pgActions').append(
     el('button', { class:'btn ed', onclick:() => escolherRes(importarRecordes) }, 'Importar recordes (Excel)'),
     el('button', { class:'btn ed', onclick:() => editarRecorde(null) }, '+ Adicionar'),
-    el('button', { class:'btn', onclick:exportarRecordesXlsx }, 'Exportar Excel'));
+    el('button', { class:'btn', onclick:exportarRecordesXlsx }, 'Exportar Excel'),
+    el('button', { class:'btn ed', style:'color:var(--bad)', onclick:limparRecordesW }, 'Limpar'));
   if (!rc.recordes.length){ v.append(msgVazio('Importe a folha de Recordes Nacionais ou adicione à mão. Os recordes ficam gravados e podem ser atualizados por nova importação.')); return; }
   const filtro = el('input', { class:'ro-ok', placeholder:'Filtrar por prova, praticante ou tipo…', style:'width:100%;margin-bottom:12px' });
   const cont = el('div'); v.append(filtro, cont);
@@ -6096,7 +6752,8 @@ function subPremios(v){
   $('#pgActions').append(
     el('button', { class:'btn ed', onclick:() => { calcularPremios(); resSave(); render(); toast('Prémios recalculados a partir dos resultados.'); } }, 'Calcular automaticamente'),
     el('button', { class:'btn ed', onclick:() => editarPremio(null) }, '+ Linha manual'),
-    el('button', { class:'btn', onclick:exportarPremiosXlsx }, 'Exportar Excel'));
+    el('button', { class:'btn', onclick:exportarPremiosXlsx }, 'Exportar Excel'),
+    el('button', { class:'btn ed', style:'color:var(--bad)', onclick:limparPremiosW }, 'Limpar'));
   /* escala */
   const esc = el('div', { class:'tw' }); const te = el('table');
   te.append(el('thead', {}, el('tr', {}, ...['Competição','Classificação','Valor (€)',''].map(h => el('th', {}, h)))));
