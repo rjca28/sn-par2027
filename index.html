@@ -327,6 +327,133 @@ ul.crit b{color:var(--ink)}
 .cell-in:hover{border-color:var(--line)} .cell-in:focus{border-color:var(--accent);background:var(--surface)}
 .tw table td .cell-in{margin:-2px 0}
 </style>
+<style id="upg2027">
+/* ==========================================================================
+   ATUALIZAÇÃO 2027 · cores mais vivas, leitura mais fácil, guia sequencial,
+   separadores segmentados, dashboards e gráficos interativos.
+   ========================================================================== */
+
+/* ---- paleta mais viva e legível (claro) ---- */
+:root{
+  --accent:#0b6cc9; --accent-ink:#0a4f97; --accent-soft:#e6f1fc;
+  --serie-a:#0b6cc9; --serie-b:#e2603f;
+  --teal:#0f9d94; --coral:#e2603f; --violet:#6d54d6; --amber:#d99320; --pink:#c9418f;
+  --ink-3:#6b8093;
+  --grad:linear-gradient(120deg,#0b6cc9 0%,#0f9d94 100%);
+  --grad-soft:linear-gradient(120deg,#e6f1fc 0%,#e2f5f2 100%);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --accent:#5fb4f0; --accent-ink:#93cef5; --accent-soft:#13324a;
+  --serie-a:#5fb4f0; --serie-b:#f0906f;
+  --teal:#40c9bd; --coral:#f0906f; --violet:#a48ff0; --amber:#e6bd5c; --pink:#e982bf;
+  --ink-3:#82a0b6;
+  --grad:linear-gradient(120deg,#3d93c4 0%,#1e9a90 100%);
+  --grad-soft:linear-gradient(120deg,#123044 0%,#123a37 100%);
+}}
+:root[data-theme="dark"]{
+  --accent:#5fb4f0; --accent-ink:#93cef5; --accent-soft:#13324a;
+  --serie-a:#5fb4f0; --serie-b:#f0906f;
+  --teal:#40c9bd; --coral:#f0906f; --violet:#a48ff0; --amber:#e6bd5c; --pink:#e982bf;
+  --ink-3:#82a0b6;
+  --grad:linear-gradient(120deg,#3d93c4 0%,#1e9a90 100%);
+  --grad-soft:linear-gradient(120deg,#123044 0%,#123a37 100%);
+}
+
+/* ---- leitura mais fácil ---- */
+.small{font-size:13px}
+td{padding:9px 10px}
+.card>header{background:var(--grad-soft)}
+.brand .lanes i{background:var(--grad);opacity:1}
+.brand .lanes i:nth-child(1){opacity:.4}.brand .lanes i:nth-child(2){opacity:.6}
+.brand .lanes i:nth-child(3){opacity:.8}.brand .lanes i:nth-child(4){opacity:1}
+.brand h1{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.topbar h2{letter-spacing:.005em}
+nav button[aria-current="true"]{position:relative;background:var(--accent-soft);color:var(--accent-ink)}
+nav button[aria-current="true"]::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;
+  border-radius:3px;background:var(--grad)}
+.btn.primary{background:var(--grad);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.06)}
+
+/* ---- KPI com barra de cor no topo ---- */
+.kpi{position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--grad)}
+.kpi.teal::before{background:var(--teal)}.kpi.coral::before{background:var(--coral)}
+.kpi.violet::before{background:var(--violet)}.kpi.amber::before{background:var(--amber)}
+.kpi .v{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi.plain .v{background:none;color:var(--ink);-webkit-text-fill-color:currentColor}
+
+/* ---- separadores segmentados (subtabs) ---- */
+.segbar{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface-2);margin-bottom:18px}
+.segbar button{border:0;background:none;cursor:pointer;font-family:var(--font-d);font-weight:600;
+  font-size:13.5px;color:var(--ink-2);padding:6px 13px;border-radius:8px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px}
+.segbar button:hover{color:var(--ink)}
+.segbar button[aria-pressed="true"]{background:var(--surface);color:var(--accent-ink);
+  box-shadow:0 1px 2px rgba(14,33,49,.12)}
+.segbar .dot{width:7px;height:7px;border-radius:99px;background:var(--good);flex:none}
+.segbar .dot.off{background:var(--line)}
+
+/* ---- guia sequencial (stepper) ---- */
+.guia{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-bottom:18px}
+.guia .passo{flex:1;min-width:150px;display:flex;gap:10px;align-items:center;text-align:left;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  box-shadow:var(--shadow);transition:.12s}
+.guia .passo:hover{border-color:var(--accent);transform:translateY(-1px)}
+.guia .passo .n{width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:99px;
+  font-family:var(--font-d);font-weight:700;font-size:13px;background:var(--surface-3);color:var(--ink-3)}
+.guia .passo .tt{font-family:var(--font-d);font-weight:700;font-size:13.5px;line-height:1.1;color:var(--ink)}
+.guia .passo .ss{font-size:11px;color:var(--ink-3);margin-top:2px}
+.guia .passo.feito .n{background:var(--good);color:#fff}
+.guia .passo.ativo{border-color:var(--accent)}
+.guia .passo.ativo .n{background:var(--grad);color:#fff}
+.guia .passo.ativo{outline:2px solid var(--accent-soft)}
+.guia .seta{align-self:center;color:var(--ink-3);flex:none}
+@media (max-width:760px){.guia .seta{display:none}.guia .passo{min-width:120px}}
+
+/* ---- barra de filtros ---- */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:14px}
+.toolbar .fld{display:flex;flex-direction:column;gap:3px}
+.toolbar .fld>span{font-family:var(--font-d);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  font-size:10.5px;color:var(--ink-3)}
+.toolbar input,.toolbar select{padding:5px 8px;font-size:13px;min-width:120px}
+.toolbar input[type=date]{min-width:auto}
+.toolbar .fill{flex:1;min-width:150px}
+
+/* ---- cabeçalho de tabela ordenável ---- */
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--accent-ink)}
+th.sortable .ar{font-size:9px;opacity:.6;margin-left:3px}
+tbody tr:nth-child(even) td{background:color-mix(in srgb, var(--surface-2) 55%, transparent)}
+tbody tr:hover td{background:var(--surface-2)}
+
+/* ---- gráficos SVG ---- */
+.chart{width:100%;overflow:visible}
+.chart .axis{stroke:var(--line);stroke-width:1}
+.chart .grid{stroke:var(--line-2);stroke-width:1}
+.chart text{fill:var(--ink-3);font-family:var(--font-d);font-size:11px}
+.chart .val{fill:var(--ink-2);font-family:var(--font-m);font-size:10.5px}
+.chart .bar rect{transition:.12s}
+.chart .bar:hover rect{filter:brightness(1.12)}
+.chart .pt{transition:.12s}
+.chart .pt:hover{r:5}
+.chartleg{display:flex;flex-wrap:wrap;gap:12px;margin:2px 0 10px;font-size:12px;color:var(--ink-2)}
+.chartleg span{display:inline-flex;align-items:center;gap:6px}
+.chartleg b{width:11px;height:11px;border-radius:3px;display:inline-block}
+.donutwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.donutwrap .lg{display:flex;flex-direction:column;gap:5px;font-size:12.5px;min-width:150px}
+.donutwrap .lg .it{display:flex;align-items:center;gap:8px}
+.donutwrap .lg b{width:11px;height:11px;border-radius:3px;flex:none}
+.donutwrap .lg .vv{margin-left:auto;font-family:var(--font-m);color:var(--ink-2)}
+
+/* ---- chips de época ---- */
+.anos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px}
+.anos .lbl{font-family:var(--font-d);font-weight:600;font-size:11px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--ink-3);margin-right:2px}
+
+/* ---- estado sem dados dentro de cartão ---- */
+.mini-empty{padding:20px;text-align:center;color:var(--ink-3);font-size:13px}
+</style>
 
 <div class="app">
   <aside class="rail">
@@ -8254,6 +8381,852 @@ function abrirNoPlano(evento){
   irPara('plano');
   ensurePlanoFrame();
   setTimeout(() => { try{ __planoFrame.contentWindow.postMessage({ __par:'focus', q:evento }, '*'); }catch(e){} }, 280);
+}
+</script>
+<script>
+/* ==========================================================================
+   ATUALIZAÇÃO 2027 — módulo adicional
+   · Guia sequencial que interliga os menus
+   · Gráficos SVG interativos (barras, linhas, anel)
+   · Estatísticas multi-ano (Relatório de Contas, Prémios, Recordes por época)
+     apresentadas em dashboard, tudo editável e exportável
+   · Resultados com mais filtros e ordenação
+   · Repor/eliminar cada folha de dados
+   Redefine funções já existentes por reatribuição (não altera o código anterior).
+   ========================================================================== */
+
+/* ---------- estado de resultados: acrescentar arquivo multi-ano ---------- */
+(function(){
+  var _orig = window.resPadrao;
+  window.resPadrao = function(){
+    var d = _orig();
+    if (!d.estat) d.estat = { anos:{} };   /* { "2027": { contas:[[..]], premios:[..], recordes:[..], despesa:null, em:iso } } */
+    return d;
+  };
+})();
+function EST(){ var rc = RC(); if (!rc.estat) rc.estat = { anos:{} }; if (!rc.estat.anos) rc.estat.anos = {}; return rc.estat; }
+function anosOrdenados(){ return Object.keys(EST().anos).sort(); }
+
+/* ======================================================================
+   GRÁFICOS SVG (temáveis, com tooltip por <title> e realce ao passar)
+   ====================================================================== */
+function _nice(step){
+  if (step <= 0) return 1;
+  var p = Math.pow(10, Math.floor(Math.log10(step)));
+  var f = step / p;
+  var n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+  return n * p;
+}
+function _fmt(n, fmt){
+  if (n == null || isNaN(n)) return '—';
+  if (fmt === 'eur') return Math.round(n).toLocaleString('pt-PT') + ' €';
+  if (fmt === 'pct') return Math.round(n) + '%';
+  var r = Math.round(n * 10) / 10;
+  return r.toLocaleString('pt-PT');
+}
+var CHART_CORES = ['var(--serie-a)','var(--coral)','var(--teal)','var(--violet)','var(--amber)','var(--pink)'];
+
+/* barras verticais (agrupadas ou empilhadas) */
+function graficoBarras(dados, o){
+  o = o || {};
+  var series = o.series || [''], cores = o.cores || CHART_CORES, fmt = o.fmt;
+  var W = 720, H = o.altura || 250, mL = 52, mR = 14, mT = 16, mB = 52;
+  var iw = W - mL - mR, ih = H - mT - mB;
+  var n = Math.max(dados.length, 1);
+  var max = 0;
+  dados.forEach(function(d){
+    var vs = d.vals || [d.v || 0];
+    var s = o.empilhado ? vs.reduce(function(a,b){ return a + (b||0); }, 0) : Math.max.apply(null, vs.map(function(x){ return x||0; }).concat([0]));
+    if (s > max) max = s;
+  });
+  max = max || 1;
+  var step = _nice(max / 4), top = step * Math.ceil(max / step) || step;
+  var g = [];
+  for (var t = 0; t <= top + 1e-9; t += step){
+    var y = mT + ih - (t / top) * ih;
+    g.push('<line class="grid" x1="' + mL + '" y1="' + y.toFixed(1) + '" x2="' + (W - mR) + '" y2="' + y.toFixed(1) + '"/>');
+    g.push('<text x="' + (mL - 8) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end">' + esc(_fmt(t, fmt)) + '</text>');
+  }
+  var bw = iw / n, inner = Math.min(bw * 0.7, 64), pad = (bw - inner) / 2;
+  dados.forEach(function(d, i){
+    var x0 = mL + i * bw + pad;
+    var vs = d.vals || [d.v || 0];
+    if (o.empilhado){
+      var acc = 0;
+      vs.forEach(function(val, s){
+        val = val || 0; if (val <= 0) return;
+        var h = (val / top) * ih, y = mT + ih - ((acc + val) / top) * ih;
+        g.push('<g class="bar"><rect x="' + x0.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + inner.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" fill="' + cores[s % cores.length] + '"><title>' + esc(d.lb + ' · ' + (series[s]||'') + ': ' + _fmt(val, fmt)) + '</title></rect></g>');
+        acc += val;
+      });
+    } else {
+      var sw = inner / vs.length;
+      vs.forEach(function(val, s){
+        val = val || 0;
+        var h = (val / top) * ih, y = mT + ih - h;
+        g.push('<g class="bar"><rect x="' + (x0 + s * sw).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + Math.max(sw - 2, 1).toFixed(1) + '" height="' + Math.max(h, 0).toFixed(1) + '" rx="2" fill="' + cores[s % cores.length] + '"><title>' + esc(d.lb + (series[s] ? ' · ' + series[s] : '') + ': ' + _fmt(val, fmt)) + '</title></rect></g>');
+      });
+    }
+    g.push('<text x="' + (x0 + inner / 2).toFixed(1) + '" y="' + (mT + ih + 16) + '" text-anchor="middle">' + esc(String(d.lb).slice(0, 12)) + '</text>');
+  });
+  g.push('<line class="axis" x1="' + mL + '" y1="' + (mT + ih) + '" x2="' + (W - mR) + '" y2="' + (mT + ih) + '"/>');
+  var box = el('div', {});
+  if (series.length > 1 || o.legenda){
+    var nomes = o.legenda || series;
+    box.append(el('div', { class:'chartleg', html: nomes.map(function(nm, i){
+      return '<span><b style="background:' + cores[i % cores.length] + '"></b>' + esc(nm) + '</span>';
+    }).join('') }));
+  }
+  box.append(el('div', { html: '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img">' + g.join('') + '</svg>' }));
+  return box;
+}
+
+/* linha(s) com pontos */
+function graficoLinha(labels, series, o){
+  o = o || {};
+  var cores = o.cores || CHART_CORES, fmt = o.fmt;
+  var W = 720, H = o.altura || 250, mL = 52, mR = 16, mT = 16, mB = 46;
+  var iw = W - mL - mR, ih = H - mT - mB;
+  var n = Math.max(labels.length, 1);
+  var max = 0, min = 0;
+  series.forEach(function(s){ (s.vals || []).forEach(function(v){ if (v > max) max = v; if (v < min) min = v; }); });
+  max = max || 1; var step = _nice((max - min) / 4), top = step * Math.ceil(max / step) || step;
+  var bot = min < 0 ? step * Math.floor(min / step) : 0;
+  var span = (top - bot) || 1;
+  var xAt = function(i){ return mL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw); };
+  var yAt = function(v){ return mT + ih - ((v - bot) / span) * ih; };
+  var g = [];
+  for (var t = bot; t <= top + 1e-9; t += step){
+    var y = yAt(t);
+    g.push('<line class="grid" x1="' + mL + '" y1="' + y.toFixed(1) + '" x2="' + (W - mR) + '" y2="' + y.toFixed(1) + '"/>');
+    g.push('<text x="' + (mL - 8) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end">' + esc(_fmt(t, fmt)) + '</text>');
+  }
+  labels.forEach(function(lb, i){
+    g.push('<text x="' + xAt(i).toFixed(1) + '" y="' + (mT + ih + 16) + '" text-anchor="middle">' + esc(String(lb).slice(0, 12)) + '</text>');
+  });
+  series.forEach(function(s, si){
+    var col = s.cor || cores[si % cores.length];
+    var pts = (s.vals || []).map(function(v, i){ return xAt(i).toFixed(1) + ',' + yAt(v || 0).toFixed(1); });
+    if (pts.length > 1) g.push('<polyline fill="none" stroke="' + col + '" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' + pts.join(' ') + '"/>');
+    (s.vals || []).forEach(function(v, i){
+      g.push('<circle class="pt" cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(v || 0).toFixed(1) + '" r="3.4" fill="' + col + '"><title>' + esc((s.nome ? s.nome + ' · ' : '') + labels[i] + ': ' + _fmt(v, fmt)) + '</title></circle>');
+    });
+  });
+  g.push('<line class="axis" x1="' + mL + '" y1="' + (mT + ih) + '" x2="' + (W - mR) + '" y2="' + (mT + ih) + '"/>');
+  var box = el('div', {});
+  if (series.length > 1) box.append(el('div', { class:'chartleg', html: series.map(function(s, i){
+    return '<span><b style="background:' + (s.cor || cores[i % cores.length]) + '"></b>' + esc(s.nome || '') + '</span>';
+  }).join('') }));
+  box.append(el('div', { html: '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img">' + g.join('') + '</svg>' }));
+  return box;
+}
+
+/* anel (donut) com legenda */
+function graficoAnel(fatias, o){
+  o = o || {};
+  var cores = o.cores || CHART_CORES, fmt = o.fmt;
+  var total = fatias.reduce(function(a, b){ return a + (b.val || 0); }, 0);
+  var S = 200, cx = 100, cy = 100, R = 82, r = 50;
+  var segs = [], a0 = -Math.PI / 2;
+  if (total > 0){
+    fatias.forEach(function(f, i){
+      var frac = (f.val || 0) / total; if (frac <= 0) return;
+      var a1 = a0 + frac * Math.PI * 2;
+      var large = frac > 0.5 ? 1 : 0;
+      var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+      var x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      var xi1 = cx + r * Math.cos(a1), yi1 = cy + r * Math.sin(a1);
+      var xi0 = cx + r * Math.cos(a0), yi0 = cy + r * Math.sin(a0);
+      segs.push('<path class="pt" d="M' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + R + ' ' + R + ' 0 ' + large + ' 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + xi1.toFixed(1) + ' ' + yi1.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + large + ' 0 ' + xi0.toFixed(1) + ' ' + yi0.toFixed(1) + ' Z" fill="' + cores[i % cores.length] + '"><title>' + esc(f.lb + ': ' + _fmt(f.val, fmt) + ' (' + Math.round(frac * 100) + '%)') + '</title></path>');
+      a0 = a1;
+    });
+  } else {
+    segs.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + ((R + r) / 2) + '" fill="none" stroke="var(--line)" stroke-width="' + (R - r) + '"/>');
+  }
+  var svg = '<svg class="chart" viewBox="0 0 ' + S + ' ' + S + '" width="200" height="200" role="img">' + segs.join('') +
+    '<text x="100" y="96" text-anchor="middle" style="font-size:20px;fill:var(--ink);font-family:var(--font-d);font-weight:700">' + esc(_fmt(total, fmt)) + '</text>' +
+    '<text x="100" y="114" text-anchor="middle" style="font-size:10px">' + esc(o.centro || 'total') + '</text></svg>';
+  var lg = el('div', { class:'lg' });
+  fatias.forEach(function(f, i){
+    if (!(f.val > 0)) return;
+    lg.append(el('div', { class:'it' },
+      el('b', { style:'background:' + cores[i % cores.length] }),
+      el('span', {}, f.lb),
+      el('span', { class:'vv' }, _fmt(f.val, fmt))));
+  });
+  return el('div', { class:'donutwrap' }, el('div', { html: svg }), lg);
+}
+
+/* ======================================================================
+   GUIA SEQUENCIAL — interliga os menus (Rankings → … → Estatísticas)
+   ====================================================================== */
+function guiaSequencial(v, atual){
+  var temConv = Object.keys(S.cfg.convocatorias).length > 0;
+  var temRes = RC().resultados.length > 0;
+  var temEst = anosOrdenados().length > 0;
+  var passos = [
+    { id:'rankings', n:'1', tt:'Rankings', ss: S.db ? (S.db.nadadores.size + ' nadadores') : 'importar Excel', feito: !!S.db, ir:function(){ irPara('painel'); } },
+    { id:'convocatorias', n:'2', tt:'Convocatórias', ss: temConv ? (Object.keys(S.cfg.convocatorias).length + ' geradas') : 'gerar seleções', feito: temConv, ir:function(){ irPara('conv'); } },
+    { id:'resultados', n:'3', tt:'Resultados', ss: temRes ? (RC().resultados.length + ' registos') : 'importar provas', feito: temRes, ir:function(){ S.resTab = 'resultados'; irPara('res'); } },
+    { id:'relatorios', n:'4', tt:'Relatórios', ss:'objetivos + provas', feito: temRes && temConv, ir:function(){ S.resTab = 'relatorios'; irPara('res'); } },
+    { id:'estatisticas', n:'5', tt:'Estatísticas', ss: temEst ? (anosOrdenados().length + ' épocas') : 'contas · prémios · recordes', feito: temEst, ir:function(){ S.resTab = 'contas'; irPara('res'); } }
+  ];
+  var g = el('div', { class:'guia' });
+  passos.forEach(function(p, i){
+    var cls = 'passo' + (p.feito ? ' feito' : '') + (p.id === atual ? ' ativo' : '');
+    g.append(el('div', { class:cls, role:'button', tabindex:'0', onclick:p.ir,
+      onkeydown:function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.ir(); } } },
+      el('div', { class:'n' }, p.feito && p.id !== atual ? '✓' : p.n),
+      el('div', {}, el('div', { class:'tt' }, p.tt), el('div', { class:'ss' }, p.ss))));
+    if (i < passos.length - 1) g.append(el('div', { class:'seta', html:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>' }));
+  });
+  v.append(g);
+}
+
+/* ======================================================================
+   IMPORTAÇÃO MULTI-ANO (uma época de cada vez)
+   ====================================================================== */
+var _txt = function(v){ return String(v == null ? '' : v).trim(); };
+var _num = function(v){
+  if (v == null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  var s = String(v).replace(/[^0-9,.\-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+  var n = parseFloat(s); return isNaN(n) ? 0 : n;
+};
+
+function _lerContas(sh){
+  if (!sh) return [];
+  var grid = sh.rows.map(function(r){ return (r || []).map(function(v){
+    return v instanceof Date ? fmtDate(v) : (typeof v === 'number' ? v : _txt(v)); }); });
+  while (grid.length && grid[grid.length - 1].every(function(x){ return x === '' || x === null; })) grid.pop();
+  return grid;
+}
+function _lerPremios(sh){
+  if (!sh) return [];
+  var rows = sh.rows, hr = -1;
+  for (var i = 0; i < Math.min(rows.length, 10); i++){
+    var set = (rows[i] || []).map(normH);
+    if (set.some(function(c){ return c.indexOf('nadador') >= 0 || c === 'nome' || c.indexOf('nome nadador') >= 0; }) &&
+        set.some(function(c){ return c.indexOf('valor') >= 0 || c.indexOf('premio') >= 0; })){ hr = i; break; }
+  }
+  if (hr < 0) return [];
+  var H = (rows[hr] || []).map(normH);
+  var c = {
+    nome: colIndex(H, ['nome nadador','nadador','nome']), clube: colIndex(H, ['clube']), data: colIndex(H, ['data']),
+    prova: colIndex(H, ['prova']), resultado: colIndex(H, ['resultado']), rn: colIndex(H, ['rn']),
+    comp: colIndex(H, ['competicao','comp']), classif: colIndex(H, ['classificacao','class']),
+    valor: colIndex(H, ['valor do premio','valor','premio']), n80: colIndex(H, ['80% nadador','80','nadador80']),
+    t20: colIndex(H, ['20% treinador','20','treinador20']), treinador: colIndex(H, ['treinador'])
+  };
+  var out = [];
+  for (var j = hr + 1; j < rows.length; j++){
+    var r = rows[j] || []; var nome = c.nome >= 0 ? r[c.nome] : null;
+    if (nome == null || _txt(nome) === '') continue;
+    var val = c.valor >= 0 ? _num(r[c.valor]) : 0;
+    out.push({ id:'p' + resId(), manual:false, nome:_txt(nome), clube: c.clube >= 0 ? _txt(r[c.clube]) : '',
+      data: c.data >= 0 ? rISO(r[c.data]) : '', prova: c.prova >= 0 ? _txt(r[c.prova]) : '',
+      resultado: c.resultado >= 0 ? rTime(r[c.resultado]) : '', rn: c.rn >= 0 ? _txt(r[c.rn]) : '',
+      competicao: c.comp >= 0 ? _txt(r[c.comp]) : '', classif: c.classif >= 0 ? _txt(r[c.classif]) : '',
+      valor: val, nadador80: c.n80 >= 0 ? _num(r[c.n80]) : Math.round(val * 0.8),
+      treinador20: c.t20 >= 0 ? _num(r[c.t20]) : Math.round(val * 0.2), treinador: c.treinador >= 0 ? _txt(r[c.treinador]) : '' });
+  }
+  return out;
+}
+function _lerRecordes(sh){
+  if (!sh) return [];
+  var rows = sh.rows, hr = -1;
+  for (var i = 0; i < Math.min(rows.length, 10); i++){
+    var set = (rows[i] || []).map(normH);
+    if (set.some(function(c){ return c.indexOf('prova/classe') >= 0 || c.indexOf('prova classe') >= 0 || c === 'prova'; }) &&
+        set.some(function(c){ return c.indexOf('praticante') >= 0; })){ hr = i; break; }
+  }
+  if (hr < 0) return [];
+  var H = (rows[hr] || []).map(normH);
+  var c = {
+    data: colIndex(H, ['data']), prova: colIndex(H, ['prova/classe','prova classe','prova']),
+    prat: colIndex(H, ['praticante']), tempo: colIndex(H, ['tempo']), clube: colIndex(H, ['clubes','clube']),
+    local: colIndex(H, ['local']), piscina: colIndex(H, ['piscina']), disc: colIndex(H, ['disciplina']),
+    tipo: colIndex(H, ['tipo rn','tipo']), quem: colIndex(H, ['quem'])
+  };
+  var out = [];
+  for (var j = hr + 1; j < rows.length; j++){
+    var r = rows[j] || [];
+    var prova = c.prova >= 0 ? _txt(r[c.prova]) : '', prat = c.prat >= 0 ? _txt(r[c.prat]) : '';
+    if (!prova && !prat) continue;
+    out.push({ id:'x' + resId(), data: c.data >= 0 ? rISO(r[c.data]) : '', prova:prova, praticante:prat,
+      tempo: c.tempo >= 0 ? rTime(r[c.tempo]) : '', clube: c.clube >= 0 ? _txt(r[c.clube]) : '',
+      local: c.local >= 0 ? _txt(r[c.local]) : '', piscina: c.piscina >= 0 ? _txt(r[c.piscina]) : '',
+      disciplina: c.disc >= 0 ? _txt(r[c.disc]) : '', tipo: c.tipo >= 0 ? _txt(r[c.tipo]) : '', quem: c.quem >= 0 ? _txt(r[c.quem]) : '' });
+  }
+  return out;
+}
+
+async function importarEstatAno(file){
+  if (!podeEditar()) return semPermissao();
+  toast('A ler ' + file.name + '…');
+  var sheets;
+  try { sheets = await paReadSheets(await file.arrayBuffer()); }
+  catch(e){ console.error(e); return toast('Erro ao ler o Excel: ' + e.message, true); }
+  var shContas = pickSheet(sheets, 'Relatório Contas') || pickSheet(sheets, 'Relatorio de Contas') || pickSheet(sheets, 'Contas');
+  var shPrem = pickSheet(sheets, 'Prémios') || pickSheet(sheets, 'Premios');
+  var shRec = pickSheet(sheets, 'Recordes');
+  /* se só houver uma folha e não bateu nenhum nome, tenta adivinhar pelo conteúdo */
+  if (!shContas && !shPrem && !shRec && sheets.length === 1){
+    var flat = sheets[0].rows.slice(0, 6).map(function(r){ return (r || []).map(normH).join(' '); }).join(' ');
+    if (flat.indexOf('praticante') >= 0 && flat.indexOf('prova') >= 0) shRec = sheets[0];
+    else if (flat.indexOf('valor') >= 0 && flat.indexOf('premio') >= 0) shPrem = sheets[0];
+    else shContas = sheets[0];
+  }
+  var pacote = {
+    contas: shContas ? _lerContas(shContas) : null,
+    premios: shPrem ? _lerPremios(shPrem) : null,
+    recordes: shRec ? _lerRecordes(shRec) : null
+  };
+  var m = String(file.name).match(/(20\d\d)/);
+  var ano = m ? m[1] : '';
+  var resumo = [];
+  if (pacote.contas) resumo.push('Relatório de Contas');
+  if (pacote.premios) resumo.push(pacote.premios.length + ' prémios');
+  if (pacote.recordes) resumo.push(pacote.recordes.length + ' recordes');
+  if (!resumo.length) return toast('Não reconheci folhas de Contas, Prémios ou Recordes neste ficheiro.', true);
+
+  var doCommit = function(anoFinal){
+    if (!anoFinal) return toast('Indique a época (ano).', true);
+    var est = EST();
+    var y = est.anos[anoFinal] || (est.anos[anoFinal] = { contas:[], premios:[], recordes:[], despesa:null, em:null });
+    if (pacote.contas) y.contas = pacote.contas;
+    if (pacote.premios) y.premios = pacote.premios;
+    if (pacote.recordes) y.recordes = pacote.recordes;
+    y.em = new Date().toISOString();
+    resSave();
+    _estSel = null;
+    fecharModal();
+    S.resTab = 'contas'; irPara('res');
+    toast('Época ' + anoFinal + ' importada: ' + resumo.join(' · ') + '.');
+  };
+
+  if (ano){ doCommit(ano); return; }
+  var inp = el('input', { type:'number', min:'2000', max:'2099', placeholder:'ex.: 2027', value: String(new Date().getFullYear()) });
+  abrirModal('A que época pertence este ficheiro?', el('div', {},
+    el('p', {}, 'Importado de ' + esc(file.name) + ': ' + esc(resumo.join(' · ')) + '.'),
+    el('p', { class:'small muted' }, 'Não consegui detetar o ano no nome do ficheiro. Indique a época a que os dados dizem respeito (fica associada e pode ser alterada depois).'),
+    el('label', { class:'f', style:'max-width:180px;margin-top:8px' }, el('span', {}, 'Época (ano)'), inp)),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:function(){ doCommit(_txt(inp.value)); } }, 'Importar época') ]);
+}
+
+/* ---------- métricas por época ---------- */
+function _despesaAno(y){
+  if (y.despesa != null && y.despesa !== '') return _num(y.despesa);
+  var grid = y.contas || [], best = null;
+  grid.forEach(function(row){
+    var first = normH((row.find(function(c){ return _txt(c) !== ''; })) || '');
+    var isTot = /total|despesa|custo|saldo|orcament/.test(first);
+    if (!isTot) return;
+    row.forEach(function(c){ if (typeof c === 'number' && isFinite(c)){ if (best == null || Math.abs(c) > Math.abs(best)) best = c; } });
+  });
+  if (best == null){
+    grid.forEach(function(row){ row.forEach(function(c){ if (typeof c === 'number' && isFinite(c)){ if (best == null || c > best) best = c; } }); });
+  }
+  return best || 0;
+}
+function _metricasAno(y){
+  return {
+    despesa: _despesaAno(y),
+    premiosTotal: (y.premios || []).reduce(function(a, p){ return a + (_num(p.valor)); }, 0),
+    premiosN: (y.premios || []).length,
+    premiosRN: (y.premios || []).filter(function(p){ return /rn/i.test(p.rn || ''); }).length,
+    recordesN: (y.recordes || []).length,
+    recP50: (y.recordes || []).filter(function(r){ return /50|longa|p50|pl/i.test(r.piscina || ''); }).length,
+    recP25: (y.recordes || []).filter(function(r){ return /25|curta|p25|pc/i.test(r.piscina || ''); }).length
+  };
+}
+
+/* ======================================================================
+   DASHBOARD DE ESTATÍSTICAS (subtab "contas")
+   ====================================================================== */
+var _estSel = null;      /* época em edição */
+var _estFiltro = null;   /* Set de anos visíveis no dashboard (null = todos) */
+
+function subEstat(v){
+  var rc = RC(), est = EST(), anos = anosOrdenados();
+  $('#pgActions').append(
+    el('button', { class:'btn primary ed', onclick:function(){ escolherRes(importarEstatAno); } }, 'Importar época (Excel)'),
+    el('button', { class:'btn ed', onclick:novaEpocaVazia }, '+ Época vazia'),
+    anos.length ? el('button', { class:'btn', onclick:exportarEstatXlsx }, 'Exportar Excel') : null,
+    rc.contas && rc.contas.length ? el('button', { class:'btn ed', onclick:trazerContasLegado, title:'Trazer o Relatório de Contas já importado para uma época' }, 'Trazer contas atuais') : null);
+
+  if (!anos.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Estatísticas por época'),
+      el('p', {}, 'Importe, para cada época, um Excel com as folhas Relatório de Contas, Prémios e Recordes Nacionais (as três, ou só as que tiver). O ano é detetado pelo nome do ficheiro; se não for, é pedido. Depois vê aqui o dashboard com quadros e gráficos comparativos, tudo editável.'),
+      el('div', { class:'drop', style:'margin-top:16px' },
+        el('div', { style:'display:flex;gap:8px;justify-content:center;flex-wrap:wrap' },
+          el('button', { class:'btn primary ed', onclick:function(){ escolherRes(importarEstatAno); } }, 'Importar época'),
+          el('button', { class:'btn ed', onclick:novaEpocaVazia }, 'Criar época vazia'),
+          rc.contas && rc.contas.length ? el('button', { class:'btn ed', onclick:trazerContasLegado }, 'Trazer Relatório de Contas atual') : null))))));
+    return;
+  }
+
+  /* filtro de épocas */
+  var sel = _estFiltro && _estFiltro.size ? _estFiltro : new Set(anos);
+  var barra = el('div', { class:'anos' }, el('span', { class:'lbl' }, 'Épocas'));
+  barra.append(chip('Todas', !_estFiltro, function(){ _estFiltro = null; render(); }));
+  anos.forEach(function(a){
+    barra.append(chip(a, sel.has(a) && !!_estFiltro, function(){
+      var s = new Set(_estFiltro || []);
+      if (s.has(a)) s.delete(a); else s.add(a);
+      _estFiltro = s.size ? s : null; render();
+    }));
+  });
+  v.append(barra);
+
+  var vis = anos.filter(function(a){ return sel.has(a); });
+  var mets = vis.map(function(a){ return { ano:a, m:_metricasAno(est.anos[a]) }; });
+  var tot = mets.reduce(function(acc, x){
+    acc.despesa += x.m.despesa; acc.premiosTotal += x.m.premiosTotal; acc.premiosN += x.m.premiosN;
+    acc.premiosRN += x.m.premiosRN; acc.recordesN += x.m.recordesN; return acc;
+  }, { despesa:0, premiosTotal:0, premiosN:0, premiosRN:0, recordesN:0 });
+
+  /* KPIs */
+  v.append(el('div', { class:'grid g4' },
+    kpi(vis.length + (vis.length === 1 ? ' época' : ' épocas'), 'Em análise', vis.join(' · ')),
+    kpiCor('teal', _fmt(tot.despesa, 'eur'), 'Despesa acumulada', 'Relatório de Contas'),
+    kpiCor('coral', _fmt(tot.premiosTotal, 'eur'), 'Prémios atribuídos', tot.premiosN + ' prémios · ' + tot.premiosRN + ' RN'),
+    kpiCor('violet', String(tot.recordesN), 'Recordes nacionais', 'no conjunto das épocas')));
+
+  /* gráficos */
+  var box = el('div', { class:'grid g2', style:'margin-top:18px' });
+  box.append(cardGraf('Despesa por época', 'Valor apurado no Relatório de Contas de cada época (editável).',
+    graficoLinha(vis, [{ nome:'Despesa', vals: mets.map(function(x){ return x.m.despesa; }), cor:'var(--teal)' }], { fmt:'eur' })));
+  box.append(cardGraf('Prémios por época', 'Total de prémios atribuídos (€).',
+    graficoBarras(mets.map(function(x){ return { lb:x.ano, v:x.m.premiosTotal }; }), { fmt:'eur', cores:['var(--coral)'] })));
+  box.append(cardGraf('Recordes nacionais por época', 'Repartição por piscina longa (50 m) e curta (25 m).',
+    graficoBarras(mets.map(function(x){ return { lb:x.ano, vals:[x.m.recP50, x.m.recP25] }; }),
+      { series:['Piscina longa','Piscina curta'], empilhado:true })));
+  /* anel: recordes por tipo no conjunto */
+  var tipos = {};
+  vis.forEach(function(a){ (est.anos[a].recordes || []).forEach(function(r){ var t = _txt(r.tipo) || '—'; tipos[t] = (tipos[t] || 0) + 1; }); });
+  var fatias = Object.keys(tipos).sort(function(a, b){ return tipos[b] - tipos[a]; }).slice(0, 6).map(function(t){ return { lb:t, val:tipos[t] }; });
+  box.append(cardGraf('Recordes por tipo', 'Distribuição dos recordes nacionais registados.',
+    fatias.length ? graficoAnel(fatias, { centro:'recordes' }) : el('div', { class:'mini-empty' }, 'Sem recordes nas épocas selecionadas.')));
+  v.append(box);
+
+  /* tabela comparativa */
+  var head = ['Época','Despesa (€)','Prémios (€)','N.º prémios','Prémios RN','Recordes','RN P50','RN P25',''];
+  var tw = el('div', { class:'tw' }), t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...head.map(function(h){ return el('th', {}, h); }))));
+  var tb = el('tbody');
+  mets.forEach(function(x){
+    tb.append(el('tr', {},
+      el('td', { class:'nome' }, x.ano),
+      el('td', { class:'num' }, _fmt(x.m.despesa, 'eur')),
+      el('td', { class:'num' }, _fmt(x.m.premiosTotal, 'eur')),
+      el('td', { class:'num' }, String(x.m.premiosN)),
+      el('td', { class:'num' }, String(x.m.premiosRN)),
+      el('td', { class:'num' }, String(x.m.recordesN)),
+      el('td', { class:'num' }, String(x.m.recP50)),
+      el('td', { class:'num' }, String(x.m.recP25)),
+      el('td', {}, el('button', { class:'btn sm ghost ed', onclick:function(){ _estSel = x.ano; render(); } }, 'Editar'))));
+  });
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card', style:'margin-top:18px' },
+    el('header', {}, el('h3', {}, 'Comparativo por época'), el('span', { class:'sp', style:'flex:1' }),
+      el('button', { class:'btn sm', onclick:exportarEstatXlsx }, 'Exportar Excel')),
+    el('div', { class:'body tight' }, tw)));
+
+  /* editor da época escolhida */
+  if (!_estSel || !est.anos[_estSel]) _estSel = anos[anos.length - 1];
+  editorEpoca(v, _estSel);
+}
+
+const kpiCor = (cor, valor, l, s) => { var k = kpi(valor, l, s); k.className = 'kpi ' + cor; return k; };
+
+function novaEpocaVazia(){
+  if (!podeEditar()) return semPermissao();
+  var inp = el('input', { type:'number', min:'2000', max:'2099', value:String(new Date().getFullYear()) });
+  abrirModal('Nova época', el('label', { class:'f', style:'max-width:180px' }, el('span', {}, 'Ano'), inp),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:function(){
+        var a = _txt(inp.value); if (!a) return;
+        var est = EST(); if (!est.anos[a]) est.anos[a] = { contas:[], premios:[], recordes:[], despesa:null, em:new Date().toISOString() };
+        resSave(); _estSel = a; fecharModal(); render();
+      } }, 'Criar') ]);
+}
+function trazerContasLegado(){
+  if (!podeEditar()) return semPermissao();
+  var rc = RC(); if (!rc.contas || !rc.contas.length) return;
+  var inp = el('input', { type:'number', min:'2000', max:'2099', value:String(new Date().getFullYear()) });
+  abrirModal('Trazer Relatório de Contas para uma época', el('div', {},
+    el('p', { class:'small muted' }, 'O Relatório de Contas atualmente carregado passa a ficar associado a uma época dentro do arquivo multi-ano.'),
+    el('label', { class:'f', style:'max-width:180px' }, el('span', {}, 'Época (ano)'), inp)),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:function(){
+        var a = _txt(inp.value); if (!a) return;
+        var est = EST(); var y = est.anos[a] || (est.anos[a] = { contas:[], premios:[], recordes:[], despesa:null, em:null });
+        y.contas = rc.contas.map(function(r){ return r.slice(); }); y.em = new Date().toISOString();
+        resSave(); _estSel = a; fecharModal(); render(); toast('Relatório de Contas associado à época ' + a + '.');
+      } }, 'Associar') ]);
+}
+
+function editorEpoca(v, ano){
+  var est = EST(), y = est.anos[ano]; if (!y) return;
+  var anos = anosOrdenados();
+  var sel = el('select', { class:'ed', style:'max-width:150px' }, ...anos.map(function(a){ return el('option', { value:a, selected:a === ano }, a); }));
+  sel.addEventListener('change', function(){ _estSel = sel.value; render(); });
+  var despInp = el('input', { class:'ed', type:'text', style:'max-width:160px', placeholder:'automático',
+    value: (y.despesa != null && y.despesa !== '') ? y.despesa : '' });
+  despInp.addEventListener('change', function(){ y.despesa = _txt(despInp.value) === '' ? null : _num(despInp.value); resSave(); render(); });
+
+  var head = el('div', { class:'card', style:'margin-top:18px' },
+    el('header', {},
+      el('div', {}, el('h3', {}, 'Editar época'), el('div', { class:'small muted' }, 'Corrija qualquer valor; os gráficos e o comparativo atualizam.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('label', { class:'f', style:'gap:2px' }, el('span', {}, 'Época'), sel),
+      el('label', { class:'f', style:'gap:2px' }, el('span', {}, 'Despesa (€) manual'), despInp),
+      el('button', { class:'btn ed', style:'color:var(--bad)', onclick:function(){ eliminarEpoca(ano); } }, 'Eliminar época')));
+  v.append(head);
+
+  /* sub-separadores dentro do editor */
+  var qual = y._aba || 'contas';
+  var abas = [['contas','Relatório de Contas', (y.contas || []).length], ['premios','Prémios', (y.premios || []).length], ['recordes','Recordes', (y.recordes || []).length]];
+  var segs = el('div', { class:'segbar', style:'margin:14px 0' });
+  abas.forEach(function(a){
+    segs.append(el('button', { 'aria-pressed':String(qual === a[0]), onclick:function(){ y._aba = a[0]; render(); } },
+      a[1], el('span', { class:'pill', style:'padding:0 6px' }, String(a[2]))));
+  });
+  v.append(segs);
+
+  if (qual === 'contas') editorContasAno(v, ano, y);
+  else if (qual === 'premios') editorPremiosAno(v, ano, y);
+  else editorRecordesAno(v, ano, y);
+}
+
+function botaoReporEliminar(rotuloRepor, onRepor, rotuloEliminar, onEliminar){
+  return el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;padding:10px 0 0' },
+    el('button', { class:'btn sm ed', onclick:onRepor }, rotuloRepor),
+    el('button', { class:'btn sm ed', style:'color:var(--bad)', onclick:onEliminar }, rotuloEliminar));
+}
+
+function editorContasAno(v, ano, y){
+  var acts = el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px' },
+    el('button', { class:'btn sm ed', onclick:function(){ escolherRes(importarEstatAno); } }, 'Importar folha'),
+    el('button', { class:'btn sm ed', onclick:function(){ y.contas.push(new Array(Math.max(2, (y.contas[0] || []).length)).fill('')); resSave(); render(); } }, '+ Linha'),
+    el('button', { class:'btn sm ed', onclick:function(){ (y.contas || []).forEach(function(r){ r.push(''); }); if (!y.contas.length) y.contas.push(['', '']); resSave(); render(); } }, '+ Coluna'));
+  v.append(acts);
+  if (!(y.contas && y.contas.length)){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'mini-empty' }, 'Sem Relatório de Contas para ' + ano + '. Importe a folha ou acrescente linhas.'))));
+  } else {
+    var tw = el('div', { class:'tw' }), t = el('table'), tb = el('tbody');
+    y.contas.forEach(function(row, ri){
+      var tr = el('tr', {});
+      tr.append(el('td', { class:'mono small muted', style:'width:26px' }, String(ri + 1)));
+      row.forEach(function(cell, ci){
+        tr.append(el('td', {}, inputCell(cell, function(val){ y.contas[ri][ci] = /^-?\d+([.,]\d+)?$/.test(val.trim()) ? _num(val) : val; resSave(); }, { class:'cell-in ed', style:'min-width:96px' })));
+      });
+      tr.append(el('td', {}, el('button', { class:'btn sm ghost ed', title:'Remover linha', onclick:function(){ y.contas.splice(ri, 1); resSave(); render(); } }, '×')));
+      tb.append(tr);
+    });
+    t.append(tb); tw.append(t);
+    v.append(el('div', { class:'card' }, el('div', { class:'body tight' }, tw)));
+  }
+  v.append(botaoReporEliminar('Repor (limpar) contas de ' + ano, function(){ confirmarAcao('Limpar o Relatório de Contas de ' + ano + '?', function(){ y.contas = []; y.despesa = null; resSave(); render(); }); },
+    'Eliminar folha de contas', function(){ confirmarAcao('Eliminar a folha de contas de ' + ano + '?', function(){ y.contas = []; resSave(); render(); }); }));
+}
+
+function editorPremiosAno(v, ano, y){
+  var acts = el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px' },
+    el('button', { class:'btn sm ed', onclick:function(){ escolherRes(importarEstatAno); } }, 'Importar folha'),
+    el('span', { class:'pill' }, 'Total: ' + _fmt((y.premios || []).reduce(function(a, p){ return a + _num(p.valor); }, 0), 'eur')));
+  v.append(acts);
+  if (!(y.premios && y.premios.length)){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'mini-empty' }, 'Sem prémios para ' + ano + '.'))));
+  } else {
+    var head = ['Nadador', 'Clube', 'Data', 'Prova', 'Comp.', 'Class.', 'RN', 'Valor (€)', 'Treinador', ''];
+    var tw = el('div', { class:'tw' }), t = el('table');
+    t.append(el('thead', {}, el('tr', {}, ...head.map(function(h){ return el('th', {}, h); }))));
+    var tb = el('tbody');
+    y.premios.forEach(function(p, i){
+      tb.append(el('tr', {},
+        el('td', {}, inputCell(p.nome, function(val){ p.nome = val; resSave(); }, { class:'cell-in ed', style:'min-width:120px' })),
+        el('td', {}, inputCell(p.clube || '', function(val){ p.clube = val; resSave(); }, { class:'cell-in ed', style:'width:80px' })),
+        el('td', { class:'small mono' }, p.data ? fmtDate(p.data) : ''),
+        el('td', { class:'small' }, p.prova || ''),
+        el('td', {}, p.competicao || ''),
+        el('td', { class:'mono' }, p.classif || ''),
+        el('td', { class:'small' }, p.rn || ''),
+        el('td', {}, inputCell(p.valor, function(val){ p.valor = _num(val); resSave(); render(); }, { class:'cell-in ed', style:'width:84px' })),
+        el('td', {}, inputCell(p.treinador || '', function(val){ p.treinador = val; resSave(); }, { class:'cell-in ed', style:'width:110px' })),
+        el('td', {}, el('button', { class:'btn sm ghost ed', onclick:function(){ y.premios.splice(i, 1); resSave(); render(); } }, '×'))));
+    });
+    t.append(tb); tw.append(t);
+    v.append(el('div', { class:'card' }, el('div', { class:'body tight' }, tw)));
+  }
+  v.append(botaoReporEliminar('Repor (limpar) prémios de ' + ano, function(){ confirmarAcao('Limpar os prémios de ' + ano + '?', function(){ y.premios = []; resSave(); render(); }); },
+    'Eliminar folha de prémios', function(){ confirmarAcao('Eliminar a folha de prémios de ' + ano + '?', function(){ y.premios = []; resSave(); render(); }); }));
+}
+
+function editorRecordesAno(v, ano, y){
+  var acts = el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px' },
+    el('button', { class:'btn sm ed', onclick:function(){ escolherRes(importarEstatAno); } }, 'Importar folha'),
+    el('span', { class:'pill' }, (y.recordes || []).length + ' recordes'));
+  v.append(acts);
+  if (!(y.recordes && y.recordes.length)){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'mini-empty' }, 'Sem recordes para ' + ano + '.'))));
+  } else {
+    var head = ['Data', 'Prova/Classe', 'Praticante', 'Tempo', 'Clube', 'Piscina', 'Tipo', ''];
+    var tw = el('div', { class:'tw' }), t = el('table');
+    t.append(el('thead', {}, el('tr', {}, ...head.map(function(h){ return el('th', {}, h); }))));
+    var tb = el('tbody');
+    y.recordes.forEach(function(r, i){
+      tb.append(el('tr', {},
+        el('td', { class:'small mono' }, r.data ? fmtDate(r.data) : ''),
+        el('td', {}, inputCell(r.prova || '', function(val){ r.prova = val; resSave(); }, { class:'cell-in ed', style:'min-width:120px' })),
+        el('td', {}, inputCell(r.praticante || '', function(val){ r.praticante = val; resSave(); }, { class:'cell-in ed', style:'min-width:120px' })),
+        el('td', { class:'mono' }, r.tempo || ''),
+        el('td', {}, inputCell(r.clube || '', function(val){ r.clube = val; resSave(); }, { class:'cell-in ed', style:'width:80px' })),
+        el('td', {}, inputCell(r.piscina || '', function(val){ r.piscina = val; resSave(); render(); }, { class:'cell-in ed', style:'width:70px' })),
+        el('td', {}, inputCell(r.tipo || '', function(val){ r.tipo = val; resSave(); render(); }, { class:'cell-in ed', style:'width:90px' })),
+        el('td', {}, el('button', { class:'btn sm ghost ed', onclick:function(){ y.recordes.splice(i, 1); resSave(); render(); } }, '×'))));
+    });
+    t.append(tb); tw.append(t);
+    v.append(el('div', { class:'card' }, el('div', { class:'body tight' }, tw)));
+  }
+  v.append(botaoReporEliminar('Repor (limpar) recordes de ' + ano, function(){ confirmarAcao('Limpar os recordes de ' + ano + '?', function(){ y.recordes = []; resSave(); render(); }); },
+    'Eliminar folha de recordes', function(){ confirmarAcao('Eliminar a folha de recordes de ' + ano + '?', function(){ y.recordes = []; resSave(); render(); }); }));
+}
+
+function eliminarEpoca(ano){
+  confirmarAcao('Eliminar toda a época ' + ano + ' (contas, prémios e recordes)?', function(){
+    var est = EST(); delete est.anos[ano]; _estSel = null; resSave(); render(); toast('Época ' + ano + ' eliminada.');
+  });
+}
+function confirmarAcao(msg, onSim){
+  if (!podeEditar()) return semPermissao();
+  abrirModal('Confirmar', el('p', {}, msg),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:function(){ onSim(); fecharModal(); } }, 'Confirmar') ]);
+}
+
+/* ---------- exportação do arquivo multi-ano ---------- */
+async function exportarEstatXlsx(){
+  var est = EST(), anos = anosOrdenados();
+  if (!anos.length) return toast('Sem épocas para exportar.', true);
+  var folhas = [];
+  var resumo = [['Época', 'Despesa (€)', 'Prémios (€)', 'N.º prémios', 'Prémios RN', 'Recordes', 'RN P50', 'RN P25']];
+  anos.forEach(function(a){
+    var m = _metricasAno(est.anos[a]);
+    resumo.push([a, m.despesa, m.premiosTotal, m.premiosN, m.premiosRN, m.recordesN, m.recP50, m.recP25]);
+  });
+  folhas.push({ name:'Resumo', rows:resumo, widths:[8, 14, 14, 10, 10, 10, 8, 8] });
+  anos.forEach(function(a){
+    var y = est.anos[a];
+    if (y.contas && y.contas.length) folhas.push({ name:('Contas ' + a).slice(0, 28), rows:y.contas });
+    if (y.premios && y.premios.length){
+      folhas.push({ name:('Prémios ' + a).slice(0, 28),
+        rows:[['Nadador', 'Clube', 'Data', 'Prova', 'Resultado', 'RN', 'Competição', 'Classificação', 'Valor', '80% Nadador', '20% Treinador', 'Treinador']]
+          .concat(y.premios.map(function(p){ return [p.nome, p.clube || '', p.data, p.prova, p.resultado, p.rn, p.competicao, p.classif, p.valor, p.nadador80, p.treinador20, p.treinador || '']; })),
+        widths:[24, 8, 12, 16, 12, 8, 12, 12, 12, 12, 12, 18] });
+    }
+    if (y.recordes && y.recordes.length){
+      folhas.push({ name:('Recordes ' + a).slice(0, 28),
+        rows:[['Data', 'Prova/Classe', 'Praticante', 'Tempo', 'Clube', 'Local', 'Piscina', 'Disciplina', 'Tipo RN', 'Quem']]
+          .concat(y.recordes.map(function(r){ return [r.data, r.prova, r.praticante, r.tempo, r.clube, r.local, r.piscina, r.disciplina, r.tipo, r.quem]; })),
+        widths:[12, 20, 26, 12, 10, 16, 8, 14, 12, 16] });
+    }
+  });
+  await entregar('Estatisticas_FPN.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+/* ======================================================================
+   RESULTADOS — mais filtros e ordenação (redefine subResultados)
+   ====================================================================== */
+var _resOrd = { col:null, dir:1 };
+function subResultados(v){
+  var rc = RC();
+  $('#pgActions').append(
+    el('button', { class:'btn ed', onclick:function(){ escolherRes(importarResultados); } }, 'Importar resultados (Excel)'),
+    el('button', { class:'btn ed', onclick:function(){ editarResultado(null); } }, '+ Adicionar'),
+    el('button', { class:'btn', onclick:exportarResultadosXlsx }, 'Exportar Excel'),
+    rc.resultados.length ? el('button', { class:'btn ed', style:'color:var(--bad)', onclick:function(){
+      confirmarAcao('Repor (limpar) todos os ' + rc.resultados.length + ' resultados importados?', function(){ rc.resultados = []; rc.resumoOv = {}; resSave(); render(); toast('Folha de resultados limpa.'); });
+    } }, 'Repor folha') : null);
+
+  if (!rc.resultados.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem resultados'),
+      el('p', {}, 'Importe a folha de Resultados (estrutura da FPN) ou adicione à mão. A informação nova é acrescentada e a existente atualizada. O resumo por prova e os relatórios são gerados a partir daqui.')))));
+    return;
+  }
+
+  var comps = [...new Set(rc.resultados.map(function(r){ return r.competicao; }).filter(Boolean))].sort();
+  var escs = [...new Set(rc.resultados.map(function(r){ return r.escalao; }).filter(Boolean))].sort();
+
+  var fTexto = el('input', { class:'ro-ok', placeholder:'nadador, prova…' });
+  var fComp = el('select', { class:'ro-ok' }, el('option', { value:'' }, 'Todas'), ...comps.map(function(c){ return el('option', { value:c }, c); }));
+  var fSexo = el('select', { class:'ro-ok' }, el('option', { value:'' }, 'Todos'), el('option', { value:'f' }, 'Feminino'), el('option', { value:'m' }, 'Masculino'));
+  var fEsc = el('select', { class:'ro-ok' }, el('option', { value:'' }, 'Todos'), ...escs.map(function(e){ return el('option', { value:e }, e); }));
+  var fDe = el('input', { class:'ro-ok', type:'date' });
+  var fAte = el('input', { class:'ro-ok', type:'date' });
+  var fRP = el('input', { class:'ro-ok', type:'checkbox', style:'width:auto' });
+
+  var toolbar = el('div', { class:'toolbar' },
+    el('label', { class:'fld fill' }, el('span', {}, 'Pesquisar'), fTexto),
+    el('label', { class:'fld' }, el('span', {}, 'Competição'), fComp),
+    el('label', { class:'fld' }, el('span', {}, 'Sexo'), fSexo),
+    el('label', { class:'fld' }, el('span', {}, 'Escalão'), fEsc),
+    el('label', { class:'fld' }, el('span', {}, 'De'), fDe),
+    el('label', { class:'fld' }, el('span', {}, 'Até'), fAte),
+    el('label', { class:'fld', style:'flex-direction:row;align-items:center;gap:6px' }, fRP, el('span', { style:'text-transform:none;font-size:12px;color:var(--ink-2)' }, 'Só recordes pessoais')));
+  v.append(toolbar);
+
+  var info = el('div', { class:'small muted', style:'margin-bottom:8px' });
+  var cont = el('div');
+  v.append(info, cont);
+
+  var cols = [
+    { k:'nome', h:'Nadador' }, { k:'prova', h:'Prova' }, { k:'data', h:'Data' }, { k:'competicao', h:'Competição' },
+    { k:'classif', h:'Class.', num:true }, { k:'resultado', h:'Resultado' }, { k:'fase', h:'Fase' }, { k:'pct', h:'%RP', num:true }
+  ];
+  var pintar = function(){
+    var q = normH(fTexto.value), comp = fComp.value, sexo = fSexo.value, escl = fEsc.value, de = fDe.value, ate = fAte.value, rpOnly = fRP.checked;
+    var dados = rc.resultados.filter(function(r){
+      if (q && normH([r.nome, r.prova, r.competicao].join(' ')).indexOf(q) < 0) return false;
+      if (comp && r.competicao !== comp) return false;
+      if (sexo === 'f' && !/fem/i.test(r.sexo || '')) return false;
+      if (sexo === 'm' && !/masc/i.test(r.sexo || '')) return false;
+      if (escl && r.escalao !== escl) return false;
+      if (de && (r.data || '') < de) return false;
+      if (ate && (r.data || '') > ate) return false;
+      if (rpOnly && !(typeof r.pct === 'number' && r.pct < 1)) return false;
+      return true;
+    });
+    if (_resOrd.col){
+      var k = _resOrd.col, dir = _resOrd.dir;
+      dados = dados.slice().sort(function(a, b){
+        var x = a[k], yv = b[k];
+        if (k === 'classif') { x = classifNum(x) || 9999; yv = classifNum(yv) || 9999; }
+        if (k === 'pct') { x = typeof x === 'number' ? x : 9; yv = typeof yv === 'number' ? yv : 9; }
+        if (x == null) x = ''; if (yv == null) yv = '';
+        return (x > yv ? 1 : x < yv ? -1 : 0) * dir;
+      });
+    }
+    info.textContent = dados.length.toLocaleString('pt-PT') + ' de ' + rc.resultados.length.toLocaleString('pt-PT') + ' resultados' + (dados.length > 500 ? ' — a mostrar 500' : '');
+    var tw = el('div', { class:'tw' }), t = el('table');
+    var thead = el('tr', {});
+    cols.forEach(function(c){
+      var ar = _resOrd.col === c.k ? (_resOrd.dir > 0 ? ' ▲' : ' ▼') : '';
+      thead.append(el('th', { class:'sortable' + (c.num ? ' num' : ''), onclick:function(){
+        if (_resOrd.col === c.k) _resOrd.dir *= -1; else { _resOrd.col = c.k; _resOrd.dir = 1; }
+        pintar();
+      } }, c.h, el('span', { class:'ar' }, ar)));
+    });
+    thead.append(el('th', {}, ''));
+    t.append(el('thead', {}, thead));
+    var tb = el('tbody');
+    dados.slice(0, 500).forEach(function(r){
+      tb.append(el('tr', {},
+        el('td', { class:'nome' }, r.nome), el('td', { class:'small' }, r.prova),
+        el('td', { class:'small mono' }, r.data ? fmtDate(r.data) : ''), el('td', { class:'small' }, r.competicao),
+        el('td', { class:'mono num' }, r.classif || ''), el('td', { class:'mono' }, r.resultado || ''),
+        el('td', { class:'small' }, r.fase || ''),
+        el('td', { class:'mono num' }, typeof r.pct === 'number' ? (r.pct * 100).toFixed(1).replace('.', ',') + '%' : ''),
+        el('td', {}, el('button', { class:'btn sm ghost ed', onclick:function(){ editarResultado(r.id); } }, 'Editar'))));
+    });
+    t.append(tb); tw.append(t);
+    cont.replaceChildren(el('div', { class:'card' }, el('div', { class:'body tight' }, tw)));
+  };
+  [fTexto, fComp, fSexo, fEsc, fDe, fAte, fRP].forEach(function(e){ e.addEventListener('input', pintar); e.addEventListener('change', pintar); });
+  pintar();
+}
+
+/* ======================================================================
+   REDEFINIR subtabs e vRes (guia + rota para o novo dashboard)
+   ====================================================================== */
+function subtabs(v){
+  var abas = [
+    ['resultados', 'Resultados', RC().resultados.length], ['resumo', 'Resumo por prova', 0],
+    ['recordes', 'Recordes Nacionais', RC().recordes.length], ['premios', 'Prémios', RC().premios.length],
+    ['contas', 'Estatísticas', anosOrdenados().length], ['relatorios', 'Relatórios', 0]
+  ];
+  var bar = el('div', { class:'segbar' });
+  abas.forEach(function(a){
+    var on = (S.resTab || 'resultados') === a[0];
+    bar.append(el('button', { class:'ro-ok', 'aria-pressed':String(on), onclick:function(){ S.resTab = a[0]; render(); } },
+      el('span', { class:'dot' + (a[2] ? '' : ' off') }), a[1]));
+  });
+  v.append(bar);
+}
+function vRes(v){
+  var aba = S.resTab || 'resultados';
+  var mapa = { resultados:'resultados', resumo:'resultados', recordes:'resultados', premios:'resultados', relatorios:'relatorios', contas:'estatisticas' };
+  guiaSequencial(v, mapa[aba] || 'resultados');
+  subtabs(v);
+  ({ resultados:subResultados, resumo:subResumo, recordes:subRecordes, premios:subPremios, contas:subEstat, relatorios:subRelatorios }[aba] || subResultados)(v);
+}
+
+/* ======================================================================
+   RELATÓRIOS — objetivos vindos da convocatória, em evidência
+   (embrulha a função original mantendo tudo o resto)
+   ====================================================================== */
+(function(){
+  var _orig = window.subRelatorios;
+  window.subRelatorios = function(v){
+    v.append(el('div', { class:'note', style:'margin-bottom:14px' },
+      el('b', {}, 'Objetivos a partir da convocatória. '),
+      'Ao escolher a convocatória associada a cada competição, o relatório traz os objetivos gerais e específicos definidos nessa convocatória, além do enquadramento técnico e do balanço face às metas.'));
+    _orig(v);
+  };
+})();
+
+/* ======================================================================
+   REPOR/ELIMINAR cada folha — Recordes e Prémios (embrulha os originais)
+   ====================================================================== */
+function _addReporFolha(tipo){
+  var rc = RC();
+  if (tipo === 'recordes' && rc.recordes.length){
+    $('#pgActions').append(el('button', { class:'btn ed', style:'color:var(--bad)', onclick:function(){
+      confirmarAcao('Repor (limpar) os ' + rc.recordes.length + ' recordes nacionais?', function(){ rc.recordes = []; resSave(); render(); toast('Folha de recordes limpa.'); });
+    } }, 'Repor folha'));
+  }
+  if (tipo === 'premios' && rc.premios.length){
+    $('#pgActions').append(el('button', { class:'btn ed', style:'color:var(--bad)', onclick:function(){
+      confirmarAcao('Repor (limpar) os ' + rc.premios.length + ' prémios?', function(){ rc.premios = []; resSave(); render(); toast('Folha de prémios limpa.'); });
+    } }, 'Repor folha'));
+  }
+}
+(function(){
+  var oRec = window.subRecordes; window.subRecordes = function(v){ oRec(v); _addReporFolha('recordes'); };
+  var oPre = window.subPremios; window.subPremios = function(v){ oPre(v); _addReporFolha('premios'); };
+})();
+
+/* ======================================================================
+   GUIA no Painel + cartão de reposição de dados nas Definições
+   ====================================================================== */
+(function(){
+  var oPainel = window.vPainel;
+  window.vPainel = function(v){ if (S.db) guiaSequencial(v, 'rankings'); oPainel(v); };
+  var oDef = window.vDefinicoes;
+  window.vDefinicoes = function(v){ oDef(v); cardResetResultados(v); };
+})();
+
+function cardResetResultados(v){
+  var rc = RC(), est = EST();
+  var linha = function(rot, n, onLimpar){
+    return el('div', { style:'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2)' },
+      el('div', { style:'flex:1' }, el('b', {}, rot), el('span', { class:'small muted', style:'margin-left:8px' }, n)),
+      el('button', { class:'btn sm ed', style:'color:var(--bad)', onclick:onLimpar }, 'Repor'));
+  };
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Resultados, prémios, recordes e estatísticas'),
+      el('div', { class:'small muted' }, 'Repor limpa apenas a folha indicada; o resto do trabalho mantém-se. Cada folha também pode ser reposta no seu separador.'))),
+    el('div', { class:'body' },
+      linha('Resultados de competição', rc.resultados.length + ' registos', function(){ confirmarAcao('Limpar todos os resultados?', function(){ rc.resultados = []; rc.resumoOv = {}; resSave(); toast('Resultados limpos.'); render(); }); }),
+      linha('Recordes nacionais (folha atual)', rc.recordes.length + ' recordes', function(){ confirmarAcao('Limpar os recordes?', function(){ rc.recordes = []; resSave(); toast('Recordes limpos.'); render(); }); }),
+      linha('Prémios (folha atual)', rc.premios.length + ' linhas', function(){ confirmarAcao('Limpar os prémios?', function(){ rc.premios = []; resSave(); toast('Prémios limpos.'); render(); }); }),
+      linha('Estatísticas multi-ano', anosOrdenados().length + ' épocas', function(){ confirmarAcao('Eliminar todas as épocas do arquivo estatístico?', function(){ est.anos = {}; _estSel = null; resSave(); toast('Estatísticas limpas.'); render(); }); }),
+      el('p', { class:'small muted', style:'margin:10px 0 0' }, 'Para apagar rankings, convocatórias ou repor tudo, use os botões acima nesta página.'))));
 }
 </script>
 <script>
