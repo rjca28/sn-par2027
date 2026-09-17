@@ -1379,7 +1379,16 @@ const MARCADORES_EMAIL = [
   ['{nConvocados}', 'Número de nadadores convocados'],
   ['{listaConvocados}', 'Lista numerada dos convocados'],
   ['{hoje}',        'Data de hoje por extenso'],
-  ['{assinatura}',  'Assinatura definida em Definições']
+  ['{assinatura}',  'Assinatura definida em Definições'],
+  ['{nStaff}',      'Número de elementos da equipa técnica'],
+  ['{nComitiva}',   'Total de pessoas da comitiva'],
+  ['{listaStaff}',  'Lista do staff e dos treinadores'],
+  ['{dias}',        'Número de dias da atividade'],
+  ['{noites}',      'Número de noites'],
+  ['{logistica}',   'Resumo logístico (comitiva, datas, alojamento)'],
+  ['{quartos}',     'Distribuição de quartos, linha a linha'],
+  ['{detalheOrcamentos}',  'Itens dos pedidos de orçamento da atividade'],
+  ['{detalheEquipamento}', 'Material requisitado, por artigo e tamanho']
 ];
 
 const MODELOS_EMAIL_BASE = [
@@ -1389,11 +1398,15 @@ const MODELOS_EMAIL_BASE = [
 
   { id:'m_orc', nome:'Pedido de orçamento — fornecedor', tipo:'orcamento',
     assunto:'Pedido de orçamento — {atividade} ({datas})',
-    corpo:'Exmos. Senhores,\n\nA Federação Portuguesa de Natação solicita orçamento para os serviços abaixo discriminados, no âmbito da atividade {codigo} — {atividade}, a realizar em {local}, de {datas}.\n\nAgradecemos que a proposta indique preços unitários, prazos de pagamento e período de validade.\n\nO detalhe do pedido segue em anexo.\n\n{assinatura}' },
+    corpo:'Exmos. Senhores,\n\nA Federação Portuguesa de Natação solicita orçamento para os serviços abaixo discriminados, no âmbito da atividade {codigo} — {atividade}, a realizar em {local}, de {datas}.\n\n{logistica}\n\nServiços a orçamentar:\n{detalheOrcamentos}\n\nAgradecemos que a proposta indique preços unitários, prazos de pagamento e período de validade.\n\nO detalhe do pedido segue também em anexo.\n\n{assinatura}' },
 
   { id:'m_eq', nome:'Requisição de equipamento — interna', tipo:'equipamento',
     assunto:'Requisição de equipamento — {codigo} {atividade}',
-    corpo:'Exmos. Senhores,\n\nSolicita-se a preparação do equipamento destinado à comitiva da {selecao} que participa em {atividade}, em {local}, de {datas}.\n\nO material necessário e as quantidades constam do documento em anexo. Agradecemos que o equipamento esteja disponível até {dataIni}.\n\n{assinatura}' },
+    corpo:'Exmos. Senhores,\n\nSolicita-se a preparação do equipamento destinado à comitiva da {selecao} que participa em {atividade}, em {local}, de {datas}.\n\nComitiva: {nComitiva} pessoas — {nConvocados} nadadores e {nStaff} de equipa técnica.\n\nMaterial necessário:\n{detalheEquipamento}\n\nAgradecemos que o equipamento esteja disponível até {dataIni}. O detalhe por pessoa e tamanho segue em anexo.\n\n{assinatura}' },
+
+  { id:'m_aloj', nome:'Alojamento — unidade hoteleira', tipo:'orcamento',
+    assunto:'Pedido de orçamento de alojamento — {atividade} ({datas})',
+    corpo:'Exmos. Senhores,\n\nA Federação Portuguesa de Natação pretende alojar a comitiva da {selecao} em {local}, de {datas} ({noites} noites).\n\n{logistica}\n\nDistribuição de quartos pretendida:\n{quartos}\n\nAgradecemos proposta com preço por quarto e por noite, regime de refeições disponível e condições de pagamento.\n\n{assinatura}' },
 
   { id:'m_rel', nome:'Relatório de atividade — direção', tipo:'relatorio',
     assunto:'Relatório de atividade — {codigo} {atividade}',
@@ -1496,6 +1509,45 @@ const CAT_CORES = ['var(--cat-1)','var(--cat-2)','var(--cat-3)','var(--cat-4)',
   'var(--cat-5)','var(--cat-6)','var(--cat-7)'];
 /* Marcas com contraste baixo em modo claro levam rótulo escuro por cima. */
 const CAT_CLARAS = [3, 4];
+
+/* ==========================================================================
+   LOGÍSTICA DA COMITIVA — quartos, viagens, transfers e refeições
+   ========================================================================== */
+const TIPOS_QUARTO = [
+  { n:1, nome:'Individual',  curto:'Single'    },
+  { n:2, nome:'Duplo',       curto:'Duplo'     },
+  { n:3, nome:'Triplo',      curto:'Triplo'    },
+  { n:4, nome:'Quádruplo',   curto:'Quádruplo' }
+];
+
+/* Conjunto de artigos que segue, por defeito, numa comitiva. */
+const TIPOLOGIA_BASE = [
+  { artigo:'T-shirt oficial',            qtd:2, aplicaA:'todos' },
+  { artigo:'Polo oficial',               qtd:1, aplicaA:'todos' },
+  { artigo:'Casaco de fato de treino',   qtd:1, aplicaA:'todos' },
+  { artigo:'Calças de fato de treino',   qtd:1, aplicaA:'todos' },
+  { artigo:'Saco/mochila',               qtd:1, aplicaA:'todos' },
+  { artigo:'Touca',                      qtd:2, aplicaA:'nadadores' },
+  { artigo:'Toalha',                     qtd:1, aplicaA:'nadadores' },
+  { artigo:'Garrafa',                    qtd:1, aplicaA:'todos' }
+];
+const APLICA_A = [
+  { id:'todos',      nome:'Todos' },
+  { id:'nadadores',  nome:'Só nadadores' },
+  { id:'staff',      nome:'Só staff e treinadores' }
+];
+/* Artigos sem tamanho (não entram na grelha de tamanhos). */
+const SEM_TAMANHO = ['Touca', 'Óculos', 'Garrafa', 'Bandeira', 'Kit médico',
+  'Material de treino', 'Toalha', 'Saco/mochila', 'Mala de viagem'];
+
+/* Pedidos de orçamento que a aplicação sabe preparar sozinha. */
+const PREDEF_ORC = [
+  { id:'viagem',    nome:'Viagem',     categoria:'Transporte aéreo' },
+  { id:'transfer',  nome:'Transfers',  categoria:'Transporte terrestre' },
+  { id:'refeicoes', nome:'Refeições',  categoria:'Alimentação' },
+  { id:'alojamento',nome:'Alojamento', categoria:'Alojamento' },
+  { id:'inscricao', nome:'Inscrições', categoria:'Inscrições' }
+];
 
 </script>
 <script>
@@ -2767,6 +2819,7 @@ const cfgPadrao = () => ({
   recordes:[],                  /* melhores marcas da época */
   categoriasRec: clone(CATEGORIAS_REC_BASE),
   competicoes:[],               /* calendário nacional */
+  tamanhos:{},                  /* tamanho de equipamento por pessoa */
   responsaveis:{},              /* ativId -> responsável pela atividade */
   orcamentoGlobal:0             /* dotação anual, para o painel de custos */
 });
@@ -2805,14 +2858,14 @@ async function gravarTudo(){
   await salvarLocal();
   await salvarDbLocal();
   if (typeof SYNC !== 'undefined' && SYNC.disponivel && SYNC.podeGravar){
-    clearTimeout(SYNC._timer);
-    const ok = await empurrar(false);
-    toast(ok
-      ? 'Informação gravada e enviada para a base partilhada — já está acessível noutro computador.'
-      : ('Gravado neste computador. A base partilhada não aceitou a gravação' +
-         (SYNC.detalhe ? ': ' + SYNC.detalhe : '.')), !ok);
+    clearTimeout(SYNC._timer); SYNC._timer = null;
+    const r = await empurrar({ silencioso:true });
+    toast(r.ok
+      ? `Tudo gravado e enviado para a base partilhada (revisão ${r.rev}) — já está acessível noutro computador.`
+      : 'Gravado neste computador, mas não na base partilhada: ' + (r.motivo || SYNC.detalhe || 'motivo desconhecido'),
+      !r.ok);
   } else {
-    toast('Toda a informação foi gravada neste computador.');
+    toast('Gravado apenas neste computador — a base partilhada não está disponível nesta janela.', true);
   }
   pintarNav();
 }
@@ -3055,19 +3108,26 @@ function pintarNav(){
       el('div', {}, `${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados`),
       el('div', {}, `Importado a ${fmtDate(S.db.importadoEm)}`));
   } else f.append(el('div', {}, 'Sem ficheiro de rankings importado.'));
-  if (typeof SYNC !== 'undefined' && SYNC.disponivel){
-    const txt = { pronto:'Base partilhada ligada', 'a-ler':'A carregar dados…',
-      'a-gravar':'A gravar…', conflito:'Versão mais recente disponível', erro:'Erro na base partilhada' }[SYNC.estado]
-      || 'Base partilhada';
+  if (typeof SYNC !== 'undefined'){
+    const txt = {
+      local:'Só neste computador',
+      pronto: SYNC.podeGravar ? 'Base partilhada ligada' : 'Base partilhada (consulta)',
+      'a-ler':'A carregar dados…', 'a-gravar':'A gravar…',
+      conflito:'Versão mais recente disponível', erro:'Erro na base partilhada',
+      off:'Base partilhada por ligar' }[SYNC.estado] || 'Base partilhada';
+    const cor = SYNC.estado === 'erro' ? 'bad'
+      : (SYNC.estado === 'conflito' || SYNC.estado === 'local') ? 'warn'
+      : SYNC.estado === 'pronto' ? 'good' : 'acc';
     f.append(el('div', { style:'margin-top:8px' },
-      el('span', { class:'pill ' + (SYNC.estado === 'erro' ? 'bad' : SYNC.estado === 'conflito' ? 'warn'
-        : SYNC.estado === 'pronto' ? 'good' : 'acc') }, txt)));
+      el('span', { class:'pill ' + cor, style:'cursor:pointer',
+        title:'Ver o diagnóstico da base partilhada',
+        onclick:() => { if (typeof diagnosticoSync === 'function') diagnosticoSync(); } }, txt)));
   }
 }
 
 function irPara(p, ativo){
   S.page = p; if (ativo !== undefined) S.ativo = ativo;
-  pintarNav(); render(); window.scrollTo(0,0);
+  render(); window.scrollTo(0,0);
 }
 
 /* ---------- importação ---------- */
@@ -3232,6 +3292,7 @@ function linhasConvocatoria(ativId){
    RENDER
    ========================================================================== */
 function render(){
+  pintarNav();                       /* o contador da barra lateral acompanha sempre o estado */
   const v = $('#view'); v.replaceChildren();
   $('#pgActions').replaceChildren();
   const p = PAGINAS.find(x => x.id === S.page);
@@ -3346,10 +3407,21 @@ function reporAplicacao(){
     [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
       el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia primeiro'),
       el('button', { class:'btn primary', onclick:async () => {
+        fecharModal();
         S.cfg = cfgPadrao(); S.db = null; S._cache = {}; reconstruirAtividades();
-        await salvar(); await salvarDb();
-        fecharModal(); pintarNav(); irPara('painel');
-        toast('Aplicação reposta no estado inicial.');
+        await salvarLocal(); await salvarDbLocal();
+        /* a base partilhada tem de acompanhar, senão volta a trazer o que foi apagado */
+        let msg = 'Aplicação reposta no estado inicial.';
+        if (typeof SYNC !== 'undefined' && SYNC.disponivel){
+          if (SYNC.podeGravar){
+            clearTimeout(SYNC._timer); SYNC._timer = null;
+            const ok = await apagarBasePartilhada();
+            msg += ok ? ' A base partilhada foi também apagada.'
+                      : ' Não foi possível apagar a base partilhada: ' + (SYNC.detalhe || '—');
+          } else msg += ' A base partilhada mantém-se, porque esta ligação é de consulta.';
+        }
+        irPara('painel');
+        toast(msg);
       } }, 'Repor tudo') ]);
 }
 
@@ -3831,6 +3903,9 @@ function vConvDetalhe(v){
 
   /* informações da convocatória */
   v.append(cardBlocos(ativ));
+
+  /* logística: alojamento e distribuição de quartos */
+  v.append(cardAlojamento(ativ));
 
   /* orçamentos, equipamento, e-mails e relatório desta atividade */
   v.append(cardOrcamentosAtiv(ativ));
@@ -4416,7 +4491,9 @@ function vDefinicoes(v){
         S.db ? el('button', { class:'btn ed', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null,
         el('button', { class:'btn ed', onclick:() => {
           if (!confirm('Apagar todas as convocatórias, justificações, provas, estafetas e treinadores? Os rankings, os índices e as definições mantêm-se.')) return;
-          S.cfg.convocatorias = {}; salvar(); render(); toast('Convocatórias apagadas.');
+          S.cfg.convocatorias = {}; salvar(); render();
+          toast('Convocatórias apagadas.' + (typeof SYNC !== 'undefined' && SYNC.disponivel && SYNC.podeGravar
+            ? ' A base partilhada é atualizada dentro de instantes.' : ''));
         } }, 'Apagar convocatórias'),
         el('button', { class:'btn ed', onclick:reporAplicacao }, 'Repor a aplicação')))));
 
@@ -5568,6 +5645,15 @@ function aplicarMarcadores(txt, ativId){
     .replace(/\{nConvocados\}/g, d ? String(d.ativos.length) : '0')
     .replace(/\{listaConvocados\}/g, listaConv)
     .replace(/\{hoje\}/g, HOJE())
+    .replace(/\{nStaff\}/g, a ? String(comitivaDe(a.id).equipa.length) : '0')
+    .replace(/\{nComitiva\}/g, a ? String(comitivaDe(a.id).total) : '0')
+    .replace(/\{listaStaff\}/g, a ? listaPessoas(a.id, 'staff') : '')
+    .replace(/\{dias\}/g, a ? String(diasDe(a)) : '')
+    .replace(/\{noites\}/g, a ? String(noitesDe(a)) : '')
+    .replace(/\{logistica\}/g, a ? resumoLogistico(a.id) : '')
+    .replace(/\{quartos\}/g, a ? (planoQuartosTexto(a.id) || '  (distribuição de quartos por calcular)') : '')
+    .replace(/\{detalheOrcamentos\}/g, a ? (detalheOrcamentos(a.id) || '  (sem pedidos registados)') : '')
+    .replace(/\{detalheEquipamento\}/g, a ? (detalheEquipamento(a.id) || '  (sem material registado)') : '')
     .replace(/\{assinatura\}/g, S.cfg.email.assinatura || '');
 }
 
@@ -5840,6 +5926,8 @@ function cardEmailsAtiv(ativ){
       anexo:`convocatoria-${slug(ativ.id)}.pdf` }) }, '+ Convocatória'),
     el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'orcamento',
       anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, '+ Pedido de orçamento'),
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, modelo:'m_aloj',
+      tipo:'orcamento', anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, '+ Alojamento'),
     el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'equipamento',
       anexo:`equipamento-${slug(ativ.id)}.pdf` }) }, '+ Requisição de equipamento'),
     el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'relatorio',
@@ -6089,11 +6177,17 @@ function cardOrcamentosAtiv(ativ){
     corpo.append(el('p', { class:'muted small', style:'margin:0' },
       'Sem pedidos de orçamento nesta atividade. Registe transporte, alojamento, alimentação ou inscrições para acompanhar o custo.'));
   }
-  corpo.append(el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
-    el('button', { class:'btn sm primary', onclick:() => novoOrcamento(ativ.id) }, '+ Novo pedido'),
-    lista.length ? el('button', { class:'btn sm', onclick:() => exportarGestaoPdf(ativ.id, 'orcamento') }, 'Documento PDF') : null,
-    lista.length ? el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'orcamento',
-      anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null));
+  corpo.append(
+    el('div', { style:'margin-top:12px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Pedidos pré-preenchidos com os dados da convocatória'),
+      el('div', { class:'chips' }, ...PREDEF_ORC.map(d => el('button', { class:'chip',
+        title:'Cria o pedido com os itens e as quantidades já calculados',
+        onclick:() => novoOrcamentoPredefinido(ativ.id, d.id) }, '+ ' + d.nome)))),
+    el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+      el('button', { class:'btn sm', onclick:() => novoOrcamento(ativ.id) }, '+ Pedido em branco'),
+      lista.length ? el('button', { class:'btn sm', onclick:() => exportarGestaoPdf(ativ.id, 'orcamento') }, 'Documento PDF') : null,
+      lista.length ? el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'orcamento',
+        anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null));
 
   return el('div', { class:'card' },
     el('header', {}, el('div', {},
@@ -6211,8 +6305,10 @@ function editarRequisicao(ruid){
       el('label', { class:'f' }, el('span', {}, 'Estado'), estado),
       el('label', { class:'f' }, el('span', {}, 'Necessário até'), data),
       el('label', { class:'f' }, el('span', {}, 'Responsável'), resp)),
+    (r.tipologia || r.pessoas) ? el('div', { style:'margin-top:16px' },
+      blocoTipologia(r, () => { gravarR(); atualizarResumo(); pintarItens(); })) : null,
     el('div', { style:'margin-top:16px' },
-      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Material'), itensBox),
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Material, linha a linha'), itensBox),
     el('div', { class:'grid g2', style:'margin-top:14px' }, resumo,
       el('label', { class:'f' }, el('span', {}, 'Notas'), notas))), botoes);
   if (so) bloquearEdicao();
@@ -6304,10 +6400,12 @@ function cardEquipAtiv(ativ){
     t.append(tb); tw.append(t); corpo.append(tw);
   } else {
     corpo.append(el('p', { class:'muted small', style:'margin:0' },
-      'Sem requisições nesta atividade. Pode gerar as linhas a partir da convocatória, com um artigo por nadador e por elemento do staff.'));
+      'Sem requisições nesta atividade. “Requisição da convocatória” traz já os nadadores e o staff convocados — falta apenas confirmar a tipologia, as quantidades e os tamanhos.'));
   }
   corpo.append(el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
-    el('button', { class:'btn sm primary', onclick:() => novaRequisicao(ativ.id) }, '+ Nova requisição'),
+    el('button', { class:'btn sm primary', onclick:() => novaRequisicaoDaConvocatoria(ativ.id) },
+      '+ Requisição da convocatória'),
+    el('button', { class:'btn sm', onclick:() => novaRequisicao(ativ.id) }, '+ Em branco'),
     lista.length ? el('button', { class:'btn sm', onclick:() => exportarGestaoPdf(ativ.id, 'equipamento') }, 'Documento PDF') : null,
     lista.length ? el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'equipamento',
       anexo:`equipamento-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null));
@@ -6896,6 +6994,566 @@ function cardResponsaveis(){
       el('span', { class:'pill ' + (semResp ? 'warn' : 'good') },
         semResp ? `${semResp} por atribuir` : 'todas atribuídas')),
     corpo);
+}
+
+</script>
+<script>
+/* ==========================================================================
+   LOGÍSTICA DA COMITIVA
+   Tudo o que se pode preparar sozinho a partir da convocatória já feita:
+   quem viaja, quantas noites, quantos quartos, que material e que pedidos de
+   orçamento. O utilizador só confirma tipologias, quantidades e preços.
+   ========================================================================== */
+
+/* ---------- quem compõe a comitiva ---------- */
+function comitivaDe(ativId){
+  const ativ = ativDe(ativId);
+  const c = conv(ativId);
+  const nadadores = [], staff = [], treinadores = [];
+  if (c){
+    for (const l of linhasConvocatoria(ativId)){
+      if (l.estado === 'removido') continue;
+      nadadores.push({ key:l.key, nome:l.nome, g:l.g || '', detalhe:l.clube || '' });
+    }
+    for (const s of (c.staff || [])) if ((s.nome || '').trim())
+      staff.push({ key:'staff:' + s.funcao + ':' + s.nome, nome:s.nome.trim(), g:'', detalhe:s.funcao });
+    for (const t of (c.treinadores || [])) if ((t.nome || '').trim())
+      treinadores.push({ key:'trein:' + t.nome, nome:t.nome.trim(), g:'', detalhe:t.clube || 'Treinador' });
+  }
+  const equipa = staff.concat(treinadores);
+  return { ativ, c, nadadores, staff, treinadores, equipa,
+    pessoas: nadadores.concat(equipa),
+    total: nadadores.length + equipa.length,
+    M: nadadores.filter(x => x.g === 'M').length,
+    F: nadadores.filter(x => x.g === 'F').length };
+}
+
+const diasDe = ativ => {
+  if (!ativ || !ativ.dataIni) return 1;
+  const a = new Date(ativ.dataIni), b = new Date(ativ.dataFim || ativ.dataIni);
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+};
+const noitesDe = ativ => Math.max(1, diasDe(ativ) - 1);
+
+/* ==========================================================================
+   DISTRIBUIÇÃO DE QUARTOS
+   Procura a combinação de individuais, duplos, triplos e quádruplos que cobre
+   o grupo com o menor custo; sem preços, a que deixa menos camas vazias e
+   menos quartos.
+   ========================================================================== */
+function otimizarQuartos(n, precos = {}, permitidos = {}){
+  if (n <= 0) return { contagem:{}, camasVazias:0, nQuartos:0, custo:0 };
+  const tipos = TIPOS_QUARTO.map(t => t.n).filter(t => permitidos[t] !== false);
+  if (!tipos.length) return null;
+  const temPreco = tipos.some(t => Number(precos[t]) > 0);
+  const maior = Math.max(...tipos);
+  const usa = t => tipos.includes(t);
+  let melhor = null;
+
+  const avaliar = cont => {
+    const cap = Object.entries(cont).reduce((s, [t, q]) => s + (+t) * q, 0);
+    if (cap < n || cap > n + maior - 1) return;
+    const nQ = Object.values(cont).reduce((s, q) => s + q, 0);
+    const custo = Object.entries(cont).reduce((s, [t, q]) => s + q * (Number(precos[t]) || 0), 0);
+    const cand = { contagem:{ ...cont }, camasVazias:cap - n, nQuartos:nQ, custo };
+    if (!melhor){ melhor = cand; return; }
+    const chave = x => temPreco ? [x.custo, x.camasVazias, x.nQuartos] : [x.camasVazias, x.nQuartos, x.custo];
+    const a = chave(cand), b = chave(melhor);
+    for (let i = 0; i < a.length; i++){
+      if (a[i] < b[i]) { melhor = cand; return; }
+      if (a[i] > b[i]) return;
+    }
+  };
+
+  const lim = t => Math.floor((n + maior - 1) / t);
+  for (let q4 = 0; q4 <= (usa(4) ? lim(4) : 0); q4++)
+    for (let q3 = 0; q3 <= (usa(3) ? lim(3) : 0); q3++)
+      for (let q2 = 0; q2 <= (usa(2) ? lim(2) : 0); q2++){
+        const ocupadas = q4 * 4 + q3 * 3 + q2 * 2;
+        if (ocupadas > n + maior - 1) break;
+        const q1max = usa(1) ? Math.max(0, n - ocupadas) : 0;
+        for (let q1 = 0; q1 <= q1max; q1++) avaliar({ 4:q4, 3:q3, 2:q2, 1:q1 });
+        if (!usa(1)) avaliar({ 4:q4, 3:q3, 2:q2, 1:0 });
+      }
+  return melhor;
+}
+
+function alojamentoDe(ativId){
+  const c = conv(ativId);
+  if (!c) return null;
+  if (!c.alojamento) c.alojamento = {
+    noites: noitesDe(ativDe(ativId)), separarGeneros:true, staffIndividual:false,
+    permitidos:{ 1:true, 2:true, 3:true, 4:true }, precos:{ 1:0, 2:0, 3:0, 4:0 },
+    hotel:'', quartos:[], manual:false };
+  return c.alojamento;
+}
+
+/* Grupos que não podem partilhar quarto. */
+function gruposAlojamento(ativId){
+  const com = comitivaDe(ativId);
+  const al = alojamentoDe(ativId);
+  const grupos = [];
+  if (al.separarGeneros){
+    const m = com.nadadores.filter(x => x.g === 'M');
+    const f = com.nadadores.filter(x => x.g === 'F');
+    const sg = com.nadadores.filter(x => x.g !== 'M' && x.g !== 'F');
+    if (m.length) grupos.push({ id:'NAD_M', nome:'Nadadores', pessoas:m });
+    if (f.length) grupos.push({ id:'NAD_F', nome:'Nadadoras', pessoas:f });
+    if (sg.length) grupos.push({ id:'NAD_X', nome:'Nadadores (género por indicar)', pessoas:sg });
+  } else if (com.nadadores.length){
+    grupos.push({ id:'NAD', nome:'Nadadores', pessoas:com.nadadores });
+  }
+  if (com.equipa.length) grupos.push({ id:'EQ', nome:'Staff e treinadores', pessoas:com.equipa });
+  return grupos;
+}
+
+function gerarQuartos(ativId, silencioso){
+  if (!podeEditar()) return semPermissao();
+  const al = alojamentoDe(ativId);
+  if (!al) return;
+  const quartos = [];
+  let i = 0, aviso = '';
+  for (const g of gruposAlojamento(ativId)){
+    const individual = g.id === 'EQ' && al.staffIndividual;
+    const perm = individual ? { 1:true, 2:false, 3:false, 4:false } : al.permitidos;
+    const plano = otimizarQuartos(g.pessoas.length, al.precos, perm);
+    if (!plano){ aviso = 'Escolha pelo menos um tipo de quarto.'; continue; }
+    const fila = g.pessoas.slice();
+    for (const t of [4, 3, 2, 1]){
+      for (let k = 0; k < (plano.contagem[t] || 0); k++){
+        const ocup = fila.splice(0, t);
+        quartos.push({ id:'q' + (++i), tipo:t, grupo:g.id, grupoNome:g.nome,
+          ocupantes:ocup.map(p => ({ key:p.key, nome:p.nome, detalhe:p.detalhe })) });
+      }
+    }
+    if (fila.length) quartos.push({ id:'q' + (++i), tipo:fila.length, grupo:g.id, grupoNome:g.nome,
+      ocupantes:fila.map(p => ({ key:p.key, nome:p.nome, detalhe:p.detalhe })) });
+  }
+  al.quartos = quartos;
+  al.manual = false;
+  al.geradoEm = new Date().toISOString();
+  salvar();
+  if (!silencioso) toast(aviso || `${quartos.length} quartos distribuídos para ${comitivaDe(ativId).total} pessoas.`, !!aviso);
+  return quartos;
+}
+
+const resumoQuartos = al => {
+  const c = {};
+  for (const q of (al.quartos || [])) c[q.tipo] = (c[q.tipo] || 0) + 1;
+  const camas = (al.quartos || []).reduce((s, q) => s + q.tipo, 0);
+  const pessoas = (al.quartos || []).reduce((s, q) => s + q.ocupantes.length, 0);
+  const custoNoite = (al.quartos || []).reduce((s, q) => s + (Number(al.precos[q.tipo]) || 0), 0);
+  return { c, camas, pessoas, vazias:camas - pessoas, custoNoite,
+    custoTotal:custoNoite * (Number(al.noites) || 0) };
+};
+
+/* ---------- cartão do alojamento, na convocatória ---------- */
+function cardAlojamento(ativ){
+  const c = conv(ativ.id);
+  if (!c) return el('div');
+  const al = alojamentoDe(ativ.id);
+  const com = comitivaDe(ativ.id);
+  const corpo = el('div', { class:'body' });
+
+  const pintar = () => {
+    const r = resumoQuartos(al);
+    const noites = el('input', { type:'number', min:'0', step:'1' });
+    noites.value = al.noites ?? noitesDe(ativ);
+    noites.addEventListener('change', () => { al.noites = +noites.value || 0; salvar(); pintar(); });
+    const hotel = el('input', { type:'text', placeholder:'nome e morada da unidade hoteleira' });
+    hotel.value = al.hotel || '';
+    hotel.addEventListener('input', () => { al.hotel = hotel.value; salvar(); });
+
+    const sepG = el('input', { type:'checkbox', style:'width:auto' }); sepG.checked = al.separarGeneros !== false;
+    sepG.addEventListener('change', () => { al.separarGeneros = sepG.checked; salvar(); gerarQuartos(ativ.id, true); pintar(); });
+    const staffInd = el('input', { type:'checkbox', style:'width:auto' }); staffInd.checked = !!al.staffIndividual;
+    staffInd.addEventListener('change', () => { al.staffIndividual = staffInd.checked; salvar(); gerarQuartos(ativ.id, true); pintar(); });
+
+    const tipoBox = el('div', { class:'tw' });
+    const tt = el('table', { class:'grelha' });
+    tt.append(el('thead', {}, el('tr', {},
+      el('th', {}, 'Tipo de quarto'), el('th', {}, 'Usar'),
+      el('th', { class:'num' }, 'Preço por noite (€)'), el('th', { class:'num' }, 'Quartos'),
+      el('th', { class:'num' }, 'Custo por noite'))));
+    const ttb = el('tbody', {});
+    for (const t of TIPOS_QUARTO){
+      const usar = el('input', { type:'checkbox', style:'width:auto' });
+      usar.checked = al.permitidos[t.n] !== false;
+      usar.addEventListener('change', () => {
+        al.permitidos[t.n] = usar.checked; salvar(); gerarQuartos(ativ.id, true); pintar();
+      });
+      const preco = el('input', { type:'number', min:'0', step:'0.01', style:'width:110px;text-align:right' });
+      preco.value = al.precos[t.n] || '';
+      preco.addEventListener('change', () => {
+        al.precos[t.n] = preco.value === '' ? 0 : +preco.value;
+        salvar(); gerarQuartos(ativ.id, true); pintar();
+      });
+      const nQ = r.c[t.n] || 0;
+      ttb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, t.nome),
+          el('div', { class:'small muted' }, plural(t.n, 'cama', 'camas'))),
+        el('td', {}, usar),
+        el('td', { class:'num' }, preco),
+        el('td', { class:'num mono' }, String(nQ)),
+        el('td', { class:'num mono' }, (nQ && Number(al.precos[t.n]) > 0)
+          ? eur(nQ * Number(al.precos[t.n])) : '—')));
+    }
+    tt.append(ttb); tipoBox.append(tt);
+
+    /* lista de quartos */
+    const listaBox = el('div', {});
+    if (!(al.quartos || []).length){
+      listaBox.append(el('p', { class:'muted small', style:'margin:0' },
+        'Sem distribuição calculada. Carregue em “Distribuir quartos”.'));
+    } else {
+      const tw = el('div', { class:'tw' }); const t2 = el('table', { class:'grelha' });
+      t2.append(el('thead', {}, el('tr', {},
+        el('th', { class:'gnum' }, '#'), el('th', {}, 'Tipo'), el('th', {}, 'Grupo'),
+        el('th', {}, 'Ocupantes'), el('th', { class:'num' }, 'Camas livres'))));
+      const tb2 = el('tbody', {});
+      (al.quartos || []).forEach((q, i) => {
+        const tipoSel = el('select', { style:'width:auto;min-width:120px' },
+          ...TIPOS_QUARTO.map(t => el('option', { value:t.n }, t.nome)));
+        tipoSel.value = q.tipo;
+        tipoSel.addEventListener('change', () => { q.tipo = +tipoSel.value; al.manual = true; salvar(); pintar(); });
+        tb2.append(el('tr', {},
+          el('td', { class:'gnum muted mono' }, String(i + 1)),
+          el('td', {}, tipoSel),
+          el('td', { class:'small muted' }, q.grupoNome || ''),
+          el('td', { class:'small' }, q.ocupantes.map(o => o.nome).join(' · ') || '(vazio)'),
+          el('td', { class:'num mono' }, String(Math.max(0, q.tipo - q.ocupantes.length)))));
+      });
+      t2.append(tb2); tw.append(t2); listaBox.append(tw);
+    }
+
+    corpo.replaceChildren(
+      el('div', { class:'grid g4', style:'margin-bottom:12px' },
+        mini('Comitiva', `${com.total} pessoas`),
+        mini('Nadadores', `${com.nadadores.length} (${com.M} M · ${com.F} F)`),
+        mini('Staff e treinadores', String(com.equipa.length)),
+        mini('Camas vazias', String(r.vazias))),
+      el('div', { class:'grid g3' },
+        el('label', { class:'f' }, el('span', {}, 'Noites'), noites),
+        el('label', { class:'f' }, el('span', {}, 'Unidade hoteleira'), hotel),
+        el('div', {},
+          el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Regras'),
+          el('label', { class:'switch' }, sepG, el('span', {}, 'Separar géneros')),
+          el('label', { class:'switch', style:'margin-left:14px' }, staffInd, el('span', {}, 'Staff em individual')))),
+      el('div', { style:'margin-top:14px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Tipos de quarto e preços'), tipoBox),
+      el('div', { style:'margin-top:14px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Distribuição'), listaBox),
+      el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center' },
+        el('button', { class:'btn primary', onclick:() => { gerarQuartos(ativ.id); pintar(); } }, 'Distribuir quartos'),
+        el('button', { class:'btn', onclick:() => novoOrcamentoPredefinido(ativ.id, 'alojamento') }, 'Pedido de orçamento'),
+        el('span', { class:'small muted' },
+          r.pessoas
+            ? `${r.pessoas} pessoas em ${(al.quartos || []).length} quartos · ${r.vazias} camas vazias · ${eur(r.custoNoite)}/noite · ${eur(r.custoTotal)} no total`
+            : 'A distribuição respeita os géneros e usa os quartos maiores primeiro.')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintar();
+
+  const r0 = resumoQuartos(al);
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Alojamento e distribuição de quartos'),
+      el('div', { class:'small muted' }, 'Calculada a partir dos convocados e do staff, com os géneros separados.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + ((al.quartos || []).length ? 'good' : '') },
+        (al.quartos || []).length ? `${(al.quartos || []).length} quartos` : 'por distribuir'),
+      r0.custoTotal ? el('span', { class:'pill acc' }, eur(r0.custoTotal)) : null),
+    corpo);
+}
+
+/* ==========================================================================
+   PEDIDOS DE ORÇAMENTO PRÉ-PREENCHIDOS
+   ========================================================================== */
+function itensPredefinidos(ativId, tipo){
+  const com = comitivaDe(ativId);
+  const ativ = com.ativ;
+  const dias = diasDe(ativ), noites = noitesDe(ativ);
+  const pax = com.total || 1;
+  const destino = ativ ? ativ.local : '';
+
+  const fora = typeof noEstrangeiro === 'function' ? noEstrangeiro(ativ || {}) : false;
+
+  if (tipo === 'viagem') return fora
+    ? [
+      { desc:`Viagem ida e volta Portugal – ${destino}`, qtd:pax, unidade:'pax', precoUnit:0,
+        obs:`${ativ ? fmtDate(ativ.dataIni) : ''} a ${ativ ? fmtDate(ativ.dataFim || ativ.dataIni) : ''}` },
+      { desc:'Bagagem de porão (20 kg)', qtd:pax, unidade:'pax', precoUnit:0, obs:'' },
+      { desc:'Bagagem especial / material de treino', qtd:1, unidade:'volume', precoUnit:0, obs:'a confirmar' }
+    ]
+    : [
+      { desc:`Autocarro ida e volta — ${destino}`, qtd:1, unidade:'serviço', precoUnit:0,
+        obs:`${pax} pessoas · ${ativ ? fmtDate(ativ.dataIni) : ''} a ${ativ ? fmtDate(ativ.dataFim || ativ.dataIni) : ''}` },
+      { desc:'Deslocação individual comparticipada', qtd:pax, unidade:'pax', precoUnit:0,
+        obs:'para quem se desloque por meios próprios' }
+    ];
+
+  if (tipo === 'transfer') return fora
+    ? [
+      { desc:'Transfer aeroporto → alojamento', qtd:1, unidade:'serviço', precoUnit:0, obs:`${pax} pessoas` },
+      { desc:'Transfer alojamento → aeroporto', qtd:1, unidade:'serviço', precoUnit:0, obs:`${pax} pessoas` },
+      { desc:'Transfer alojamento → piscina (ida e volta)', qtd:dias, unidade:'dia', precoUnit:0,
+        obs:`${dias} dias de atividade` }
+    ]
+    : [
+      { desc:'Transfer local de concentração → alojamento', qtd:1, unidade:'serviço', precoUnit:0, obs:`${pax} pessoas` },
+      { desc:'Transfer alojamento → piscina (ida e volta)', qtd:dias, unidade:'dia', precoUnit:0,
+        obs:`${dias} dias de atividade` },
+      { desc:'Transfer alojamento → local de dispersão', qtd:1, unidade:'serviço', precoUnit:0, obs:`${pax} pessoas` }
+    ];
+
+  if (tipo === 'refeicoes') return [
+    { desc:'Pequeno-almoço', qtd:pax * dias, unidade:'refeição', precoUnit:0, obs:'' },
+    { desc:'Almoço', qtd:pax * dias, unidade:'refeição', precoUnit:0, obs:'' },
+    { desc:'Jantar', qtd:pax * dias, unidade:'refeição', precoUnit:0, obs:'' },
+    { desc:'Reforço alimentar / snacks de competição', qtd:pax * dias, unidade:'pax/dia', precoUnit:0, obs:'' }
+  ];
+
+  if (tipo === 'alojamento'){
+    const al = alojamentoDe(ativId);
+    if (!(al.quartos || []).length) gerarQuartos(ativId, true);
+    const r = resumoQuartos(al);
+    const linhas = TIPOS_QUARTO.filter(t => r.c[t.n]).map(t => ({
+      desc:`Quarto ${t.nome.toLowerCase()} (${t.n} pax)`,
+      qtd:(r.c[t.n] || 0) * (Number(al.noites) || noites),
+      unidade:'quarto/noite', precoUnit:Number(al.precos[t.n]) || 0,
+      obs:`${r.c[t.n]} quartos × ${al.noites || noites} noites` }));
+    if (!linhas.length) linhas.push({ desc:'Alojamento da comitiva', qtd:pax * noites,
+      unidade:'pax/noite', precoUnit:0, obs:'distribuição de quartos por calcular' });
+    return linhas;
+  }
+
+  if (tipo === 'inscricao') return [
+    { desc:'Inscrição de nadadores', qtd:com.nadadores.length, unidade:'nadador', precoUnit:0, obs:'' },
+    { desc:'Acreditação de equipa técnica', qtd:com.equipa.length, unidade:'pessoa', precoUnit:0, obs:'' }
+  ];
+
+  return [{ desc:'', qtd:1, unidade:'un.', precoUnit:0, obs:'' }];
+}
+
+function novoOrcamentoPredefinido(ativId, tipo){
+  if (!podeEditar()) return semPermissao();
+  const def = PREDEF_ORC.find(x => x.id === tipo) || PREDEF_ORC[0];
+  const ativ = ativDe(ativId);
+  const fora = typeof noEstrangeiro === 'function' ? noEstrangeiro(ativ || {}) : false;
+  const categoria = (tipo === 'viagem' && !fora) ? 'Transporte terrestre' : def.categoria;
+  const o = { uid:uid('o'), ativId, titulo:`${def.nome} — ${ativ ? ativ.id : ''}`.trim(),
+    categoria, fornecedor:{ nome:'', contacto:'', email:'', nif:'' },
+    itens:itensPredefinidos(ativId, tipo), estado:'pedido', prazoResposta:'',
+    valorAprovado:'', predef:tipo,
+    notas:`Atividade ${ativ ? ativ.id + ' — ' + ativ.nome : ativId}. Comitiva de ${comitivaDe(ativId).total} pessoas.`,
+    criadoEm:new Date().toISOString() };
+  S.cfg.orcamentos = S.cfg.orcamentos || [];
+  S.cfg.orcamentos.push(o);
+  salvar();
+  editarOrcamento(o.uid);
+  toast(`Pedido de ${def.nome.toLowerCase()} pré-preenchido com os dados da convocatória. Falta o fornecedor e os preços.`);
+}
+
+/* ==========================================================================
+   REQUISIÇÃO DE EQUIPAMENTO A PARTIR DA CONVOCATÓRIA
+   ========================================================================== */
+const tamanhoDe = key => (S.cfg.tamanhos || {})[key] || '—';
+function definirTamanho(key, t){
+  S.cfg.tamanhos = S.cfg.tamanhos || {};
+  if (t && t !== '—') S.cfg.tamanhos[key] = t; else delete S.cfg.tamanhos[key];
+  salvar();
+}
+
+function pessoasDaRequisicao(ativId){
+  const com = comitivaDe(ativId);
+  return com.nadadores.map(p => ({ key:p.key, nome:p.nome, tipo:'Nadador', detalhe:p.detalhe,
+      tamanho:tamanhoDe(p.key) }))
+    .concat(com.equipa.map(p => ({ key:p.key, nome:p.nome, tipo:'Staff', detalhe:p.detalhe,
+      tamanho:tamanhoDe(p.key) })));
+}
+
+function novaRequisicaoDaConvocatoria(ativId){
+  if (!podeEditar()) return semPermissao();
+  const ativ = ativDe(ativId);
+  const com = comitivaDe(ativId);
+  const r = { uid:uid('r'), ativId, titulo:`Equipamento — ${ativ ? ativ.id : ''}`.trim(),
+    destino:'Comitiva', estado:'rascunho', dataNecessaria:ativ ? ativ.dataIni : '',
+    responsavel:'', notas:`${com.nadadores.length} nadadores e ${com.equipa.length} elementos de equipa técnica.`,
+    tipologia: clone(TIPOLOGIA_BASE), pessoas: pessoasDaRequisicao(ativId), itens:[],
+    criadoEm:new Date().toISOString() };
+  expandirRequisicao(r);
+  S.cfg.requisicoes = S.cfg.requisicoes || [];
+  S.cfg.requisicoes.push(r);
+  salvar();
+  editarRequisicao(r.uid);
+  toast('Requisição pré-preenchida com os convocados e o staff. Confirme tipologia, quantidades e tamanhos.');
+}
+
+/* Expande tipologia × pessoas nas linhas de material. */
+function expandirRequisicao(r){
+  const linhas = [];
+  for (const t of (r.tipologia || [])){
+    if (!t.artigo || !(Number(t.qtd) > 0)) continue;
+    const alvo = (r.pessoas || []).filter(p =>
+      t.aplicaA === 'todos' || (t.aplicaA === 'nadadores' ? p.tipo === 'Nadador' : p.tipo !== 'Nadador'));
+    for (const p of alvo){
+      linhas.push({ artigo:t.artigo,
+        tamanho: SEM_TAMANHO.includes(t.artigo) ? '—' : (p.tamanho || '—'),
+        qtd:Number(t.qtd) || 1, destinatario:p.nome, obs:p.detalhe || '' });
+    }
+  }
+  r.itens = linhas;
+  return linhas;
+}
+
+/* Cartão de tipologia e tamanhos, dentro do editor da requisição. */
+function blocoTipologia(r, aoMudar){
+  const caixa = el('div', {});
+  const pintar = () => {
+    r.tipologia = r.tipologia || [];
+    r.pessoas = r.pessoas || [];
+    const artigosComTamanho = [...new Set(r.tipologia.map(t => t.artigo)
+      .filter(a => a && !SEM_TAMANHO.includes(a)))];
+
+    const grelhaTam = el('div', { class:'tw' });
+    const t2 = el('table', { class:'grelha' });
+    t2.append(el('thead', {}, el('tr', {},
+      el('th', { class:'gnum' }, '#'), el('th', {}, 'Pessoa'), el('th', {}, 'Função'),
+      el('th', {}, 'Tamanho'))));
+    const tb2 = el('tbody', {});
+    r.pessoas.forEach((p, i) => {
+      const s = el('select', { style:'width:auto;min-width:90px' },
+        ...TAMANHOS_EQ.map(x => el('option', { value:x }, x)));
+      s.value = p.tamanho || '—';
+      s.addEventListener('change', () => {
+        p.tamanho = s.value; definirTamanho(p.key, s.value);
+        expandirRequisicao(r); aoMudar(); pintar();
+      });
+      tb2.append(el('tr', {},
+        el('td', { class:'gnum muted mono' }, String(i + 1)),
+        el('td', {}, el('span', { class:'nome' }, p.nome)),
+        el('td', { class:'small muted' }, `${p.tipo}${p.detalhe ? ' · ' + p.detalhe : ''}`),
+        el('td', {}, s)));
+    });
+    t2.append(tb2); grelhaTam.append(t2);
+
+    /* totais por artigo e tamanho */
+    const tot = {};
+    for (const it of (r.itens || [])){
+      const k = `${it.artigo}|${it.tamanho || '—'}`;
+      tot[k] = (tot[k] || 0) + (Number(it.qtd) || 0);
+    }
+    const twTot = el('div', { class:'tw' });
+    const t3 = el('table', { class:'grelha' });
+    t3.append(el('thead', {}, el('tr', {}, el('th', {}, 'Artigo'), el('th', {}, 'Tamanho'),
+      el('th', { class:'num' }, 'Quantidade'))));
+    const tb3 = el('tbody', {});
+    Object.entries(tot).sort((a, b) => b[1] - a[1]).forEach(([k, n]) => {
+      tb3.append(el('tr', {}, el('td', {}, el('span', { class:'nome' }, k.split('|')[0])),
+        el('td', { class:'small' }, k.split('|')[1]), el('td', { class:'num mono' }, String(n))));
+    });
+    t3.append(tb3); twTot.append(t3);
+
+    caixa.replaceChildren(
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Tipologia — o que leva a comitiva'),
+      listaItens(r.tipologia, [
+        { k:'artigo', t:'Artigo', tipo:'select', op:ARTIGOS_EQ, w:'190px' },
+        { k:'qtd', t:'Por pessoa', tipo:'num', dec:0, w:'88px' },
+        { k:'aplicaA', t:'Aplica a', tipo:'select', op:APLICA_A, w:'170px' }
+      ], () => { expandirRequisicao(r); aoMudar(); pintar(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          r.tipologia.push({ artigo:ARTIGOS_EQ[0], qtd:1, aplicaA:'todos' });
+          expandirRequisicao(r); aoMudar(); pintar();
+        } }, '+ Artigo'),
+        el('button', { class:'btn sm', onclick:() => {
+          r.tipologia = clone(TIPOLOGIA_BASE); expandirRequisicao(r); aoMudar(); pintar();
+          toast('Tipologia reposta no conjunto habitual.');
+        } }, 'Repor tipologia base'),
+        el('button', { class:'btn sm', onclick:() => {
+          r.pessoas = pessoasDaRequisicao(r.ativId);
+          expandirRequisicao(r); aoMudar(); pintar();
+          toast(`${r.pessoas.length} pessoas atualizadas a partir da convocatória.`);
+        } }, 'Atualizar pessoas da convocatória'),
+        el('span', { class:'small muted', style:'align-self:center' },
+          artigosComTamanho.length
+            ? `Com tamanho: ${artigosComTamanho.join(', ')}`
+            : 'Nenhum dos artigos escolhidos leva tamanho.')),
+      el('div', { class:'eyebrow', style:'margin:16px 0 6px' },
+        `Tamanhos — ${r.pessoas.length} pessoas`),
+      r.pessoas.length ? grelhaTam
+        : el('p', { class:'muted small', style:'margin:0' },
+            'Sem pessoas associadas. Use “Atualizar pessoas da convocatória”.'),
+      el('div', { class:'eyebrow', style:'margin:16px 0 6px' }, 'Total a requisitar'),
+      Object.keys(tot).length ? twTot
+        : el('p', { class:'muted small', style:'margin:0' }, 'Sem material calculado.'));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintar();
+  return caixa;
+}
+
+/* ==========================================================================
+   RESUMO LOGÍSTICO — usado nos e-mails e nos documentos
+   ========================================================================== */
+function resumoLogistico(ativId){
+  const com = comitivaDe(ativId);
+  const ativ = com.ativ; if (!ativ) return '';
+  const al = (conv(ativId) || {}).alojamento;
+  const linhas = [
+    `Comitiva: ${com.total} pessoas — ${com.nadadores.length} nadadores (${com.M} M, ${com.F} F)` +
+      (com.equipa.length ? `, ${com.equipa.length} de equipa técnica` : '') + '.',
+    `Datas: ${fmtDate(ativ.dataIni)} a ${fmtDate(ativ.dataFim || ativ.dataIni)} — ${diasDe(ativ)} dias, ${noitesDe(ativ)} noites.`,
+    `Local: ${ativ.local || '—'}.`
+  ];
+  if (al && (al.quartos || []).length){
+    const r = resumoQuartos(al);
+    const det = TIPOS_QUARTO.filter(t => r.c[t.n])
+      .map(t => `${r.c[t.n]} ${t.nome.toLowerCase()}${r.c[t.n] > 1 ? 's' : ''}`).join(', ');
+    linhas.push(`Alojamento: ${al.quartos.length} quartos (${det}), ${al.noites} noites` +
+      (al.hotel ? ` — ${al.hotel}` : '') + '.');
+  }
+  return linhas.join('\n');
+}
+
+function listaPessoas(ativId, quais){
+  const com = comitivaDe(ativId);
+  const lista = quais === 'staff' ? com.equipa : com.nadadores;
+  return lista.map((p, i) => `  ${i + 1}. ${p.nome}${p.detalhe ? ' — ' + p.detalhe : ''}`).join('\n');
+}
+
+function detalheOrcamentos(ativId){
+  const lista = orcamentosDe(ativId);
+  if (!lista.length) return '';
+  const out = [];
+  for (const o of lista){
+    out.push(`${o.titulo || o.categoria} (${o.categoria}):`);
+    for (const it of (o.itens || []))
+      out.push(`  • ${it.desc || '—'} — ${it.qtd || 0} ${it.unidade || ''}`.trimEnd());
+    out.push('');
+  }
+  return out.join('\n').trimEnd();
+}
+
+function detalheEquipamento(ativId){
+  const lista = requisicoesDe(ativId);
+  if (!lista.length) return '';
+  const tot = {};
+  for (const r of lista) for (const it of (r.itens || [])){
+    const k = `${it.artigo}|${it.tamanho || '—'}`;
+    tot[k] = (tot[k] || 0) + (Number(it.qtd) || 0);
+  }
+  return Object.entries(tot).sort((a, b) => b[1] - a[1])
+    .map(([k, n]) => `  • ${k.split('|')[0]}${k.split('|')[1] !== '—' ? ' (' + k.split('|')[1] + ')' : ''} — ${n}`)
+    .join('\n');
+}
+
+function planoQuartosTexto(ativId){
+  const al = (conv(ativId) || {}).alojamento;
+  if (!al || !(al.quartos || []).length) return '';
+  return al.quartos.map((q, i) =>
+    `  ${i + 1}. ${(TIPOS_QUARTO.find(t => t.n === q.tipo) || {}).nome || q.tipo} — ${q.ocupantes.map(o => o.nome).join(', ')}`)
+    .join('\n');
 }
 
 </script>
@@ -8330,9 +8988,9 @@ function cardsPainelExtra(){
    noutro sítio. Quem tem acesso de consulta lê; só quem tem permissão de
    edição grava ou elimina.
 
-   Se a aplicação estiver a correr fora do ambiente publicado (ficheiro HTML
-   local), nada disto existe e tudo continua a funcionar como antes, apenas
-   com o armazenamento do próprio navegador.
+   A base partilhada só existe na versão publicada da aplicação. Se o
+   ficheiro HTML for aberto diretamente no computador, tudo continua a
+   funcionar, mas apenas com o armazenamento desse navegador.
    ========================================================================== */
 
 const SYNC = {
@@ -8340,12 +8998,13 @@ const SYNC = {
   user: null,
   disponivel: false,
   podeGravar: false,
-  estado: 'off',       /* off | pronto | a-ler | a-gravar | erro | conflito */
-  detalhe: '',
+  estado: 'off',       /* off | local | pronto | a-ler | a-gravar | conflito | erro */
+  motivo: '',          /* porque é que não está disponível */
+  detalhe: '',         /* último erro */
   rev: 0,              /* revisão conhecida localmente */
   remoto: null,        /* último manifesto remoto visto */
-  em: null,
-  porQuem: '',
+  quem: null,          /* utilizador desta janela */
+  ultimaGravacao: null,
   _sub: null,
   _timer: null,
   _aGravar: false,
@@ -8354,11 +9013,26 @@ const SYNC = {
 
 const SYNC_MAX = 200000;                   /* caracteres de base64 por documento */
 const syncDoc  = p => SYNC.db.doc('sync/' + p);
+const ambientePublicado = () =>
+  typeof window !== 'undefined' && window.claude && typeof window.claude.use === 'function';
 
 function syncHash(s){
   let x = 5381;
   for (let i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0;
   return x.toString(36) + ':' + s.length;
+}
+
+/* Há trabalho guardado neste computador? */
+function temTrabalhoLocal(){
+  const c = S.cfg || {};
+  return !!(S.db
+    || Object.keys(c.convocatorias || {}).length
+    || (c.competicoes || []).length
+    || (c.orcamentos || []).length
+    || (c.requisicoes || []).length
+    || (c.emails || []).length
+    || Object.keys(c.relatorios || {}).length
+    || (c.contactos || []).length);
 }
 
 /* ---------- empacotar / desempacotar ---------- */
@@ -8398,21 +9072,57 @@ function partir(s){
 /* ---------- arranque ---------- */
 async function iniciarSync(){
   try{
-    if (typeof window === 'undefined' || !window.claude || !window.claude.use) return;
+    if (!ambientePublicado()){
+      SYNC.estado = 'local';
+      SYNC.motivo = 'A aplicação está a correr a partir de um ficheiro no computador. A base partilhada só existe na versão publicada.';
+      pintarNav();
+      return;
+    }
     SYNC.db = await window.claude.use('db');
-    if (!SYNC.db) return;
+    if (!SYNC.db){
+      SYNC.estado = 'local';
+      SYNC.motivo = 'A base partilhada não está disponível nesta janela. Costuma acontecer quando quem abre a ligação não pertence à organização de quem publicou a aplicação.';
+      pintarNav();
+      return;
+    }
     try{ SYNC.user = await window.claude.use('user'); } catch { SYNC.user = null; }
+    if (SYNC.user){
+      try{ SYNC.quem = await SYNC.user.me(); } catch { SYNC.quem = null; }
+      try{ SYNC.podeGravar = !!SYNC.user.canEdit(); } catch { SYNC.podeGravar = true; }
+    } else SYNC.podeGravar = true;
+
     SYNC.disponivel = true;
-    SYNC.podeGravar = SYNC.user ? !!SYNC.user.canEdit() : true;
     SYNC.estado = 'pronto';
+    SYNC.motivo = SYNC.podeGravar ? '' : 'Esta ligação foi partilhada só para consulta, por isso as alterações não são gravadas na base partilhada.';
     const local = await store.get('sync');
     SYNC.rev = (local && local.rev) || 0;
-    await puxarSeMaisRecente(true);
+
+    await primeiraLeitura();
     ligarEscuta();
+    ligarDescarga();
   } catch(e){
     console.warn('Base partilhada indisponível:', e);
-    SYNC.disponivel = false; SYNC.estado = 'off';
+    SYNC.disponivel = false; SYNC.estado = 'erro';
+    SYNC.detalhe = (e && (e.message || e.code)) || String(e);
+    pintarNav();
   }
+}
+
+/* Primeira leitura: puxa em silêncio quando este computador não tem nada;
+   com trabalho local por enviar, pergunta antes de substituir. */
+async function primeiraLeitura(){
+  const man = await syncDoc('manifesto').get().catch(() => null);
+  if (!man || !man.exists){
+    pintarNav();
+    /* primeiro computador a usar a base: envia já o que existe aqui */
+    if (SYNC.podeGravar && temTrabalhoLocal()) await empurrar({ silencioso:true });
+    return;
+  }
+  const m = man.data();
+  SYNC.remoto = m;
+  if ((m.rev || 0) <= SYNC.rev){ pintarNav(); return; }
+  if (!temTrabalhoLocal()){ await puxar(false); return; }
+  avisarVersaoNova(m);
 }
 
 function ligarEscuta(){
@@ -8423,8 +9133,21 @@ function ligarEscuta(){
       const m = snap.data();
       SYNC.remoto = m;
       if ((m.rev || 0) > SYNC.rev && !SYNC._aGravar) avisarVersaoNova(m);
-    }, e => { console.warn('Escuta da base partilhada terminada:', e && e.code); SYNC._sub = null; });
+      else pintarNav();
+    }, e => {
+      console.warn('Escuta da base partilhada terminada:', e && e.code);
+      SYNC._sub = null;
+    });
   } catch(e){ console.warn('Não foi possível escutar a base partilhada:', e); }
+}
+
+/* Se a janela for fechada com uma gravação por enviar, envia-a já. */
+function ligarDescarga(){
+  const descarregar = () => {
+    if (SYNC._timer){ clearTimeout(SYNC._timer); SYNC._timer = null; empurrar({ silencioso:true }); }
+  };
+  window.addEventListener('pagehide', descarregar);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') descarregar(); });
 }
 
 let _avisoSyncAberto = false;
@@ -8433,11 +9156,13 @@ function avisarVersaoNova(m){
   _avisoSyncAberto = true;
   SYNC.estado = 'conflito';
   pintarNav();
-  abrirModal('Há dados mais recentes', el('div', {},
-    el('p', {}, `Alguém gravou uma versão mais recente do trabalho${m.porQuem ? ' (' + esc(m.porQuem) + ')' : ''}${m.em ? ', a ' + fmtDate(m.em) : ''}.`),
-    el('p', { class:'small muted' }, 'Carregar essa versão substitui o que tem neste computador pelas convocatórias, ficheiros de ranking e restantes dados gravados na base partilhada.'),
+  abrirModal('Há dados mais recentes na base partilhada', el('div', {},
+    el('p', {}, `Foi gravada uma versão mais recente do trabalho${m.porQuem ? ' por ' + esc(m.porQuem) : ''}${m.em ? ', a ' + fmtDate(m.em) : ''}.`),
+    el('p', { class:'small muted' },
+      `Essa versão tem ${m.nConvocatorias ?? '—'} convocatórias e ${(m.ficheiros || []).length} ficheiro(s) de ranking. ` +
+      'Carregá-la substitui o que tem neste computador.'),
     el('div', { class:'note', style:'margin-top:12px' },
-      'Se tiver alterações por gravar neste computador que não queira perder, guarde primeiro uma cópia de trabalho (.json) em Definições.')),
+      'Se tiver alterações neste computador que não queira perder, guarde primeiro uma cópia de trabalho (.json) em Definições.')),
     [ el('button', { class:'btn', onclick:() => { _avisoSyncAberto = false; SYNC.estado = 'pronto'; fecharModal(); pintarNav(); } }, 'Manter o que tenho'),
       el('button', { class:'btn primary', onclick:async () => {
         _avisoSyncAberto = false; fecharModal();
@@ -8456,18 +9181,6 @@ async function lerBloco(prefixo, n, z){
   return s ? descomprimir(s, z) : '';
 }
 
-async function puxarSeMaisRecente(silencioso){
-  if (!SYNC.disponivel) return false;
-  try{
-    const man = await syncDoc('manifesto').get();
-    if (!man.exists) return false;
-    const m = man.data();
-    SYNC.remoto = m;
-    if ((m.rev || 0) <= SYNC.rev) return false;
-    return await puxar(!silencioso);
-  } catch(e){ console.warn('Leitura da base partilhada falhou:', e); return false; }
-}
-
 async function puxar(comAviso){
   if (!SYNC.disponivel) return false;
   SYNC.estado = 'a-ler'; pintarNav();
@@ -8484,25 +9197,21 @@ async function puxar(comAviso){
       S.cfg.rankings = { ...cfgPadrao().rankings, ...(cfg.rankings || {}) };
       S.cfg.tabelas = migrarTabelas(cfg.tabelas);
     }
-    if (m.dbN){
-      const txt = await lerBloco('db', m.dbN, m.z);
-      S.db = desserializarDb(JSON.parse(txt));
-    } else if (m.dbN === 0){
-      S.db = null;
-    }
+    if (m.dbN) S.db = desserializarDb(JSON.parse(await lerBloco('db', m.dbN, m.z)));
+    else S.db = null;
 
-    SYNC.rev = m.rev || 0; SYNC.em = m.em; SYNC.porQuem = m.porQuem || '';
+    SYNC.rev = m.rev || 0;
     SYNC.remoto = m;
-    SYNC.estado = 'pronto';
+    SYNC.estado = 'pronto'; SYNC.detalhe = '';
     S._cache = {};
     await store.set('sync', { rev:SYNC.rev });
     await salvarLocal(); await salvarDbLocal();
-    reconstruirAtividades(); pintarNav(); render();
-    if (comAviso) toast('Dados carregados da base partilhada.');
+    reconstruirAtividades(); render();
+    if (comAviso) toast(`Dados carregados da base partilhada (revisão ${SYNC.rev}).`);
     return true;
   } catch(e){
     console.warn('Não foi possível ler a base partilhada:', e);
-    SYNC.estado = 'erro'; SYNC.detalhe = e.message || String(e);
+    SYNC.estado = 'erro'; SYNC.detalhe = (e && (e.message || e.code)) || String(e);
     pintarNav();
     if (comAviso) toast('Não foi possível ler a base partilhada: ' + SYNC.detalhe, true);
     return false;
@@ -8513,64 +9222,86 @@ async function puxar(comAviso){
 function agendarEmpurrar(){
   if (!SYNC.disponivel || !SYNC.podeGravar) return;
   clearTimeout(SYNC._timer);
-  SYNC._timer = setTimeout(() => empurrar(false), 3500);
+  SYNC._timer = setTimeout(() => { SYNC._timer = null; empurrar({ silencioso:true }); }, 2500);
 }
 
-async function empurrar(comAviso){
-  if (!SYNC.disponivel || !SYNC.podeGravar) return false;
-  if (SYNC._aGravar){ SYNC._pendente = true; return false; }
+/* opts: { silencioso, forcar } — devolve { ok, motivo } */
+async function empurrar(opts = {}){
+  const falha = motivo => {
+    if (!opts.silencioso) toast(motivo, true);
+    return { ok:false, motivo };
+  };
+  if (SYNC.estado === 'local' || !SYNC.disponivel)
+    return falha(SYNC.motivo || 'A base partilhada não está disponível nesta janela.');
+  if (!SYNC.podeGravar)
+    return falha('Esta ligação é de consulta: não é possível gravar na base partilhada.');
+  if (SYNC._aGravar){ SYNC._pendente = true; return { ok:false, motivo:'Já existe uma gravação em curso.' }; }
+
   SYNC._aGravar = true;
   SYNC.estado = 'a-gravar'; pintarNav();
   try{
-    const quem = (SYNC.user && SYNC.user.me && (await SYNC.user.me().catch(() => null))) || null;
-    const holder = (quem && (quem.id || quem.name)) || 'editor';
-
-    const lease = await syncDoc('manifesto').acquire({ holder:String(holder), ttlMs:60000 }).catch(() => ({ acquired:true }));
-    if (lease && lease.acquired === false){
-      SYNC.estado = 'pronto'; pintarNav(); SYNC._aGravar = false;
-      if (comAviso) toast('Outro editor está a gravar neste momento. Tente daqui a pouco.', true);
-      return false;
+    /* 1. confirmar que ninguém gravou entretanto */
+    const man = await syncDoc('manifesto').get().catch(() => null);
+    const antigo = (man && man.exists) ? man.data() : {};
+    SYNC.remoto = (man && man.exists) ? antigo : SYNC.remoto;
+    if (!opts.forcar && (antigo.rev || 0) > SYNC.rev){
+      SYNC._aGravar = false;
+      SYNC.estado = 'conflito'; pintarNav();
+      if (!opts.silencioso) avisarVersaoNova(antigo);
+      return { ok:false, motivo:'Há uma versão mais recente na base partilhada. Carregue-a antes de gravar.' };
     }
 
+    /* 2. reservar a escrita */
+    const holder = String((SYNC.quem && (SYNC.quem.id || SYNC.quem.name)) || (S.sessao && S.sessao.user) || 'editor');
+    let lease = await syncDoc('manifesto').acquire({ holder, ttlMs:20000 }).catch(() => ({ acquired:true }));
+    if (lease && lease.acquired === false){
+      await new Promise(r => setTimeout(r, 2500));
+      lease = await syncDoc('manifesto').acquire({ holder, ttlMs:20000 }).catch(() => ({ acquired:true }));
+    }
+    if (lease && lease.acquired === false){
+      SYNC._aGravar = false; SYNC.estado = 'pronto'; pintarNav();
+      return falha('Outro editor está a gravar neste momento. Tente daqui a pouco.');
+    }
+
+    /* 3. escrever os blocos */
     const cfgTxt = JSON.stringify(S.cfg);
     const dbTxt  = S.db ? JSON.stringify(serializarDb(S.db)) : '';
     const cfgPk  = await comprimir(cfgTxt);
     const dbPk   = dbTxt ? await comprimir(dbTxt) : { z:cfgPk.z, s:'' };
-
     const cfgPartes = partir(cfgPk.s);
     const dbPartes  = dbTxt ? partir(dbPk.s) : [];
 
-    const antigo = SYNC.remoto || {};
     for (let i = 0; i < cfgPartes.length; i++) await syncDoc(`cfg_${i}`).set({ p:cfgPartes[i] });
     for (let i = 0; i < dbPartes.length; i++)  await syncDoc(`db_${i}`).set({ p:dbPartes[i] });
-    /* blocos que deixaram de ser precisos (ficheiros removidos pelo editor) */
     for (let i = cfgPartes.length; i < (antigo.cfgN || 0); i++) await syncDoc(`cfg_${i}`).delete().catch(() => {});
     for (let i = dbPartes.length;  i < (antigo.dbN  || 0); i++) await syncDoc(`db_${i}`).delete().catch(() => {});
 
-    const rev = Math.max(SYNC.rev, (antigo.rev || 0)) + 1;
+    /* 4. publicar o manifesto */
+    const rev = Math.max(SYNC.rev, antigo.rev || 0) + 1;
     const manifesto = {
       rev, z:cfgPk.z, cfgN:cfgPartes.length, dbN:dbPartes.length,
       cfgHash:syncHash(cfgTxt), dbHash:dbTxt ? syncHash(dbTxt) : '',
       em:new Date().toISOString(),
-      porQuem: (quem && quem.name) || (S.sessao && S.sessao.user) || 'Editor',
+      porQuem: (SYNC.quem && SYNC.quem.name) || (S.sessao && S.sessao.user) || 'Editor',
       ficheiros: S.db ? (S.db.ficheiros || []).map(f => ({ fid:f.fid, nome:f.nome, n:f.n, em:f.em })) : [],
       nConvocatorias: Object.keys(S.cfg.convocatorias || {}).length,
+      nCompeticoes: (S.cfg.competicoes || []).length,
       app:'convocatorias-par-2027'
     };
     await syncDoc('manifesto').set(manifesto);
 
-    SYNC.rev = rev; SYNC.remoto = manifesto; SYNC.em = manifesto.em; SYNC.porQuem = manifesto.porQuem;
+    SYNC.rev = rev; SYNC.remoto = manifesto; SYNC.ultimaGravacao = manifesto.em;
     SYNC.estado = 'pronto'; SYNC.detalhe = '';
     await store.set('sync', { rev });
     pintarNav();
-    if (comAviso) toast('Dados gravados na base partilhada — já estão acessíveis noutro computador.');
-    return true;
+    if (!opts.silencioso)
+      toast(`Gravado na base partilhada (revisão ${rev}) — já está acessível noutro computador.`);
+    return { ok:true, rev };
   } catch(e){
     console.warn('Não foi possível gravar na base partilhada:', e);
     SYNC.estado = 'erro'; SYNC.detalhe = (e && (e.message || e.code)) || String(e);
     pintarNav();
-    if (comAviso) toast('Não foi possível gravar na base partilhada: ' + SYNC.detalhe, true);
-    return false;
+    return falha('Não foi possível gravar na base partilhada: ' + SYNC.detalhe);
   } finally {
     SYNC._aGravar = false;
     if (SYNC._pendente){ SYNC._pendente = false; agendarEmpurrar(); }
@@ -8578,7 +9309,26 @@ async function empurrar(comAviso){
 }
 
 /* Apagar tudo o que está na base partilhada (só o editor). */
-async function limparSync(){
+async function apagarBasePartilhada(){
+  if (!SYNC.disponivel || !SYNC.podeGravar) return false;
+  try{
+    const man = await syncDoc('manifesto').get().catch(() => null);
+    const m = (man && man.exists) ? man.data() : (SYNC.remoto || {});
+    for (let i = 0; i < (m.cfgN || 0); i++) await syncDoc(`cfg_${i}`).delete().catch(() => {});
+    for (let i = 0; i < (m.dbN  || 0); i++) await syncDoc(`db_${i}`).delete().catch(() => {});
+    await syncDoc('manifesto').delete();
+    SYNC.remoto = null; SYNC.rev = 0; SYNC.ultimaGravacao = null;
+    await store.set('sync', { rev:0 });
+    pintarNav();
+    return true;
+  } catch(e){
+    SYNC.estado = 'erro'; SYNC.detalhe = (e && (e.message || e.code)) || String(e);
+    pintarNav();
+    return false;
+  }
+}
+
+function limparSync(){
   if (!SYNC.disponivel || !SYNC.podeGravar) return semPermissao();
   abrirModal('Apagar a base partilhada', el('div', {},
     el('p', {}, 'Vai apagar os dados guardados na base partilhada da aplicação.'),
@@ -8587,24 +9337,57 @@ async function limparSync(){
     [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
       el('button', { class:'btn primary', onclick:async () => {
         fecharModal();
-        try{
-          const m = SYNC.remoto || {};
-          for (let i = 0; i < (m.cfgN || 0); i++) await syncDoc(`cfg_${i}`).delete().catch(() => {});
-          for (let i = 0; i < (m.dbN  || 0); i++) await syncDoc(`db_${i}`).delete().catch(() => {});
-          await syncDoc('manifesto').delete();
-          SYNC.remoto = null; SYNC.rev = 0; SYNC.em = null;
-          await store.set('sync', { rev:0 });
-          pintarNav(); render();
-          toast('Base partilhada apagada.');
-        } catch(e){ toast('Não foi possível apagar: ' + (e.message || e.code), true); }
+        const ok = await apagarBasePartilhada();
+        render();
+        toast(ok ? 'Base partilhada apagada.' : 'Não foi possível apagar: ' + SYNC.detalhe, !ok);
       } }, 'Apagar') ]);
+}
+
+/* ---------- diagnóstico ---------- */
+function diagnosticoSync(){
+  const linha = (rot, val, ok) => el('div', { style:'display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2)' },
+    el('div', { style:'flex:1;color:var(--ink-2);font-size:13px' }, rot),
+    el('div', { class:'mono small', style:`text-align:right;${ok === false ? 'color:var(--bad)' : ok === true ? 'color:var(--good)' : ''}` }, String(val)));
+
+  const publicado = ambientePublicado();
+  const corpo = el('div', {},
+    linha('Aplicação publicada (não é um ficheiro local)', publicado ? 'sim' : 'não', publicado),
+    linha('Base partilhada ligada', SYNC.disponivel ? 'sim' : 'não', SYNC.disponivel),
+    linha('Permissão de gravação', SYNC.podeGravar ? 'sim' : 'não', SYNC.podeGravar),
+    linha('Utilizador desta janela', (SYNC.quem && (SYNC.quem.name || SYNC.quem.id)) || '—'),
+    linha('Sessão na aplicação', S.sessao ? `${S.sessao.user} (${S.sessao.papel})` : '—'),
+    linha('Revisão neste computador', SYNC.rev),
+    linha('Revisão na base partilhada', SYNC.remoto ? (SYNC.remoto.rev || 0) : '—'),
+    linha('Última gravação', SYNC.remoto && SYNC.remoto.em ? fmtDate(SYNC.remoto.em) : '—'),
+    linha('Gravada por', (SYNC.remoto && SYNC.remoto.porQuem) || '—'),
+    linha('Convocatórias na base', SYNC.remoto ? (SYNC.remoto.nConvocatorias ?? '—') : '—'),
+    linha('Ficheiros de ranking na base', SYNC.remoto ? (SYNC.remoto.ficheiros || []).length : '—'),
+    linha('Blocos gravados', SYNC.remoto ? `${SYNC.remoto.cfgN || 0} + ${SYNC.remoto.dbN || 0}` : '—'),
+    linha('Gravação por enviar', SYNC._timer ? 'sim' : 'não'),
+    linha('Último erro', SYNC.detalhe || '—', SYNC.detalhe ? false : undefined));
+
+  if (SYNC.motivo) corpo.append(el('div', { class:'note warn', style:'margin-top:14px' }, SYNC.motivo));
+  corpo.append(el('div', { class:'note', style:'margin-top:12px' },
+    el('b', {}, 'Para ver o mesmo em dois computadores: '),
+    'abra em ambos a mesma ligação publicada da aplicação (não o ficheiro .html guardado no computador), ' +
+    'com a mesma conta Claude ou com contas da mesma organização. Num deles use “Gravar tudo”; no outro, ' +
+    '“Carregar da base partilhada” ou simplesmente recarregue a página.'));
+
+  abrirModal('Diagnóstico da base partilhada', corpo,
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Fechar'),
+      SYNC.disponivel ? el('button', { class:'btn primary', onclick:async () => {
+        const man = await syncDoc('manifesto').get().catch(() => null);
+        SYNC.remoto = (man && man.exists) ? man.data() : null;
+        fecharModal(); diagnosticoSync();
+      } }, 'Voltar a verificar') : null ]);
 }
 
 /* ---------- cartão das Definições ---------- */
 function cardSync(){
   const est = {
-    off:       { txt:'Indisponível nesta janela', pill:'' },
-    pronto:    { txt:'Ligada', pill:'good' },
+    off:       { txt:'Indisponível', pill:'' },
+    local:     { txt:'Só neste computador', pill:'warn' },
+    pronto:    { txt:SYNC.podeGravar ? 'Ligada' : 'Ligada (consulta)', pill:'good' },
     'a-ler':   { txt:'A carregar…', pill:'acc' },
     'a-gravar':{ txt:'A gravar…', pill:'acc' },
     conflito:  { txt:'Há uma versão mais recente', pill:'warn' },
@@ -8615,15 +9398,18 @@ function cardSync(){
 
   if (!SYNC.disponivel){
     corpo.append(
-      el('p', { class:'small muted', style:'margin:0 0 10px' },
-        'A base partilhada só funciona na versão publicada da aplicação, aberta a partir da ligação da FPN. ' +
-        'Neste momento os dados estão guardados apenas neste navegador.'),
-      el('div', { class:'note' },
-        'Para levar o trabalho para outro computador sem a base partilhada, use “Guardar cópia (JSON)” e “Restaurar cópia”.'));
+      el('div', { class:'note warn' },
+        el('b', {}, 'Os dados estão a ser guardados apenas neste navegador. '),
+        SYNC.motivo || 'A base partilhada não está disponível nesta janela.'),
+      el('p', { class:'small muted', style:'margin:12px 0 0' },
+        'Para ter a mesma informação em vários computadores, abra em todos a ligação publicada da aplicação. ' +
+        'Em alternativa, use “Guardar cópia (JSON)” aqui e “Restaurar cópia” no outro computador.'),
+      el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+        el('button', { class:'btn', onclick:diagnosticoSync }, 'Diagnóstico')));
     return el('div', { class:'card' },
       el('header', {}, el('div', {}, el('h3', {}, 'Base partilhada'),
         el('div', { class:'small muted' }, 'Acesso aos mesmos dados a partir de qualquer computador')),
-        el('span', { class:'sp', style:'flex:1' }), el('span', { class:'pill' }, est.txt)),
+        el('span', { class:'sp', style:'flex:1' }), el('span', { class:'pill ' + est.pill }, est.txt)),
       corpo);
   }
 
@@ -8634,7 +9420,7 @@ function cardSync(){
       mini('Última gravação', SYNC.remoto && SYNC.remoto.em ? fmtDate(SYNC.remoto.em) : '—'),
       mini('Gravado por', (SYNC.remoto && SYNC.remoto.porQuem) || '—')),
     el('div', { class:'grid g3', style:'margin-bottom:12px' },
-      mini('Revisão', String(SYNC.rev || 0)),
+      mini('Revisão aqui / na base', `${SYNC.rev} / ${SYNC.remoto ? (SYNC.remoto.rev || 0) : '—'}`),
       mini('Convocatórias na base', SYNC.remoto ? String(SYNC.remoto.nConvocatorias ?? '—') : '—'),
       mini('Ficheiros de ranking', String(fich.length))),
     fich.length ? el('div', { style:'margin-bottom:12px' },
@@ -8646,14 +9432,15 @@ function cardSync(){
           el('div', { class:'small muted' }, `${(f.n || 0).toLocaleString('pt-PT')} resultados`)))))) : null,
     el('div', { class:'note' },
       SYNC.podeGravar
-        ? 'Tudo o que grava é enviado automaticamente para a base partilhada poucos segundos depois. Quem abrir a aplicação noutro computador encontra o mesmo trabalho. Os dados só mudam quando um editor os alterar ou eliminar aqui.'
+        ? 'Tudo o que grava é enviado para a base partilhada poucos segundos depois, e também quando fecha a janela. Quem abrir a mesma ligação noutro computador encontra o mesmo trabalho. Os dados só mudam quando um editor os alterar ou eliminar aqui.'
         : 'Tem acesso de consulta: lê os dados da base partilhada, mas não os altera. Para poder gravar, peça acesso de edição a quem partilhou a aplicação.'),
     SYNC.estado === 'erro' && SYNC.detalhe
       ? el('div', { class:'note warn', style:'margin-top:10px' }, el('b', {}, 'Último erro: '), SYNC.detalhe) : null,
     el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
       el('button', { class:'btn', onclick:() => puxar(true) }, 'Carregar da base partilhada'),
-      SYNC.podeGravar ? el('button', { class:'btn primary', onclick:() => empurrar(true) }, 'Gravar agora') : null,
-      SYNC.podeGravar ? el('button', { class:'btn', onclick:limparSync }, 'Apagar base partilhada') : null));
+      SYNC.podeGravar ? el('button', { class:'btn primary', onclick:() => empurrar({}) }, 'Gravar agora') : null,
+      el('button', { class:'btn', onclick:diagnosticoSync }, 'Diagnóstico'),
+      SYNC.podeGravar ? el('button', { class:'btn ed', onclick:limparSync }, 'Apagar base partilhada') : null));
 
   return el('div', { class:'card' },
     el('header', {}, el('div', {}, el('h3', {}, 'Base partilhada'),
@@ -8759,6 +9546,16 @@ function folhaConv(ativId){
     rows.push([], ['STAFF DA FPN'], ['','Função','Nome','Contacto']);
     staff.forEach((s, i) => rows.push([i + 1, s.funcao, s.nome, s.contacto || '']));
   }
+  const alo = d.c && d.c.alojamento;
+  if (alo && (alo.quartos || []).length){
+    rows.push([], ['ALOJAMENTO E DISTRIBUIÇÃO DE QUARTOS']);
+    if (alo.hotel) rows.push(['', alo.hotel]);
+    rows.push(['','Quarto','Tipo','Grupo','Ocupantes']);
+    alo.quartos.forEach((q, i) => rows.push(['', i + 1,
+      (TIPOS_QUARTO.find(t => t.n === q.tipo) || {}).nome || String(q.tipo),
+      q.grupoNome || '', q.ocupantes.map(o => o.nome).join(', ')]));
+  }
+
   const est = linhasEstafetas(d);
   if (est.length){
     rows.push([], ['ESTAFETAS']);
@@ -8974,6 +9771,20 @@ function blocosConv(ativId, comCapa){
       rows: staff.map((s, i) => temContacto
         ? [String(i + 1), s.funcao, s.nome, s.contacto || '']
         : [String(i + 1), s.funcao, s.nome]) } });
+  }
+
+  /* logística: alojamento e distribuição de quartos */
+  const al = d.c && d.c.alojamento;
+  if (al && (al.quartos || []).length){
+    b.push({ h3:'Alojamento e distribuição de quartos' });
+    if (al.hotel) b.push({ p:al.hotel });
+    b.push({ table:{ head:['#','Tipo','Grupo','Ocupantes'], widths:[5,14,20,61],
+      rows:al.quartos.map((q, i) => [String(i + 1),
+        (TIPOS_QUARTO.find(t => t.n === q.tipo) || {}).nome || String(q.tipo),
+        q.grupoNome || '', q.ocupantes.map(o => o.nome).join(', ')]) } });
+    const rq = resumoQuartos(al);
+    b.push({ small:`${rq.pessoas} pessoas em ${al.quartos.length} quartos · ${rq.vazias} camas vazias · ${al.noites} noites` +
+      (rq.custoTotal ? ` · ${eur(rq.custoTotal)}` : '') });
   }
 
   const est = linhasEstafetas(d);
