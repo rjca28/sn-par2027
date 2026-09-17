@@ -271,6 +271,15 @@ table.grelha tbody tr:hover td{background:transparent}
 .fin{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .fin .v{font-family:var(--font-d);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 
+/* zona de perigo */
+.card.perigo{border-color:var(--bad)}
+.card.perigo>header{border-bottom-color:var(--bad-soft);background:var(--bad-soft)}
+.card.perigo>header h3{color:var(--bad)}
+.btn.perigo{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.perigo:hover{filter:brightness(1.08);color:#fff}
+.btn.perigo[disabled]{opacity:.4}
+.conf-txt{font-family:var(--font-m);letter-spacing:.08em;text-transform:uppercase}
+
 /* modal */
 .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(8,20,30,.55)}
@@ -2778,6 +2787,21 @@ const store = {
       t.onsuccess = () => res(t.result ?? null); t.onerror = () => res(null);
     });
   },
+  /* Apaga a base local deste navegador, por inteiro. */
+  async apagarTudo(){
+    try { if (store.db){ store.db.close(); store.db = null; } } catch {}
+    await new Promise(res => {
+      try{
+        const r = indexedDB.deleteDatabase('par2027');
+        r.onsuccess = r.onerror = r.onblocked = () => res(true);
+        setTimeout(() => res(true), 3000);
+      } catch { res(true); }
+    });
+    try{
+      for (const k of ['par:cfg', 'par:db', 'par:sync', 'par:sessao'])
+        { localStorage.removeItem(k); sessionStorage.removeItem(k); }
+    } catch {}
+  },
   async set(k, v){
     if (!store.db) { try { await store.open(); } catch { try{localStorage.setItem('par:'+k, JSON.stringify(v));}catch{} return; } }
     return new Promise(res => {
@@ -3000,6 +3024,10 @@ function lerSessao(){
     const s = sessionStorage.getItem('par:sessao') || localStorage.getItem('par:sessao');
     return s ? JSON.parse(s) : null;
   } catch { return null; }
+}
+function terminarSessaoSilenciosa(){
+  S.sessao = null;
+  try{ sessionStorage.removeItem('par:sessao'); localStorage.removeItem('par:sessao'); } catch {}
 }
 function terminarSessao(){
   S.sessao = null;
@@ -3460,6 +3488,116 @@ function apagarConvocatoriasGuardadas(){
         S.cfg.convocatorias = {}; salvar(); fecharModal(); irPara('painel');
         toast(`${n} convocatórias apagadas.`);
       } }, 'Apagar') ]);
+}
+
+/* ==========================================================================
+   RESET TOTAL — apaga tudo, com dupla confirmação
+   ========================================================================== */
+function resetTotal(){
+  if (!podeEditar()) return semPermissao();
+
+  const n = {
+    conv: Object.keys(S.cfg.convocatorias || {}).length,
+    comp: (S.cfg.competicoes || []).length,
+    orc: (S.cfg.orcamentos || []).length,
+    req: (S.cfg.requisicoes || []).length,
+    mail: (S.cfg.emails || []).length,
+    rel: Object.keys(S.cfg.relatorios || {}).length,
+    cont: (S.cfg.contactos || []).length,
+    marcas: (S.cfg.recordes || []).length,
+    res: S.db ? S.db.resultados.length : 0,
+    fich: S.db ? (S.db.ficheiros || []).length : 0
+  };
+  const item = (rot, v) => el('li', {}, el('b', {}, String(v)), ' ' + rot);
+
+  /* ---- 1.ª confirmação: o que vai desaparecer ---- */
+  abrirModal('Reset total — 1 de 2', el('div', {},
+    el('div', { class:'note warn' },
+      el('b', {}, 'Isto apaga tudo. '),
+      'A aplicação fica como no primeiro dia, neste computador e — quando existe — também na base partilhada.'),
+    el('p', { style:'margin-top:14px' }, 'Vai perder:'),
+    el('ul', { class:'crit' },
+      item('convocatórias, com justificações, provas, estafetas, staff e alojamento', n.conv),
+      item('competições do calendário nacional, com receitas e despesas', n.comp),
+      item('pedidos de orçamento', n.orc),
+      item('requisições de equipamento', n.req),
+      item('e-mails preparados ou enviados', n.mail),
+      item('relatórios de atividade, com prémios e recordes', n.rel),
+      item('contactos e listas de distribuição', n.cont),
+      item('melhores marcas da época registadas', n.marcas),
+      item('resultados de ranking importados', n.res),
+      el('li', {}, 'os índices e as tabelas de referência editados à mão'),
+      el('li', {}, 'os responsáveis das atividades, as atividades criadas e as alterações às do plano'),
+      el('li', {}, 'a sessão iniciada neste navegador')),
+    el('p', { class:'small muted', style:'margin-top:12px' },
+      'Não apaga os ficheiros que já exportou (Excel, Word, PDF ou cópias .json) — esses ficam onde os guardou.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn', onclick:() => exportarWorkspace(false) }, 'Guardar cópia primeiro'),
+      el('button', { class:'btn perigo', onclick:() => confirmarResetTotal(n) }, 'Continuar') ]);
+}
+
+/* ---- 2.ª confirmação: escrever a palavra ---- */
+function confirmarResetTotal(n){
+  const PALAVRA = 'APAGAR TUDO';
+  const campo = el('input', { type:'text', class:'conf-txt', placeholder:PALAVRA, autocomplete:'off' });
+  const botao = el('button', { class:'btn perigo', disabled:true,
+    onclick:() => executarResetTotal() }, 'Apagar tudo definitivamente');
+  const verificar = () => {
+    const ok = campo.value.trim().toUpperCase() === PALAVRA;
+    if (ok) botao.removeAttribute('disabled'); else botao.setAttribute('disabled', '');
+  };
+  campo.addEventListener('input', verificar);
+  campo.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && campo.value.trim().toUpperCase() === PALAVRA) executarResetTotal();
+  });
+
+  abrirModal('Reset total — 2 de 2', el('div', {},
+    el('div', { class:'note warn' },
+      el('b', {}, 'Última confirmação. '),
+      'Depois disto não há maneira de recuperar o que estava gravado.'),
+    el('p', { style:'margin-top:14px' },
+      'Para confirmar, escreva ', el('b', { class:'conf-txt' }, PALAVRA), ' no campo abaixo.'),
+    el('label', { class:'f', style:'margin-top:8px' },
+      el('span', {}, 'Confirmação'), campo),
+    (typeof SYNC !== 'undefined' && SYNC.disponivel && SYNC.podeGravar)
+      ? el('div', { class:'note', style:'margin-top:12px' },
+          'A base partilhada também vai ser apagada, por isso os outros computadores deixam de encontrar estes dados.')
+      : null),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'), botao ]);
+  setTimeout(() => campo.focus(), 60);
+}
+
+async function executarResetTotal(){
+  fecharModal();
+  toast('A apagar tudo…');
+  try{
+    if (typeof SYNC !== 'undefined'){
+      clearTimeout(SYNC._timer); SYNC._timer = null;
+      if (SYNC.disponivel && SYNC.podeGravar) await apagarBasePartilhada();
+      if (SYNC._sub){ try{ SYNC._sub(); } catch {} SYNC._sub = null; }
+      SYNC.rev = 0; SYNC.remoto = null;
+    }
+  } catch(e){ console.warn('Base partilhada:', e); }
+
+  S.cfg = cfgPadrao(); S.db = null; S._cache = {};
+  try{ await store.apagarTudo(); } catch(e){ console.warn('Armazenamento local:', e); }
+  try{ terminarSessaoSilenciosa(); } catch {}
+
+  toast('Tudo apagado. A aplicação vai reiniciar.');
+  setTimeout(() => { try{ location.reload(); } catch { ecraLogin(); } }, 900);
+}
+
+function cardResetTotal(){
+  return el('div', { class:'card perigo' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Reset total'),
+      el('div', { class:'small muted' }, 'Apagar toda a informação e recomeçar do zero'))),
+    el('div', { class:'body' },
+      el('p', { class:'small muted', style:'margin:0 0 12px' },
+        'Apaga as convocatórias, o calendário nacional, os orçamentos, o equipamento, os e-mails, os relatórios, ' +
+        'os contactos, as marcas da época, os rankings importados, os índices editados e a sessão — neste computador ' +
+        'e, quando existe, também na base partilhada. Pede duas confirmações antes de o fazer.'),
+      el('button', { class:'btn perigo ed', onclick:resetTotal }, 'Reset total')));
 }
 
 function reporAplicacao(){
@@ -4573,6 +4711,9 @@ function vDefinicoes(v){
       el('p', { class:'small muted', style:'margin:12px 0 0' },
         'Plano de Atividades 2027 — Seleções Nacionais de Natação Pura · PAR Ciclo 2025-2028. ' +
         'As atividades que tiver editado à mão mantêm os seus valores e não acompanham as atualizações do documento; use “Repor original” em cada uma para voltar ao texto oficial.'))));
+
+  /* zona de perigo */
+  v.append(cardResetTotal());
 
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Critérios transversais do PAR 2027')),
