@@ -2851,6 +2851,26 @@ async function salvarDbLocal(){ await store.set('db', S.db ? serializarDb(S.db) 
 
 async function salvar(){ await salvarLocal(); if (typeof agendarEmpurrar === 'function') agendarEmpurrar(); }
 
+/* ---------- cópia de trabalho: saber se há alterações por exportar ---------- */
+function assinaturaTrabalho(){
+  const cfg = { ...S.cfg }; delete cfg.copia;
+  const base = JSON.stringify(cfg) +
+    (S.db ? '|' + S.db.importadoEm + '|' + S.db.resultados.length + '|' +
+      (S.db.ficheiros || []).map(f => f.fid).join(',') : '|sem-db');
+  let x = 5381;
+  for (let i = 0; i < base.length; i++) x = ((x * 33) ^ base.charCodeAt(i)) >>> 0;
+  return x.toString(36) + ':' + base.length;
+}
+function copiaPendente(){
+  const c = S.cfg.copia;
+  if (!c || !c.hash) return true;
+  return c.hash !== assinaturaTrabalho();
+}
+function marcarCopiaFeita(){
+  S.cfg.copia = { em:new Date().toISOString(), hash:assinaturaTrabalho() };
+  salvarLocal();
+}
+
 /* Grava tudo de uma vez: neste computador e, se existir, na base partilhada. */
 async function gravarTudo(){
   if (!podeEditar()) return semPermissao();
@@ -2865,7 +2885,9 @@ async function gravarTudo(){
       : 'Gravado neste computador, mas não na base partilhada: ' + (r.motivo || SYNC.detalhe || 'motivo desconhecido'),
       !r.ok);
   } else {
-    toast('Gravado apenas neste computador — a base partilhada não está disponível nesta janela.', true);
+    toast(copiaPendente()
+      ? 'Gravado neste computador. Para levar para outro, use “Guardar cópia” e depois “Restaurar cópia” lá.'
+      : 'Gravado neste computador.');
   }
   pintarNav();
 }
@@ -3091,9 +3113,17 @@ function pintarNav(){
   const f = $('#railFoot');
   f.replaceChildren();
   if (podeEditar()){
-    f.append(el('button', { class:'btn primary', style:'width:100%;justify-content:center;margin-bottom:10px',
-      title:'Grava as convocatórias, o calendário, os orçamentos, o equipamento, os e-mails, os relatórios e as marcas da época',
-      onclick:gravarTudo }, 'Gravar tudo'));
+    const pend = copiaPendente();
+    f.append(
+      el('button', { class:'btn primary', style:'width:100%;justify-content:center;margin-bottom:6px',
+        title:'Grava as convocatórias, o calendário, os orçamentos, o equipamento, os e-mails, os relatórios e as marcas da época',
+        onclick:gravarTudo }, 'Gravar tudo'),
+      el('button', { class:'btn', style:'width:100%;justify-content:center;margin-bottom:10px'
+          + (pend ? ';border-color:var(--warn);color:var(--warn)' : ''),
+        title: pend
+          ? 'Há alterações desde a última cópia — guarde o ficheiro .json para levar para outro computador'
+          : 'A cópia de trabalho está em dia',
+        onclick:exportarWorkspace }, pend ? 'Guardar cópia ·' : 'Guardar cópia'));
   }
   if (S.sessao){
     f.append(el('div', { class:'sessao' },
@@ -3118,10 +3148,14 @@ function pintarNav(){
     const cor = SYNC.estado === 'erro' ? 'bad'
       : (SYNC.estado === 'conflito' || SYNC.estado === 'local') ? 'warn'
       : SYNC.estado === 'pronto' ? 'good' : 'acc';
-    f.append(el('div', { style:'margin-top:8px' },
+    f.append(el('div', { style:'margin-top:8px;display:flex;gap:6px;flex-wrap:wrap' },
       el('span', { class:'pill ' + cor, style:'cursor:pointer',
         title:'Ver o diagnóstico da base partilhada',
-        onclick:() => { if (typeof diagnosticoSync === 'function') diagnosticoSync(); } }, txt)));
+        onclick:() => { if (typeof diagnosticoSync === 'function') diagnosticoSync(); } }, txt),
+      el('span', { class:'pill ' + (copiaPendente() ? 'warn' : 'good'),
+        title:'Estado da cópia de trabalho (.json)' },
+        copiaPendente() ? 'cópia por guardar'
+          : 'cópia de ' + fmtDate((S.cfg.copia || {}).em))));
   }
 }
 
@@ -3331,7 +3365,11 @@ function semDados(v, msg){
       Object.keys(S.cfg.convocatorias).length
         ? el('div', { class:'note', style:'margin-top:18px;text-align:left' },
             el('b', {}, `${Object.keys(S.cfg.convocatorias).length} convocatórias continuam guardadas`),
-            ' — com as justificações, provas, estafetas, treinadores e pontos de informação. Carregue um ficheiro de rankings para voltar a calcular tempos e índices.')
+            ' — com as justificações, provas, estafetas, treinadores e pontos de informação. ' +
+            'Carregue um ficheiro de rankings para voltar a calcular tempos e índices.',
+            el('div', { style:'margin-top:10px' },
+              el('button', { class:'btn sm ed', onclick:apagarConvocatoriasGuardadas },
+                `Apagar as ${Object.keys(S.cfg.convocatorias).length} convocatórias guardadas`)))
         : null))));
   ligarDrop();
 }
@@ -3384,13 +3422,44 @@ function removerFicheiro(fid){
 function removerTodosFicheiros(){
   if (!podeEditar()) return semPermissao();
   const n = (S.db && S.db.ficheiros || []).length;
+  const nConv = Object.keys(S.cfg.convocatorias || {}).length;
+  const tambem = el('input', { type:'checkbox', style:'width:auto' });
   abrirModal('Remover todos os rankings', el('div', {},
     el('p', {}, `Vai apagar ${n} ficheiro(s) e ${S.db.resultados.length.toLocaleString('pt-PT')} resultados.`),
     el('div', { class:'note', style:'margin-top:12px' },
-      'As convocatórias, justificações, provas, estafetas, treinadores, pontos de informação e índices editados mantêm-se tal como estão — voltam a ser calculados quando carregar um ficheiro novo. Para apagar também esses, use “Repor a aplicação” nas Definições.')),
+      'Por defeito, as convocatórias, justificações, provas, estafetas, treinadores, staff e pontos de informação ' +
+      'mantêm-se — voltam a ser calculados quando carregar um ficheiro novo.'),
+    nConv ? el('label', { class:'switch', style:'margin-top:14px' }, tambem,
+      el('span', {}, `Apagar também as ${nConv} convocatórias guardadas`)) : null,
+    nConv ? el('p', { class:'small muted', style:'margin:6px 0 0' },
+      'Inclui as justificações, provas escolhidas, estafetas, staff, alojamento e pontos de informação de cada convocatória. ' +
+      'Orçamentos, equipamento, e-mails, relatórios e calendário nacional mantêm-se.') : null),
     [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
-      el('button', { class:'btn primary', onclick:() =>
-        aplicarRemocao(null, 'Rankings apagados. Carregue um ficheiro para recomeçar.') }, 'Remover todos') ]);
+      el('button', { class:'btn primary', onclick:() => {
+        let msg = 'Rankings apagados. Carregue um ficheiro para recomeçar.';
+        if (tambem.checked){
+          S.cfg.convocatorias = {};
+          msg = `Rankings e ${nConv} convocatórias apagados.`;
+        }
+        aplicarRemocao(null, msg);
+      } }, 'Remover') ]);
+}
+
+function apagarConvocatoriasGuardadas(){
+  if (!podeEditar()) return semPermissao();
+  const n = Object.keys(S.cfg.convocatorias || {}).length;
+  if (!n) return toast('Não há convocatórias guardadas.');
+  abrirModal('Apagar convocatórias guardadas', el('div', {},
+    el('p', {}, `Vai apagar ${n} convocatórias.`),
+    el('div', { class:'note warn', style:'margin-top:12px' },
+      'Perdem-se as justificações, as provas escolhidas, as estafetas, o staff, o alojamento e os pontos de informação de cada uma. ' +
+      'Os rankings, os índices, os orçamentos, o equipamento, os e-mails, os relatórios e o calendário nacional mantêm-se.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia primeiro'),
+      el('button', { class:'btn primary', onclick:() => {
+        S.cfg.convocatorias = {}; salvar(); fecharModal(); irPara('painel');
+        toast(`${n} convocatórias apagadas.`);
+      } }, 'Apagar') ]);
 }
 
 function reporAplicacao(){
@@ -4489,12 +4558,7 @@ function vDefinicoes(v){
         el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia (JSON)'),
         el('button', { class:'btn ed', onclick:importarWorkspace }, 'Restaurar cópia'),
         S.db ? el('button', { class:'btn ed', onclick:removerTodosFicheiros }, 'Remover todos os rankings') : null,
-        el('button', { class:'btn ed', onclick:() => {
-          if (!confirm('Apagar todas as convocatórias, justificações, provas, estafetas e treinadores? Os rankings, os índices e as definições mantêm-se.')) return;
-          S.cfg.convocatorias = {}; salvar(); render();
-          toast('Convocatórias apagadas.' + (typeof SYNC !== 'undefined' && SYNC.disponivel && SYNC.podeGravar
-            ? ' A base partilhada é atualizada dentro de instantes.' : ''));
-        } }, 'Apagar convocatórias'),
+        el('button', { class:'btn ed', onclick:apagarConvocatoriasGuardadas }, 'Apagar convocatórias'),
         el('button', { class:'btn ed', onclick:reporAplicacao }, 'Repor a aplicação')))));
 
   v.append(el('div', { class:'card' },
@@ -4517,9 +4581,31 @@ function vDefinicoes(v){
 }
 
 /* ---------- cópia de segurança ---------- */
-async function exportarWorkspace(){
-  const dados = JSON.stringify({ versao:1, cfg:S.cfg, db: S.db ? serializarDb(S.db) : null }, null, 0);
-  try { await guardar('convocatorias-par-2027.json', dados); toast('Cópia guardada.'); }
+async function exportarWorkspace(semRankings){
+  const carimbo = new Date();
+  const leve = semRankings === true;
+  const nome = 'par2027-' + (leve ? 'trabalho-' : '')
+    + carimbo.toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json';
+  const dados = JSON.stringify({ versao:2, criadoEm:carimbo.toISOString(), semRankings:leve,
+    porQuem: (S.sessao && S.sessao.user) || '',
+    resumo:{ convocatorias:Object.keys(S.cfg.convocatorias || {}).length,
+      competicoes:(S.cfg.competicoes || []).length,
+      orcamentos:(S.cfg.orcamentos || []).length,
+      requisicoes:(S.cfg.requisicoes || []).length,
+      emails:(S.cfg.emails || []).length,
+      relatorios:Object.keys(S.cfg.relatorios || {}).length,
+      nadadores:S.db ? S.db.nadadores.size : 0,
+      resultados:S.db ? S.db.resultados.length : 0,
+      ficheiros:S.db ? (S.db.ficheiros || []).map(f => f.nome) : [] },
+    cfg:S.cfg, db: (!leve && S.db) ? serializarDb(S.db) : null }, null, 0);
+  try {
+    const r = await guardar(nome, dados);
+    if (!leve) marcarCopiaFeita();
+    pintarNav();
+    toast(leve
+      ? `Cópia do trabalho guardada: ${r.filename}. No outro computador, restaure-a e volte a importar o ficheiro de rankings.`
+      : `Cópia guardada: ${r.filename}. Leve este ficheiro para o outro computador e use “Restaurar cópia”.`);
+  }
   catch(e){ toast(e.code === 'declined' ? 'Guardar cancelado.' : 'Não foi possível guardar: ' + (e.message||e.code), true); }
 }
 function importarWorkspace(){
@@ -4527,13 +4613,57 @@ function importarWorkspace(){
   const i = el('input', { type:'file', accept:'.json' });
   i.addEventListener('change', async () => {
     const f = i.files[0]; if (!f) return;
-    try{
-      const j = JSON.parse(await f.text());
-      if (j.cfg) S.cfg = { ...cfgPadrao(), ...j.cfg };
-      if (j.db) S.db = desserializarDb(j.db);
-      S._cache = {}; reconstruirAtividades(); await salvar(); await salvarDb(); pintarNav(); render();
-      toast('Cópia restaurada.');
-    } catch(e){ toast('Ficheiro inválido: ' + e.message, true); }
+    let j;
+    try{ j = JSON.parse(await f.text()); }
+    catch(e){ return toast('Ficheiro inválido: ' + e.message, true); }
+    if (!j || (!j.cfg && !j.db)) return toast('Este ficheiro não é uma cópia de trabalho da aplicação.', true);
+
+    const r = j.resumo || {};
+    const linha = (rot, val) => el('div', { style:'display:flex;gap:10px;padding:5px 0' },
+      el('div', { style:'flex:1;color:var(--ink-2);font-size:13px' }, rot),
+      el('div', { class:'mono small' }, String(val)));
+    const atual = {
+      convocatorias:Object.keys(S.cfg.convocatorias || {}).length,
+      resultados:S.db ? S.db.resultados.length : 0
+    };
+
+    abrirModal('Restaurar cópia de trabalho', el('div', {},
+      el('p', {}, `Ficheiro: ${esc(f.name)}`),
+      j.criadoEm ? el('p', { class:'small muted' },
+        `Cópia feita a ${fmtDate(j.criadoEm)}${j.porQuem ? ' por ' + esc(j.porQuem) : ''}.`) : null,
+      el('div', { style:'margin-top:10px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:4px' }, 'O que vem nesta cópia'),
+        linha('Convocatórias', r.convocatorias ?? (j.cfg ? Object.keys(j.cfg.convocatorias || {}).length : '—')),
+        linha('Competições no calendário', r.competicoes ?? '—'),
+        linha('Pedidos de orçamento', r.orcamentos ?? '—'),
+        linha('Requisições de equipamento', r.requisicoes ?? '—'),
+        linha('E-mails', r.emails ?? '—'),
+        linha('Relatórios', r.relatorios ?? '—'),
+        linha('Resultados de ranking', (r.resultados ?? (j.db ? j.db.resultados.length : 0)).toLocaleString('pt-PT')),
+        (r.ficheiros || []).length ? linha('Ficheiros', r.ficheiros.join(', ')) : null),
+      j.semRankings ? el('div', { class:'note', style:'margin-top:12px' },
+        'Esta cópia não traz os rankings — só o trabalho. Os ficheiros de ranking já carregados neste computador mantêm-se.') : null,
+      el('div', { class:'note warn', style:'margin-top:12px' },
+        `Restaurar substitui tudo o que existe neste computador (${atual.convocatorias} convocatórias, ` +
+        `${atual.resultados.toLocaleString('pt-PT')} resultados). Se tiver aqui trabalho mais recente, guarde primeiro uma cópia.`)),
+      [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+        el('button', { class:'btn', onclick:exportarWorkspace }, 'Guardar cópia do que está aqui'),
+        el('button', { class:'btn primary', onclick:async () => {
+          try{
+            if (j.cfg){
+              S.cfg = { ...cfgPadrao(), ...j.cfg };
+              S.cfg.indices = j.cfg.indices && j.cfg.indices.PL && j.cfg.indices.PC
+                ? j.cfg.indices : { PL:clone(IDX_PL), PC:clone(IDX_PC) };
+              S.cfg.tabelas = migrarTabelas(j.cfg.tabelas);
+            }
+            S.db = j.db ? desserializarDb(j.db) : (j.semRankings ? S.db : null);
+            S._cache = {}; reconstruirAtividades();
+            await salvar(); await salvarDb();
+            marcarCopiaFeita();
+            fecharModal(); irPara('painel');
+            toast('Cópia restaurada — este computador tem agora a mesma informação.');
+          } catch(e){ toast('Não foi possível restaurar: ' + e.message, true); }
+        } }, 'Restaurar') ]);
   });
   i.click();
 }
@@ -9397,19 +9527,38 @@ function cardSync(){
   const corpo = el('div', { class:'body' });
 
   if (!SYNC.disponivel){
+    const pend = copiaPendente();
+    const c = S.cfg.copia || {};
     corpo.append(
-      el('div', { class:'note warn' },
-        el('b', {}, 'Os dados estão a ser guardados apenas neste navegador. '),
-        SYNC.motivo || 'A base partilhada não está disponível nesta janela.'),
-      el('p', { class:'small muted', style:'margin:12px 0 0' },
-        'Para ter a mesma informação em vários computadores, abra em todos a ligação publicada da aplicação. ' +
-        'Em alternativa, use “Guardar cópia (JSON)” aqui e “Restaurar cópia” no outro computador.'),
+      el('div', { class:'grid g3', style:'margin-bottom:12px' },
+        mini('Onde estão os dados', 'Neste navegador'),
+        mini('Última cópia guardada', c.em ? fmtDate(c.em) : 'nunca'),
+        mini('Alterações desde então', pend ? 'sim' : 'não')),
+      el('div', { class:'note' + (pend ? ' warn' : '') },
+        pend
+          ? 'Há trabalho gravado neste computador que ainda não foi exportado. Guarde a cópia antes de mudar de computador.'
+          : 'A cópia de trabalho está em dia com o que está gravado neste computador.'),
       el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
-        el('button', { class:'btn', onclick:diagnosticoSync }, 'Diagnóstico')));
+        el('button', { class:'btn primary ed', onclick:() => exportarWorkspace(false) }, 'Guardar cópia (.json)'),
+        el('button', { class:'btn ed', onclick:() => exportarWorkspace(true) },
+          'Só o trabalho (sem rankings)'),
+        el('button', { class:'btn ed', onclick:importarWorkspace }, 'Restaurar cópia'),
+        el('button', { class:'btn', onclick:diagnosticoSync }, 'Diagnóstico')),
+      el('div', { class:'note', style:'margin-top:12px' },
+        el('b', {}, 'Como passar o trabalho para outro computador: '),
+        'neste, “Guardar cópia (.json)”; no outro, abrir a aplicação e “Restaurar cópia”, escolhendo esse ficheiro. ' +
+        'A cópia leva tudo — convocatórias, calendário nacional, orçamentos, equipamento, e-mails, relatórios, ' +
+        'marcas da época e os próprios ficheiros de ranking já processados.'),
+      el('div', { class:'note warn', style:'margin-top:10px' },
+        el('b', {}, 'Só uma pessoa de cada vez. '),
+        'Como não há base partilhada, dois computadores a trabalhar ao mesmo tempo produzem cópias divergentes: ' +
+        'quem restaurar por último apaga o trabalho do outro. Combine quem tem a versão de referência.'),
+      SYNC.motivo ? el('p', { class:'small muted', style:'margin:12px 0 0' }, SYNC.motivo) : null);
     return el('div', { class:'card' },
-      el('header', {}, el('div', {}, el('h3', {}, 'Base partilhada'),
-        el('div', { class:'small muted' }, 'Acesso aos mesmos dados a partir de qualquer computador')),
-        el('span', { class:'sp', style:'flex:1' }), el('span', { class:'pill ' + est.pill }, est.txt)),
+      el('header', {}, el('div', {}, el('h3', {}, 'Cópia de trabalho'),
+        el('div', { class:'small muted' }, 'Levar os dados de um computador para outro')),
+        el('span', { class:'sp', style:'flex:1' }),
+        el('span', { class:'pill ' + (pend ? 'warn' : 'good') }, pend ? 'por guardar' : 'em dia')),
       corpo);
   }
 
