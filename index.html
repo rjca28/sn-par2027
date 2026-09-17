@@ -16,6 +16,8 @@
   --line:#d3e0e9; --line-2:#e6eef4;
   --accent:#0a5f8f; --accent-ink:#084a6f; --accent-soft:#e2eff7;
   --serie-a:#0a5f8f; --serie-b:#c9743a;
+  --cat-1:#2a78d6; --cat-2:#eb6834; --cat-3:#1baf7a; --cat-4:#eda100;
+  --cat-5:#e87ba4; --cat-6:#008300; --cat-7:#4a3aa7;
   --good:#0f7a52; --good-soft:#e2f2ea;
   --warn:#a06514; --warn-soft:#faf0dd;
   --bad:#b03a2e;  --bad-soft:#fbe8e5;
@@ -32,6 +34,10 @@
     --line:#253d52; --line-2:#1b2f40;
     --accent:#64b5e0; --accent-ink:#8dcbee; --accent-soft:#14303f;
     --serie-a:#3d93c4; --serie-b:#c87d3c;
+  --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70; --cat-4:#c98500;
+  --cat-5:#d55181; --cat-6:#008300; --cat-7:#9085e9;
+    --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70; --cat-4:#c98500;
+    --cat-5:#d55181; --cat-6:#008300; --cat-7:#9085e9;
     --good:#4dbc92; --good-soft:#12332a;
     --warn:#d8a854; --warn-soft:#332913;
     --bad:#e5807a;  --bad-soft:#3a1f1d;
@@ -239,6 +245,31 @@ table.grelha tbody tr:hover td{background:transparent}
 .gx:hover{background:var(--bad-soft);color:var(--bad)}
 .tabela-btns{display:flex;gap:7px;padding:8px 9px;border-top:1px solid var(--line-2);
   background:var(--surface-2);flex-wrap:wrap}
+
+/* cronograma (gantt) */
+.gantt{display:flex;flex-direction:column;gap:3px}
+.gantt-head,.gantt-row{display:grid;grid-template-columns:minmax(104px,20%) 1fr;gap:10px;align-items:center}
+.gantt-head .gantt-track{height:18px;background:none}
+.gantt-head .gm{position:absolute;top:2px;font-size:10.5px;color:var(--ink-3);
+  font-family:var(--font-d);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  white-space:nowrap;overflow:hidden}
+.gantt .lb{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gantt .lb b{font-weight:600;color:var(--ink)}
+.gantt-track{position:relative;height:22px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.gantt-grid{position:absolute;inset:0;display:flex;pointer-events:none}
+.gantt-grid i{flex:1;border-right:1px solid var(--line-2)}
+.gantt-grid i:last-child{border-right:0}
+.gantt-hoje{position:absolute;top:0;bottom:0;width:2px;background:var(--bad);opacity:.55;pointer-events:none}
+.gantt-bar{position:absolute;top:3px;height:16px;border-radius:4px;box-shadow:0 0 0 2px var(--surface);
+  display:flex;align-items:center;padding:0 5px;font-size:10.5px;font-family:var(--font-m);
+  color:#fff;white-space:nowrap;overflow:hidden;cursor:pointer}
+.gantt-bar.claro{color:#10222e}
+.gantt-vazio{padding:14px 2px;color:var(--ink-3);font-size:13px}
+.cat-leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-bottom:10px}
+.cat-leg span{display:inline-flex;align-items:center;gap:5px}
+.cat-leg b{display:inline-block;width:10px;height:10px;border-radius:2px}
+.fin{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.fin .v{font-family:var(--font-d);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* modal */
 .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;
@@ -1432,6 +1463,39 @@ const CATEGORIAS_REC_BASE = [
 /* Uma marca só é considerada recorde batido se for melhor do que a registada
    por esta margem (em segundos) — evita falsos positivos por arredondamento. */
 const MARGEM_RECORDE = 0.001;
+
+/* ==========================================================================
+   CALENDÁRIO NACIONAL — competições organizadas pela FPN e associações
+   ========================================================================== */
+const TIPOS_COMP = ['Campeonato Nacional', 'Zonal', 'Open de Portugal', 'Torneio Nacional',
+  'Meeting Internacional', 'Taça de Portugal', 'Encontro Nacional', 'Outra'];
+
+const ESCALOES_COMP = ['Absolutos', 'Juniores e Seniores', 'Juniores', 'Juvenis',
+  'Infantis', 'Cadetes', 'Masters', 'Todos os escalões'];
+
+const ESTADOS_COMP = [
+  { id:'previsto',  nome:'Previsto', pill:''     },
+  { id:'confirmado',nome:'Confirmado', pill:'acc'  },
+  { id:'aberto',    nome:'Inscrições abertas', pill:'warn' },
+  { id:'realizado', nome:'Realizado', pill:'good' },
+  { id:'cancelado', nome:'Cancelado', pill:'bad'  }
+];
+
+const FUNCOES_ORG = ['Diretor da prova', 'Delegado técnico', 'Juiz árbitro', 'Secretariado',
+  'Apoio logístico', 'Comunicação', 'Controlo antidopagem', 'Apoio médico', 'Outra função'];
+
+const RUBRICAS_RECEITA = ['Inscrições', 'Apoio municipal', 'Apoio IPDJ', 'Patrocínios',
+  'Bilheteira', 'Venda de merchandising', 'Outras receitas'];
+const RUBRICAS_DESPESA = ['Aluguer da piscina', 'Arbitragem', 'Cronometragem', 'Alojamento',
+  'Alimentação', 'Transportes', 'Prémios e troféus', 'Material e sinalética',
+  'Comunicação e imagem', 'Apoio médico', 'Seguros', 'Outras despesas'];
+
+/* Cores categóricas dos gráficos (validadas para as duas variantes de tema).
+   Atribuídas por ordem fixa, nunca em ciclo. */
+const CAT_CORES = ['var(--cat-1)','var(--cat-2)','var(--cat-3)','var(--cat-4)',
+  'var(--cat-5)','var(--cat-6)','var(--cat-7)'];
+/* Marcas com contraste baixo em modo claro levam rótulo escuro por cima. */
+const CAT_CLARAS = [3, 4];
 
 </script>
 <script>
@@ -2700,8 +2764,10 @@ const cfgPadrao = () => ({
   orcamentos:[],                /* pedidos de orçamento */
   requisicoes:[],               /* requisições de equipamento */
   relatorios:{},                /* ativId -> relatório de atividade */
-  recordes:[],                  /* recordes nacionais */
+  recordes:[],                  /* melhores marcas da época */
   categoriasRec: clone(CATEGORIAS_REC_BASE),
+  competicoes:[],               /* calendário nacional */
+  responsaveis:{},              /* ativId -> responsável pela atividade */
   orcamentoGlobal:0             /* dotação anual, para o painel de custos */
 });
 const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, sessao:null, _cache:{} };
@@ -2731,6 +2797,25 @@ async function salvarLocal(){ await store.set('cfg', S.cfg); }
 async function salvarDbLocal(){ await store.set('db', S.db ? serializarDb(S.db) : null); }
 
 async function salvar(){ await salvarLocal(); if (typeof agendarEmpurrar === 'function') agendarEmpurrar(); }
+
+/* Grava tudo de uma vez: neste computador e, se existir, na base partilhada. */
+async function gravarTudo(){
+  if (!podeEditar()) return semPermissao();
+  toast('A gravar toda a informação…');
+  await salvarLocal();
+  await salvarDbLocal();
+  if (typeof SYNC !== 'undefined' && SYNC.disponivel && SYNC.podeGravar){
+    clearTimeout(SYNC._timer);
+    const ok = await empurrar(false);
+    toast(ok
+      ? 'Informação gravada e enviada para a base partilhada — já está acessível noutro computador.'
+      : ('Gravado neste computador. A base partilhada não aceitou a gravação' +
+         (SYNC.detalhe ? ': ' + SYNC.detalhe : '.')), !ok);
+  } else {
+    toast('Toda a informação foi gravada neste computador.');
+  }
+  pintarNav();
+}
 async function salvarDb(){ await salvarDbLocal(); if (typeof agendarEmpurrar === 'function') agendarEmpurrar(); }
 
 function serializarDb(db){
@@ -2913,6 +2998,7 @@ const ICON = {
   nad:'<path d="M12 11a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   idx:'<path d="M4 19V5M4 8h16M4 13h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   mail:'<path d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 7.5l8.5 6 8.5-6" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  cal:'<path d="M3 6a2 2 0 012-2h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 2v4M16 2v4M7 14h4M7 17h8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   euro:'<path d="M17 5.5A6.5 6.5 0 007 12a6.5 6.5 0 0010 6.5M4 10.5h8M4 13.5h8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   caixa:'<path d="M3 8l9-4 9 4v8l-9 4-9-4z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 8l9 4 9-4M12 12v8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   rel:'<path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8"/>',
@@ -2924,13 +3010,14 @@ const svg = p => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true
 
 const PAGINAS = [
   { id:'painel',  nome:'Painel',       icon:'painel' },
+  { id:'cal',     nome:'Calendário nacional', icon:'cal' },
   { id:'ativ',    nome:'Atividades',   icon:'ativ' },
   { id:'conv',    nome:'Convocatórias',icon:'conv' },
   { id:'mail',    nome:'E-mails',      icon:'mail' },
   { id:'custos',  nome:'Orçamentos',   icon:'euro' },
   { id:'equip',   nome:'Equipamento',  icon:'caixa' },
   { id:'rel',     nome:'Relatórios',   icon:'rel' },
-  { id:'rec',     nome:'Recordes',     icon:'trofeu' },
+  { id:'rec',     nome:'Melhor marca da época', icon:'trofeu' },
   { id:'nad',     nome:'Nadadores',    icon:'nad' },
   { id:'cont',    nome:'Contactos',    icon:'cont' },
   { id:'idx',     nome:'Índices',      icon:'idx' },
@@ -2950,6 +3037,11 @@ function pintarNav(){
   }
   const f = $('#railFoot');
   f.replaceChildren();
+  if (podeEditar()){
+    f.append(el('button', { class:'btn primary', style:'width:100%;justify-content:center;margin-bottom:10px',
+      title:'Grava as convocatórias, o calendário, os orçamentos, o equipamento, os e-mails, os relatórios e as marcas da época',
+      onclick:gravarTudo }, 'Gravar tudo'));
+  }
   if (S.sessao){
     f.append(el('div', { class:'sessao' },
       el('div', {},
@@ -3148,7 +3240,7 @@ function render(){
     : (p ? p.nome : 'Painel');
   ({ painel:vPainel, ativ:vAtividades, conv:vConvocatorias, convDet:vConvDetalhe,
      nad:vNadadores, idx:vIndices, cfg:vDefinicoes,
-     mail:vEmails, custos:vOrcamentos, equip:vEquipamento,
+     cal:vCalendario, mail:vEmails, custos:vOrcamentos, equip:vEquipamento,
      rel:vRelatorios, relDet:vRelatorioDetalhe, rec:vRecordes, cont:vContactos }[S.page] || vPainel)(v);
   if (!podeEditar()) bloquearEdicao();
 }
@@ -3434,6 +3526,9 @@ function vPainel(v){
     el('header', {}, el('h3', {}, 'Calendário de atividades 2027')),
     el('div', { class:'body tight' }, tab)));
 
+  /* leituras adicionais sobre as atividades das seleções */
+  v.append(cardsPainelExtra());
+
   /* custos, equipamento, e-mails e relatórios integrados no painel */
   const gest = cardsGestaoPainel();
   if (gest) v.append(gest);
@@ -3488,6 +3583,9 @@ function vAtividades(v){
         chip('Todos', filtroTipo === 'todos', () => { filtroTipo='todos'; render(); }),
         chip('Estágio', filtroTipo === 'Estágio', () => { filtroTipo='Estágio'; render(); }),
         chip('Competição', filtroTipo === 'Competição', () => { filtroTipo='Competição'; render(); })))));
+
+  /* cronograma global de participação, por seleção ou por responsável */
+  v.append(cardCronogramaAtividades());
   v.append(filtros);
 
   for (const s of SELECOES){
@@ -3508,7 +3606,8 @@ function vAtividades(v){
           el('button', { class:'btn sm ghost edit-a ed', title:'Editar atividade',
             onclick:(ev) => { ev.stopPropagation(); editarAtividade(a.id); } }, 'Editar')),
         el('h4', {}, a.nome),
-        el('div', { class:'meta' }, el('span', {}, a.datas), el('span', {}, a.local)),
+        el('div', { class:'meta' }, el('span', {}, a.datas), el('span', {}, a.local),
+          respDe(a.id) ? el('span', {}, '· ' + respDe(a.id)) : null),
         el('div', { class:'foot' },
           n == null ? el('span', { class:'pill' }, 'Por gerar')
                     : el('span', { class:'pill good' }, `${n} convocados`),
@@ -3522,6 +3621,9 @@ function vAtividades(v){
         el('span', { class:'small muted' }, `${lista.length} atividades`)),
       el('div', { class:'body' }, g)));
   }
+
+  /* atribuição de responsáveis */
+  v.append(cardResponsaveis());
 }
 const chip = (txt, on, fn) => el('button', { class:'chip', 'aria-pressed':String(!!on), onclick:fn }, txt);
 
@@ -4436,6 +4538,7 @@ function editarAtividade(ativId){
   const fTipo = el('select', {}, el('option', { value:'Estágio' }, 'Estágio'), el('option', { value:'Competição' }, 'Competição'));
   fTipo.value = a.tipo;
   const fADef = el('input', { type:'checkbox', style:'width:auto' }); fADef.checked = !!a.aDefinir;
+  const fResp = campoResponsavel(ativId ? respDe(ativId) : '', () => {});
 
   const fModo = el('select', {}, ...MODOS_REGRA.map(m => el('option', { value:m.id }, m.label)));
   fModo.value = a.regra.modo || 'indice';
@@ -4495,7 +4598,10 @@ function editarAtividade(ativId){
     el('div', { class:'grid g3', style:'margin-top:10px' },
       campo('Datas (texto)', fDatas, 'Como aparece nos documentos.'),
       campo('Data de início', fIni), campo('Data de fim', fFim)),
-    el('label', { class:'switch', style:'margin-top:10px' }, fADef, el('span', {}, 'Datas ou local por confirmar')),
+    el('div', { class:'grid g2', style:'margin-top:10px' },
+      campo('Responsável pela atividade', fResp, 'Alimenta o cronograma por responsável.'),
+      el('div', { style:'display:flex;align-items:flex-end' },
+        el('label', { class:'switch' }, fADef, el('span', {}, 'Datas ou local por confirmar')))),
 
     secao('Apuramento',
       el('div', { class:'grid g3' },
@@ -4563,6 +4669,7 @@ function editarAtividade(ativId){
       S.cfg.ativEditadas[nova.id] = nova;
     }
     salvar(); reconstruirAtividades();
+    definirResponsavel(nova.id, fResp.value.trim());
     if (S.cfg.convocatorias[nova.id]) gerarConvocatoria(nova.id, true);
     salvar(); fecharModal(); pintarNav();
     if (S.page === 'convDet') irPara('convDet', nova.id); else render();
@@ -6252,19 +6359,543 @@ function cardDefinicoesGestao(){
 
   return el('div', { class:'card' },
     el('header', {}, el('div', {},
-      el('h3', {}, 'Orçamento e recordes'),
-      el('div', { class:'small muted' }, 'Valores usados nos painéis de custos e na deteção de recordes.'))),
+      el('h3', {}, 'Orçamento e marcas da época'),
+      el('div', { class:'small muted' }, 'Valores usados nos painéis de custos e na comparação das marcas da época.'))),
     el('div', { class:'body' },
       el('div', { class:'grid g2' },
         el('label', { class:'f' }, el('span', {}, 'Dotação orçamental do ano (€)'), dot,
           el('span', { class:'small muted' }, 'Serve para calcular a verba disponível no painel de orçamentos. Deixe vazio para não a mostrar.')),
         el('div', {})),
       el('div', { style:'margin-top:16px' },
-        el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Escalões dos recordes nacionais'),
+        el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Escalões das melhores marcas da época'),
         el('div', { class:'note', style:'margin-bottom:10px' },
           'As idades de cada escalão variam com o regulamento em vigor e devem ser confirmadas pela DTN. ' +
-          'São usadas para decidir em que escalão uma marca conta como recorde.'),
+          'São usadas para decidir em que escalão cada marca é contabilizada.'),
         catBox)));
+}
+
+</script>
+<script>
+/* ==========================================================================
+   CRONOGRAMA, CALENDÁRIO NACIONAL E RESPONSÁVEIS
+   ========================================================================== */
+
+const plural = (n, um, muitos) => `${n} ${n === 1 ? um : muitos}`;
+
+/* ---------- cores categóricas ---------- */
+/* Atribuídas por ordem fixa a partir de uma chave estável, nunca em ciclo:
+   a oitava categoria e seguintes caem em "Outras". */
+function corCat(i){ return CAT_CORES[Math.min(i, CAT_CORES.length - 1)]; }
+function claroCat(i){ return CAT_CLARAS.includes(Math.min(i, CAT_CORES.length - 1)); }
+const idxSelecao = id => Math.max(0, SELECOES.findIndex(s => s.id === id));
+const corSelecao = id => corCat(idxSelecao(id));
+
+function escalaCores(chaves){
+  const ord = [...new Set(chaves)];
+  const m = new Map();
+  ord.forEach((k, i) => m.set(k, { i:Math.min(i, CAT_CORES.length - 1),
+    cor:corCat(i), claro:claroCat(i), outra:i >= CAT_CORES.length }));
+  return m;
+}
+
+function legendaCores(mapa, rotulo){
+  const box = el('div', { class:'cat-leg' });
+  for (const [k, v] of mapa) box.append(el('span', {},
+    el('b', { style:`background:${v.cor}` }), rotulo ? rotulo(k) : String(k)));
+  return box;
+}
+
+/* ==========================================================================
+   CRONOGRAMA (barras no tempo)
+   linhas: [{ lb, sub, itens:[{ ini, fim, rotulo, cor, claro, titulo, onclick }] }]
+   ========================================================================== */
+const MESES_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+function cronograma(linhas, opts = {}){
+  const todas = linhas.flatMap(l => l.itens || []);
+  if (!todas.length) return el('p', { class:'gantt-vazio' },
+    opts.vazio || 'Sem datas para mostrar neste cronograma.');
+
+  const dIni = opts.ini ? new Date(opts.ini) : new Date(Math.min(...todas.map(x => +new Date(x.ini))));
+  const dFim = opts.fim ? new Date(opts.fim) : new Date(Math.max(...todas.map(x => +new Date(x.fim || x.ini))));
+  const ini = new Date(dIni.getFullYear(), dIni.getMonth(), 1);
+  const fim = new Date(dFim.getFullYear(), dFim.getMonth() + 1, 0);
+  const total = Math.max(1, +fim - +ini);
+  const pos = d => Math.min(100, Math.max(0, ((+new Date(d) - +ini) / total) * 100));
+
+  const meses = [];
+  for (let d = new Date(ini); d <= fim; d.setMonth(d.getMonth() + 1))
+    meses.push(new Date(d.getFullYear(), d.getMonth(), 1));
+
+  const grelha = () => {
+    const g = el('div', { class:'gantt-grid' });
+    meses.forEach(() => g.append(el('i')));
+    return g;
+  };
+
+  const caixa = el('div', { class:'gantt' });
+
+  /* régua de meses */
+  const cab = el('div', { class:'gantt-head' }, el('div', { class:'lb' }, ''),
+    (() => {
+      const tr = el('div', { class:'gantt-track' }, grelha());
+      meses.forEach(m => {
+        const fimMes = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+        const a = pos(m), b = pos(fimMes);
+        tr.append(el('div', { class:'gm', style:`left:${a}%;width:${Math.max(0, b - a)}%` },
+          MESES_CURTO[m.getMonth()] + (m.getMonth() === 0 || m === meses[0] ? ' ' + String(m.getFullYear()).slice(2) : '')));
+      });
+      return tr;
+    })());
+  caixa.append(cab);
+
+  const hoje = new Date();
+  const mostrarHoje = hoje >= ini && hoje <= fim;
+
+  for (const l of linhas){
+    const tr = el('div', { class:'gantt-track' }, grelha());
+    if (mostrarHoje) tr.append(el('div', { class:'gantt-hoje', style:`left:${pos(hoje)}%` }));
+    for (const it of (l.itens || [])){
+      const a = pos(it.ini), b = pos(it.fim || it.ini);
+      const larg = Math.max(1.5, b - a);
+      const barra = el('div', {
+        class:'gantt-bar' + (it.claro ? ' claro' : ''),
+        style:`left:${a}%;width:${larg}%;background:${it.cor || 'var(--accent)'}`,
+        title:it.titulo || it.rotulo || '',
+        onclick: it.onclick || null
+      }, larg > 6 ? (it.rotulo || '') : '');
+      tr.append(barra);
+    }
+    caixa.append(el('div', { class:'gantt-row' },
+      el('div', { class:'lb', title:l.lb },
+        el('b', {}, l.lb), l.sub ? el('div', { class:'small muted' }, l.sub) : null),
+      tr));
+  }
+  return caixa;
+}
+
+/* ==========================================================================
+   RESPONSÁVEIS PELAS ATIVIDADES DAS SELEÇÕES
+   ========================================================================== */
+const respDe = ativId => (S.cfg.responsaveis || {})[ativId] || '';
+
+function definirResponsavel(ativId, nome){
+  if (!podeEditar()) return semPermissao();
+  S.cfg.responsaveis = S.cfg.responsaveis || {};
+  if (nome) S.cfg.responsaveis[ativId] = nome; else delete S.cfg.responsaveis[ativId];
+  salvar();
+}
+
+/* Nomes já usados, mais o staff FPN do livro de endereços. */
+function nomesResponsaveis(){
+  const s = new Set();
+  Object.values(S.cfg.responsaveis || {}).forEach(x => { if (x) s.add(x); });
+  (S.cfg.competicoes || []).forEach(c => {
+    if (c.responsavel) s.add(c.responsavel);
+    (c.equipa || []).forEach(e => { if (e.nome) s.add(e.nome); });
+  });
+  (S.cfg.contactos || []).filter(c => c.tipo === 'Staff FPN' && c.nome).forEach(c => s.add(c.nome));
+  Object.values(S.cfg.convocatorias || {}).forEach(c =>
+    (c.staff || []).forEach(x => { if ((x.nome || '').trim()) s.add(x.nome.trim()); }));
+  return [...s].sort((a, b) => a.localeCompare(b, 'pt'));
+}
+
+/* Campo de responsável reutilizável: lista de sugestões + escrita livre. */
+function campoResponsavel(valor, aoMudar){
+  const lista = nomesResponsaveis();
+  const dlId = 'dl-resp';
+  if (!document.getElementById(dlId)){
+    const dl = el('datalist', { id:dlId });
+    document.body.append(dl);
+  }
+  const dl = document.getElementById(dlId);
+  dl.replaceChildren(...lista.map(n => el('option', { value:n })));
+  const inp = el('input', { type:'text', list:dlId, placeholder:'nome do responsável' });
+  inp.value = valor || '';
+  inp.addEventListener('change', () => aoMudar(inp.value.trim()));
+  return inp;
+}
+
+/* ==========================================================================
+   CALENDÁRIO NACIONAL
+   ========================================================================== */
+const somaRub = lista => (lista || []).reduce((s, x) => s + (Number(x.valor) || 0), 0);
+const receitasComp = c => somaRub(c.receitas);
+const despesasComp = c => somaRub(c.despesas);
+const saldoComp = c => receitasComp(c) - despesasComp(c);
+const compsOrdenadas = () => (S.cfg.competicoes || [])
+  .slice().sort((a, b) => String(a.dataIni || '').localeCompare(String(b.dataIni || '')));
+
+function novaCompeticao(){
+  if (!podeEditar()) return semPermissao();
+  const c = { uid:uid('k'), nome:'', tipo:TIPOS_COMP[0], escalao:ESCALOES_COMP[0],
+    local:'', piscina:'PL', dataIni:'', dataFim:'', estado:'previsto',
+    responsavel:'', equipa:[{ nome:'', funcao:FUNCOES_ORG[0], contacto:'' }],
+    participantes:'', clubes:'', receitas:[], despesas:[], observacoes:'',
+    criadoEm:new Date().toISOString() };
+  S.cfg.competicoes = S.cfg.competicoes || [];
+  S.cfg.competicoes.push(c);
+  salvar();
+  editarCompeticao(c.uid);
+}
+
+function editarCompeticao(kuid){
+  const c = (S.cfg.competicoes || []).find(x => x.uid === kuid);
+  if (!c) return;
+  const so = !podeEditar();
+  c.equipa = c.equipa || []; c.receitas = c.receitas || []; c.despesas = c.despesas || [];
+
+  const txt = (val, ph) => { const i = el('input', { type:'text', placeholder:ph }); i.value = val || ''; return i; };
+  const sel = (val, ops) => { const s = el('select', {}, ...ops.map(o => el('option', { value:(o.id ?? o) }, (o.nome ?? o)))); s.value = val; return s; };
+  const nome = txt(c.nome, 'ex.: Campeonato Nacional de Absolutos');
+  const tipo = sel(c.tipo, TIPOS_COMP);
+  const escalao = sel(c.escalao, ESCALOES_COMP);
+  const local = txt(c.local, 'Piscina, cidade');
+  const piscina = sel(c.piscina, ['PL', 'PC']);
+  const dIni = el('input', { type:'date' }); dIni.value = c.dataIni || '';
+  const dFim = el('input', { type:'date' }); dFim.value = c.dataFim || '';
+  const estado = sel(c.estado, ESTADOS_COMP);
+  const part = el('input', { type:'number', min:'0', step:'1', placeholder:'nadadores inscritos' });
+  part.value = c.participantes ?? '';
+  const clubes = el('input', { type:'number', min:'0', step:'1', placeholder:'clubes representados' });
+  clubes.value = c.clubes ?? '';
+  const obs = el('textarea', { rows:2, placeholder:'Observações' }); obs.value = c.observacoes || '';
+  const resp = campoResponsavel(c.responsavel, v => { c.responsavel = v; salvar(); });
+
+  const gravarC = () => {
+    if (so) return;
+    Object.assign(c, { nome:nome.value.trim(), tipo:tipo.value, escalao:escalao.value,
+      local:local.value.trim(), piscina:piscina.value, dataIni:dIni.value, dataFim:dFim.value,
+      estado:estado.value, observacoes:obs.value,
+      participantes: part.value === '' ? '' : +part.value,
+      clubes: clubes.value === '' ? '' : +clubes.value });
+    if (!c.dataFim && c.dataIni) c.dataFim = c.dataIni;
+    salvar();
+  };
+  [nome, tipo, escalao, local, piscina, dIni, dFim, estado, part, clubes, obs]
+    .forEach(x => x.addEventListener('change', gravarC));
+
+  /* equipa organizadora */
+  const equipaBox = el('div', {});
+  const pintarEquipa = () => {
+    equipaBox.replaceChildren(
+      listaItens(c.equipa, [
+        { k:'nome', t:'Nome', w:'200px' },
+        { k:'funcao', t:'Função', tipo:'select', op:FUNCOES_ORG, w:'170px' },
+        { k:'contacto', t:'Contacto', w:'170px', ph:'e-mail ou telemóvel' }
+      ], (estrutural) => { salvar(); if (estrutural) pintarEquipa(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          c.equipa.push({ nome:'', funcao:FUNCOES_ORG[0], contacto:'' }); salvar(); pintarEquipa();
+        } }, '+ Pessoa'),
+        el('span', { class:'small muted', style:'align-self:center' },
+          'Quem acompanha a organização, além do responsável principal.')));
+    if (so) bloquearEdicao();
+  };
+  pintarEquipa();
+
+  /* receitas e despesas */
+  const finBox = el('div', {});
+  const pintarFin = () => {
+    const rec = receitasComp(c), des = despesasComp(c), sal = rec - des;
+    finBox.replaceChildren(
+      el('div', { class:'fin', style:'margin-bottom:12px' },
+        el('div', { class:'kpi' }, el('div', { class:'v', style:'color:var(--good)' }, eur(rec)),
+          el('div', { class:'l' }, 'Receitas')),
+        el('div', { class:'kpi' }, el('div', { class:'v', style:'color:var(--warn)' }, eur(des)),
+          el('div', { class:'l' }, 'Despesas')),
+        el('div', { class:'kpi' }, el('div', { class:'v', style:`color:${sal >= 0 ? 'var(--good)' : 'var(--bad)'}` }, eur(sal)),
+          el('div', { class:'l' }, 'Saldo'))),
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Receitas'),
+      listaItens(c.receitas, [
+        { k:'rubrica', t:'Rubrica', tipo:'select', op:RUBRICAS_RECEITA, w:'170px' },
+        { k:'desc', t:'Descrição', w:'220px' },
+        { k:'valor', t:'Valor (€)', tipo:'num', w:'110px' }
+      ], (estrutural) => { salvar(); if (estrutural) pintarFin(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          c.receitas.push({ rubrica:RUBRICAS_RECEITA[0], desc:'', valor:0 }); salvar(); pintarFin();
+        } }, '+ Receita')),
+      el('div', { class:'eyebrow', style:'margin:14px 0 6px' }, 'Despesas'),
+      listaItens(c.despesas, [
+        { k:'rubrica', t:'Rubrica', tipo:'select', op:RUBRICAS_DESPESA, w:'170px' },
+        { k:'desc', t:'Descrição', w:'220px' },
+        { k:'valor', t:'Valor (€)', tipo:'num', w:'110px' }
+      ], (estrutural) => { salvar(); if (estrutural) pintarFin(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          c.despesas.push({ rubrica:RUBRICAS_DESPESA[0], desc:'', valor:0 }); salvar(); pintarFin();
+        } }, '+ Despesa')));
+    if (so) bloquearEdicao();
+  };
+  pintarFin();
+
+  const botoes = [el('button', { class:'btn', onclick:() => { fecharModal(); render(); } }, 'Fechar')];
+  if (!so){
+    botoes.push(el('button', { class:'btn', onclick:() => {
+      S.cfg.competicoes = (S.cfg.competicoes || []).filter(x => x.uid !== c.uid);
+      salvar(); fecharModal(); render(); toast('Competição eliminada do calendário.');
+    } }, 'Eliminar'));
+    botoes.push(el('button', { class:'btn', onclick:() => { gravarC(); exportarCompeticaoPdf(c.uid); } }, 'Ficha em PDF'));
+    botoes.push(el('button', { class:'btn primary', onclick:() => { gravarC(); fecharModal(); render(); toast('Competição guardada.'); } }, 'Guardar'));
+  }
+
+  abrirModal('Competição nacional', el('div', {},
+    el('div', { class:'grid g2' },
+      el('label', { class:'f' }, el('span', {}, 'Nome'), nome),
+      el('label', { class:'f' }, el('span', {}, 'Local'), local)),
+    el('div', { class:'grid g4', style:'margin-top:10px' },
+      el('label', { class:'f' }, el('span', {}, 'Tipo'), tipo),
+      el('label', { class:'f' }, el('span', {}, 'Escalões'), escalao),
+      el('label', { class:'f' }, el('span', {}, 'Piscina'), piscina),
+      el('label', { class:'f' }, el('span', {}, 'Estado'), estado)),
+    el('div', { class:'grid g4', style:'margin-top:10px' },
+      el('label', { class:'f' }, el('span', {}, 'Data de início'), dIni),
+      el('label', { class:'f' }, el('span', {}, 'Data de fim'), dFim),
+      el('label', { class:'f' }, el('span', {}, 'Participantes'), part),
+      el('label', { class:'f' }, el('span', {}, 'Clubes'), clubes)),
+    el('label', { class:'f', style:'margin-top:10px' },
+      el('span', {}, 'Pessoa responsável'), resp),
+    el('div', { style:'margin-top:16px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Outras pessoas associadas'), equipaBox),
+    el('div', { style:'margin-top:16px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Receitas e despesas de organização'), finBox),
+    el('label', { class:'f', style:'margin-top:12px' }, el('span', {}, 'Observações'), obs)), botoes);
+  if (so) bloquearEdicao();
+}
+
+let vistaCal = 'resp';     /* resp | comp */
+let filtroComp = 'todos';
+
+function vCalendario(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:exportarCalendarioXlsx }, 'Excel'),
+    el('button', { class:'btn', onclick:() => exportarCalendarioDoc('docx') }, 'Word'),
+    el('button', { class:'btn', onclick:() => exportarCalendarioDoc('pdf') }, 'PDF'),
+    el('button', { class:'btn primary', onclick:novaCompeticao }, '+ Nova competição'));
+
+  const todas = compsOrdenadas();
+  const rec = todas.reduce((s, c) => s + receitasComp(c), 0);
+  const des = todas.reduce((s, c) => s + despesasComp(c), 0);
+  const part = todas.reduce((s, c) => s + (Number(c.participantes) || 0), 0);
+  const clubesMax = Math.max(0, ...todas.map(c => Number(c.clubes) || 0));
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(todas.length), 'Competições no calendário',
+      `${todas.filter(c => c.estado === 'realizado').length} já realizadas`),
+    kpi(numPT(part), 'Participantes', `média de ${todas.length ? Math.round(part / todas.length) : 0} por competição`),
+    kpi(String(clubesMax || '—'), 'Clubes na maior prova', 'Máximo registado numa competição'),
+    kpi(eur(rec - des), 'Saldo de organização', `${eur(rec)} de receitas · ${eur(des)} de despesas`)));
+
+  if (!todas.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Calendário nacional por preencher'),
+      el('p', {}, 'Acrescente as competições nacionais com datas, local, responsável, equipa, participantes, clubes e as receitas e despesas de organização. O cronograma e os gráficos formam-se a partir daí.'),
+      el('div', { style:'margin-top:14px' },
+        el('button', { class:'btn primary', onclick:novaCompeticao }, '+ Nova competição'))))));
+    return;
+  }
+
+  /* ---- cronograma ---- */
+  const corTipo = escalaCores(todas.map(c => c.tipo));
+  const comDatas = todas.filter(c => c.dataIni);
+  const barra = c => ({
+    ini:c.dataIni, fim:c.dataFim || c.dataIni,
+    rotulo:c.nome, cor:(corTipo.get(c.tipo) || {}).cor, claro:(corTipo.get(c.tipo) || {}).claro,
+    titulo:`${c.nome} · ${c.tipo} · ${c.local || '—'} · ${fmtDate(c.dataIni)}${c.dataFim && c.dataFim !== c.dataIni ? ' a ' + fmtDate(c.dataFim) : ''}` +
+      (c.responsavel ? ` · responsável: ${c.responsavel}` : ''),
+    onclick:() => editarCompeticao(c.uid)
+  });
+
+  let linhas;
+  if (vistaCal === 'resp'){
+    const porResp = new Map();
+    for (const c of comDatas){
+      const r = c.responsavel || '(sem responsável)';
+      if (!porResp.has(r)) porResp.set(r, []);
+      porResp.get(r).push(c);
+    }
+    linhas = [...porResp.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], 'pt'))
+      .map(([r, lista]) => ({ lb:r, sub:plural(lista.length, 'competição', 'competições'), itens:lista.map(barra) }));
+  } else {
+    linhas = comDatas.map(c => ({ lb:c.nome, sub:c.local || '', itens:[barra(c)] }));
+  }
+
+  v.append(el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, vistaCal === 'resp' ? 'Cronograma de responsáveis' : 'Cronograma das competições'),
+        el('div', { class:'small muted' }, vistaCal === 'resp'
+          ? 'Cada linha é uma pessoa responsável; cada barra, uma competição à sua responsabilidade.'
+          : 'Uma linha por competição, ao longo do ano. A linha vermelha marca o dia de hoje.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('div', { class:'chips' },
+        chip('Por responsável', vistaCal === 'resp', () => { vistaCal = 'resp'; render(); }),
+        chip('Por competição', vistaCal === 'comp', () => { vistaCal = 'comp'; render(); }))),
+    el('div', { class:'body' },
+      legendaCores(corTipo),
+      cronograma(linhas, { vazio:'Nenhuma competição tem data preenchida.' }))));
+
+  /* ---- dashboards ---- */
+  const topPart = todas.filter(c => Number(c.participantes))
+    .sort((a, b) => (Number(b.participantes) || 0) - (Number(a.participantes) || 0)).slice(0, 12);
+  const finComp = todas.filter(c => receitasComp(c) || despesasComp(c))
+    .sort((a, b) => (receitasComp(b) + despesasComp(b)) - (receitasComp(a) + despesasComp(a))).slice(0, 12);
+  const porRubR = {}, porRubD = {};
+  for (const c of todas){
+    for (const x of (c.receitas || [])) porRubR[x.rubrica || 'Outras receitas'] = (porRubR[x.rubrica || 'Outras receitas'] || 0) + (Number(x.valor) || 0);
+    for (const x of (c.despesas || [])) porRubD[x.rubrica || 'Outras despesas'] = (porRubD[x.rubrica || 'Outras despesas'] || 0) + (Number(x.valor) || 0);
+  }
+
+  const caixa = el('div', { class:'grid g2', style:'margin-top:18px' });
+  caixa.append(cardGraf('Participação por competição', 'Nadadores inscritos e clubes representados.',
+    topPart.length
+      ? barras(topPart.map(c => ({ lb:c.nome, a:Number(c.participantes) || 0, b:Number(c.clubes) || 0 })),
+          { legenda:['Participantes', 'Clubes'] })
+      : el('p', { class:'muted small' }, 'Sem números de participação preenchidos.')));
+  caixa.append(cardGraf('Receitas e despesas por competição', 'Valores de organização registados.',
+    finComp.length
+      ? barras(finComp.map(c => ({ lb:c.nome, a:Math.round(receitasComp(c)), b:Math.round(despesasComp(c)) })),
+          { legenda:['Receitas (€)', 'Despesas (€)'] })
+      : el('p', { class:'muted small' }, 'Sem receitas ou despesas registadas.')));
+  caixa.append(cardGraf('Receitas por rubrica', 'Soma de todas as competições.',
+    Object.keys(porRubR).length
+      ? barras(Object.entries(porRubR).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ lb:k, a:Math.round(n) })), {})
+      : el('p', { class:'muted small' }, 'Sem receitas registadas.')));
+  caixa.append(cardGraf('Despesas por rubrica', 'Soma de todas as competições.',
+    Object.keys(porRubD).length
+      ? barras(Object.entries(porRubD).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ lb:k, a:Math.round(n) })), {})
+      : el('p', { class:'muted small' }, 'Sem despesas registadas.')));
+  v.append(caixa);
+
+  /* ---- tabela ---- */
+  v.append(el('div', { class:'card' }, el('div', { class:'body' },
+    el('div', { class:'chips' },
+      chip('Todas', filtroComp === 'todos', () => { filtroComp = 'todos'; render(); }),
+      ...ESTADOS_COMP.map(e => chip(e.nome, filtroComp === e.id, () => { filtroComp = e.id; render(); }))))));
+
+  const lista = todas.filter(c => filtroComp === 'todos' || c.estado === filtroComp);
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Competição','Tipo','Datas','Local','Responsável','Particip.','Clubes','Receitas','Despesas','Saldo','Estado','']
+    .map(h => el('th', { class:['Particip.','Clubes','Receitas','Despesas','Saldo'].includes(h) ? 'num' : '' }, h)))));
+  const tb = el('tbody', {});
+  for (const c of lista){
+    const sal = saldoComp(c);
+    tb.append(el('tr', { style:'cursor:pointer', onclick:() => editarCompeticao(c.uid) },
+      el('td', {}, el('span', { class:'nome' }, c.nome || '(sem nome)'),
+        el('div', { class:'small muted' }, c.escalao || '')),
+      el('td', { class:'small' }, c.tipo || '—'),
+      el('td', { class:'small mono' }, c.dataIni
+        ? fmtDate(c.dataIni) + (c.dataFim && c.dataFim !== c.dataIni ? ' – ' + fmtDate(c.dataFim) : '') : '—'),
+      el('td', { class:'small muted just', title:c.local || '' }, c.local || '—'),
+      el('td', { class:'small' }, c.responsavel || '—'),
+      el('td', { class:'num mono' }, c.participantes !== '' && c.participantes != null ? numPT(c.participantes) : '—'),
+      el('td', { class:'num mono' }, c.clubes !== '' && c.clubes != null ? numPT(c.clubes) : '—'),
+      el('td', { class:'num mono' }, receitasComp(c) ? eur(receitasComp(c)) : '—'),
+      el('td', { class:'num mono' }, despesasComp(c) ? eur(despesasComp(c)) : '—'),
+      el('td', { class:'num mono', style:`color:${sal > 0 ? 'var(--good)' : sal < 0 ? 'var(--bad)' : 'var(--ink-3)'}` },
+        (receitasComp(c) || despesasComp(c)) ? eur(sal) : '—'),
+      el('td', {}, pillEstado(ESTADOS_COMP, c.estado)),
+      el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, 'Abrir'))));
+  }
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Competições nacionais'),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'small muted' }, `${lista.length} competições`)),
+    el('div', { class:'body tight' }, tw)));
+}
+
+/* ==========================================================================
+   CRONOGRAMA DAS ATIVIDADES DAS SELEÇÕES
+   ========================================================================== */
+let vistaAtiv = 'sel';         /* sel | resp */
+let filtroRespAtiv = 'todos';
+
+function cardCronogramaAtividades(){
+  const comDatas = ATIVS.filter(a => a.dataIni);
+  const respostas = ['todos', ...new Set(comDatas.map(a => respDe(a.id) || '(sem responsável)'))];
+  const visiveis = comDatas.filter(a => filtroRespAtiv === 'todos'
+    || (respDe(a.id) || '(sem responsável)') === filtroRespAtiv);
+
+  const corSel = new Map(SELECOES.map((s, i) => [s.id, { cor:corCat(i), claro:claroCat(i) }]));
+  const barra = a => ({
+    ini:a.dataIni, fim:a.dataFim || a.dataIni,
+    rotulo:a.id, cor:(corSel.get(a.sel) || {}).cor, claro:(corSel.get(a.sel) || {}).claro,
+    titulo:`${a.id} — ${a.nome} · ${(SELECOES.find(s => s.id === a.sel) || {}).nome || ''} · ${a.datas} · ${a.local}` +
+      (respDe(a.id) ? ` · responsável: ${respDe(a.id)}` : ''),
+    onclick:() => irPara('convDet', a.id)
+  });
+
+  let linhas;
+  if (vistaAtiv === 'sel'){
+    linhas = SELECOES.map(s => ({ lb:s.breve,
+      sub:plural(visiveis.filter(a => a.sel === s.id).length, 'atividade', 'atividades'),
+      itens:visiveis.filter(a => a.sel === s.id).map(barra) }))
+      .filter(l => l.itens.length);
+  } else {
+    const porResp = new Map();
+    for (const a of visiveis){
+      const r = respDe(a.id) || '(sem responsável)';
+      if (!porResp.has(r)) porResp.set(r, []);
+      porResp.get(r).push(a);
+    }
+    linhas = [...porResp.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt'))
+      .map(([r, lista]) => ({ lb:r, sub:plural(lista.length, 'atividade', 'atividades'), itens:lista.map(barra) }));
+  }
+
+  const legSel = el('div', { class:'cat-leg' },
+    ...SELECOES.filter(s => visiveis.some(a => a.sel === s.id)).map(s =>
+      el('span', {}, el('b', { style:`background:${(corSel.get(s.id) || {}).cor}` }), s.breve)));
+
+  return el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('h3', {}, 'Cronograma global de participação'),
+        el('div', { class:'small muted' },
+          'Estágios e competições das seleções ao longo do ano. Clique numa barra para abrir a convocatória.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('div', { class:'chips' },
+        chip('Por seleção', vistaAtiv === 'sel', () => { vistaAtiv = 'sel'; render(); }),
+        chip('Por responsável', vistaAtiv === 'resp', () => { vistaAtiv = 'resp'; render(); }))),
+    el('div', { class:'body' },
+      el('div', { style:'margin-bottom:10px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Responsável'),
+        el('div', { class:'chips' }, ...respostas.map(r =>
+          chip(r === 'todos' ? 'Todos' : r, filtroRespAtiv === r, () => { filtroRespAtiv = r; render(); })))),
+      vistaAtiv === 'sel' ? legSel : null,
+      cronograma(linhas, { vazio:'Nenhuma atividade corresponde a este filtro.' })));
+}
+
+/* Cartão de atribuição de responsáveis, no separador Atividades. */
+function cardResponsaveis(){
+  const corpo = el('div', { class:'body' });
+  const tw = el('div', { class:'tw' }); const t = el('table', { class:'grelha' });
+  t.append(el('thead', {}, el('tr', {},
+    el('th', {}, 'Cód.'), el('th', {}, 'Atividade'), el('th', {}, 'Seleção'),
+    el('th', {}, 'Datas'), el('th', {}, 'Responsável'))));
+  const tb = el('tbody', {});
+  for (const a of ATIVS){
+    tb.append(el('tr', {},
+      el('td', { class:'mono small' }, a.id),
+      el('td', {}, el('span', { class:'nome' }, a.nome)),
+      el('td', { class:'small muted' }, (SELECOES.find(s => s.id === a.sel) || {}).curto || ''),
+      el('td', { class:'small mono' }, a.datas),
+      el('td', {}, campoResponsavel(respDe(a.id), v => { definirResponsavel(a.id, v); }))));
+  }
+  t.append(tb); tw.append(t);
+  corpo.append(tw);
+
+  const semResp = ATIVS.filter(a => !respDe(a.id)).length;
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Responsáveis pelas atividades'),
+      el('div', { class:'small muted' }, 'Quem acompanha cada estágio e cada competição. Alimenta o cronograma por responsável.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + (semResp ? 'warn' : 'good') },
+        semResp ? `${semResp} por atribuir` : 'todas atribuídas')),
+    corpo);
 }
 
 </script>
@@ -6656,7 +7287,7 @@ function vRelatorioDetalhe(v){
           gravarR(); pintarRec();
         } }, '+ Recorde'),
         el('button', { class:'btn sm', onclick:() => aplicarRecordesDoRelatorio(ativ.id) },
-          'Atualizar a tabela nacional com estes recordes')));
+          'Passar às melhores marcas da época')));
     if (!podeEditar()) bloquearEdicao();
   };
   pintarRec();
@@ -6664,7 +7295,7 @@ function vRelatorioDetalhe(v){
   v.append(el('div', { class:'card' },
     el('header', {}, el('div', {},
       el('h3', {}, 'Recordes nacionais batidos'),
-      el('div', { class:'small muted' }, 'Marcas que passam a constar da tabela de recordes, depois de homologadas.')),
+      el('div', { class:'small muted' }, 'Marcas que podem passar à tabela de melhores marcas da época, depois de confirmadas.')),
       el('span', { class:'sp', style:'flex:1' }),
       el('span', { class:'pill ' + ((r.recordes || []).length ? 'good' : '') },
         `${(r.recordes || []).length} recordes`)),
@@ -6765,7 +7396,9 @@ function importarResultados(ativId){
 }
 
 /* ==========================================================================
-   RECORDES NACIONAIS
+   MELHOR MARCA DA ÉPOCA
+   Tabela por prova, escalão, género e piscina, comparada com os rankings
+   importados. Serve de referência da época em curso.
    ========================================================================== */
 const catsRec = () => S.cfg.categoriasRec || CATEGORIAS_REC_BASE;
 const chaveRec = (curso, g, cat, ev) => `${curso}|${g}|${cat}|${ev}`;
@@ -6822,7 +7455,7 @@ function aplicarRecordesDoRelatorio(ativId){
     n++;
   }
   salvar(); render();
-  toast(n ? `${n} recordes atualizados na tabela nacional.` : 'Não há recordes preenchidos para atualizar.');
+  toast(n ? `${n} marcas atualizadas na tabela da época.` : 'Não há marcas preenchidas para atualizar.');
 }
 
 function adivinharGenero(nome){
@@ -6833,7 +7466,7 @@ function adivinharGenero(nome){
 let tabRec = 'PL', gRec = 'M', catRec = 'ABS';
 function vRecordes(v){
   $('#pgActions').append(
-    el('button', { class:'btn', onclick:semearRecordes }, 'Preencher com os melhores do ficheiro'),
+    el('button', { class:'btn', onclick:semearRecordes }, 'Preencher a partir do ficheiro'),
     el('button', { class:'btn', onclick:exportarRecordesXlsx }, 'Excel'),
     el('button', { class:'btn primary', onclick:() => exportarRecordesDoc('pdf') }, 'PDF'));
 
@@ -6841,16 +7474,16 @@ function vRecordes(v){
   const batidas = marcasAcimaDoRecorde();
 
   v.append(el('div', { class:'grid g4' },
-    kpi(String(todos.length), 'Recordes registados', `${catsRec().length} escalões`),
+    kpi(String(todos.length), 'Marcas registadas', `${catsRec().length} escalões`),
     kpi(String(todos.filter(r => r.curso === 'PL').length), 'Piscina longa', 'Marcas de 50 m'),
     kpi(String(todos.filter(r => r.curso === 'PC').length), 'Piscina curta', 'Marcas de 25 m'),
-    kpi(String(batidas.length), 'Marcas que batem o recorde',
-      S.db ? 'Encontradas no ficheiro de rankings' : 'Sem ficheiro importado')));
+    kpi(String(batidas.length), 'Marcas por atualizar',
+      S.db ? 'Melhores do que a registada, no ficheiro' : 'Sem ficheiro importado')));
 
   if (batidas.length){
     const tw = el('div', { class:'tw' }); const t = el('table');
-    t.append(el('thead', {}, el('tr', {}, ...['Nadador','Escalão','Piscina','Prova','Marca','Recorde atual','Diferença','Competição','Data','']
-      .map(h => el('th', { class:['Marca','Recorde atual','Diferença'].includes(h) ? 'num' : '' }, h)))));
+    t.append(el('thead', {}, el('tr', {}, ...['Nadador','Escalão','Piscina','Prova','Marca','Registada','Diferença','Competição','Data','']
+      .map(h => el('th', { class:['Marca','Registada','Diferença'].includes(h) ? 'num' : '' }, h)))));
     const tb = el('tbody', {});
     for (const b of batidas.slice(0, 60)){
       tb.append(el('tr', {},
@@ -6873,13 +7506,13 @@ function vRecordes(v){
             local:b.prova || '', origem:'ranking' };
           if (i >= 0) S.cfg.recordes[i] = novo; else (S.cfg.recordes = S.cfg.recordes || []).push(novo);
           salvar(); render(); toast('Recorde atualizado.');
-        } }, 'Homologar'))));
+        } }, 'Passar a melhor'))));
     }
     t.append(tb); tw.append(t);
     v.append(el('div', { class:'card' },
       el('header', {}, el('div', {},
-        el('h3', {}, 'Marcas que batem o recorde registado'),
-        el('div', { class:'small muted' }, 'Comparação dos rankings importados com a tabela abaixo. A homologação é sempre uma decisão da FPN.')),
+        el('h3', {}, 'Marcas melhores do que a registada'),
+        el('div', { class:'small muted' }, 'Comparação dos rankings importados com a tabela abaixo. A validação é sempre uma decisão da FPN.')),
         el('span', { class:'sp', style:'flex:1' }),
         el('span', { class:'pill warn' }, `${batidas.length} marcas`)),
       el('div', { class:'body tight' }, tw)));
@@ -6941,20 +7574,20 @@ function vRecordes(v){
   const catNome = (catsRec().find(c => c.id === catRec) || {}).nome || catRec;
   v.append(el('div', { class:'card' },
     el('header', {}, el('div', {},
-      el('h3', {}, `Recordes nacionais · ${catNome} · ${gRec === 'M' ? 'Masculinos' : 'Femininos'} · ${tabRec}`),
-      el('div', { class:'small muted' }, 'Tempos em MM:SS,cc. Uma linha em branco significa que ainda não há recorde registado nesta aplicação.'))),
+      el('h3', {}, `Melhor marca da época · ${catNome} · ${gRec === 'M' ? 'Masculinos' : 'Femininos'} · ${tabRec}`),
+      el('div', { class:'small muted' }, 'Tempos em MM:SS,cc. Uma linha em branco significa que ainda não há marca registada nesta aplicação.'))),
     el('div', { class:'body tight' }, tw)));
 }
 
-/* Preenche a tabela com os melhores tempos do ficheiro importado, para servir
-   de ponto de partida. Nunca substitui um recorde já registado. */
+/* Preenche a tabela com os melhores tempos do ficheiro importado. Nunca
+   substitui uma marca já registada à mão. */
 function semearRecordes(){
   if (!podeEditar()) return semPermissao();
   if (!S.db) return toast('Importe primeiro um ficheiro de rankings.', true);
-  abrirModal('Preencher a tabela de recordes', el('div', {},
+  abrirModal('Preencher as melhores marcas da época', el('div', {},
     el('p', {}, 'Vai preencher as linhas ainda vazias com o melhor tempo encontrado no ficheiro de rankings, por prova, escalão, género e piscina.'),
     el('div', { class:'note warn', style:'margin-top:12px' },
-      'Isto é apenas um ponto de partida: o melhor tempo do ficheiro não é necessariamente o recorde nacional. ' +
+      'O resultado depende do ficheiro carregado: se o ficheiro não cobrir toda a época, a marca encontrada pode não ser a melhor do ano. ' +
       'As linhas já preenchidas não são alteradas.')),
     [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
       el('button', { class:'btn primary', onclick:() => {
@@ -6980,7 +7613,7 @@ function semearRecordes(){
             local:x.prova || '', origem:'ranking' });
         }
         salvar(); render();
-        toast(`${melhor.size} linhas preenchidas a partir do ficheiro. Confirme e corrija antes de usar.`);
+        toast(`${melhor.size} marcas preenchidas a partir do ficheiro. Confirme e corrija antes de usar.`);
       } }, 'Preencher') ]);
 }
 
@@ -7371,7 +8004,7 @@ function folhasRecordes(){
         rows.push(linha);
       }
       folhas.push({ name:`${curso} ${g === 'M' ? 'Masc' : 'Fem'}`,
-        titulo:`Recordes nacionais · ${curso === 'PL' ? 'Piscina Longa' : 'Piscina Curta'} · ${g === 'M' ? 'Masculinos' : 'Femininos'}`,
+        titulo:`Melhores marcas da época · ${curso === 'PL' ? 'Piscina Longa' : 'Piscina Curta'} · ${g === 'M' ? 'Masculinos' : 'Femininos'}`,
         sub:`Gerado a ${HOJE()}`, rows,
         widths:[14, ...cats.flatMap(() => [12, 26])] });
     }
@@ -7383,18 +8016,18 @@ async function exportarRecordesXlsx(){
   const folhas = folhasRecordes();
   const batidas = marcasAcimaDoRecorde();
   if (batidas.length){
-    folhas.push({ name:'A bater', titulo:'Marcas do ficheiro que batem o recorde registado',
-      rows:[['Nadador','Clube','Escalão','Piscina','Prova','Marca','Recorde atual','Diferença','Competição','Data'],
+    folhas.push({ name:'Por atualizar', titulo:'Marcas do ficheiro melhores do que a registada',
+      rows:[['Nadador','Clube','Escalão','Piscina','Prova','Marca','Registada','Diferença','Competição','Data'],
         ...batidas.map(b => [b.nome, b.clube || '', b.catNome, b.curso, b.ev, fmtTime(b.t),
           fmtTime(b.rec.t), fmtDelta(b.t - b.rec.t), b.prova || '', fmtDate(b.data)])],
       widths:[30,28,13,9,12,11,13,12,30,12] });
   }
-  await entregar('recordes-nacionais.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+  await entregar('melhores-marcas-epoca.xlsx', buildXlsx(folhas), 'xlsx', folhas);
 }
 
 async function exportarRecordesDoc(fmt){
   const cats = S.cfg.categoriasRec || CATEGORIAS_REC_BASE;
-  const b = cabGestao('Recordes nacionais', 'Tabela mantida na aplicação de convocatórias');
+  const b = cabGestao('Melhores marcas da época', 'Tabela mantida na aplicação de convocatórias');
   for (const curso of ['PL', 'PC']){
     const evs = (curso === 'PL' ? EV_PL : EV_PC)
       .concat(ESTAFETAS.filter(e => e.piscina.includes(curso)).map(e => e.ev));
@@ -7406,12 +8039,12 @@ async function exportarRecordesDoc(fmt){
       });
       if (!rows.some(x => x[1] !== '—')) continue;
       b.push({ h3:`${c.nome} · ${g === 'M' ? 'Masculinos' : 'Femininos'} · ${curso === 'PL' ? 'Piscina Longa' : 'Piscina Curta'}` });
-      b.push({ table:{ head:['Prova','Recorde','Detentor','Data','Local'], widths:[16,12,30,12,30], rows } });
+      b.push({ table:{ head:['Prova','Marca','Nadador','Data','Local'], widths:[16,12,30,12,30], rows } });
     }
   }
-  if (fmt === 'docx') await entregar('recordes-nacionais.docx', buildDocx(b), 'docx');
-  else await entregar('recordes-nacionais.pdf',
-    buildPdf(b, { titulo:'Recordes nacionais', header:'FPN · Recordes nacionais' }), 'pdf');
+  if (fmt === 'docx') await entregar('melhores-marcas-epoca.docx', buildDocx(b), 'docx');
+  else await entregar('melhores-marcas-epoca.pdf',
+    buildPdf(b, { titulo:'Melhores marcas da época', header:'FPN · Melhores marcas da época' }), 'pdf');
 }
 
 /* ==========================================================================
@@ -7472,6 +8105,219 @@ function cardsGestaoPainel(){
       el('div', { class:'body tight' }, tw)));
   }
 
+  return caixa;
+}
+
+/* ==========================================================================
+   CALENDÁRIO NACIONAL — exportações
+   ========================================================================== */
+function blocosCompeticao(c, comCapa){
+  const b = comCapa
+    ? cabGestao('Competição nacional', c.nome || '')
+    : [{ h2:`${c.nome || '(sem nome)'}` }];
+  b.push({ table:{ head:['Campo','Valor'], widths:[30,70], rows:[
+    ['Tipo', c.tipo || '—'],
+    ['Escalões', c.escalao || '—'],
+    ['Local', c.local || '—'],
+    ['Piscina', c.piscina || '—'],
+    ['Datas', c.dataIni ? fmtDate(c.dataIni) + (c.dataFim && c.dataFim !== c.dataIni ? ' a ' + fmtDate(c.dataFim) : '') : '—'],
+    ['Estado', nomeEstado(ESTADOS_COMP, c.estado)],
+    ['Pessoa responsável', c.responsavel || '—'],
+    ['Participantes', c.participantes !== '' && c.participantes != null ? String(c.participantes) : '—'],
+    ['Clubes', c.clubes !== '' && c.clubes != null ? String(c.clubes) : '—']
+  ] } });
+  const eq = (c.equipa || []).filter(x => (x.nome || '').trim());
+  if (eq.length){
+    b.push({ h3:'Outras pessoas associadas' });
+    b.push({ table:{ head:['#','Nome','Função','Contacto'], widths:[6,34,32,28],
+      rows:eq.map((x, i) => [String(i + 1), x.nome, x.funcao || '', x.contacto || '']) } });
+  }
+  if ((c.receitas || []).length){
+    b.push({ h3:'Receitas de organização' });
+    b.push({ table:{ head:['Rubrica','Descrição','Valor'], widths:[30,46,24],
+      rows:(c.receitas || []).map(x => [x.rubrica || '', x.desc || '', eur(x.valor)]) } });
+  }
+  if ((c.despesas || []).length){
+    b.push({ h3:'Despesas de organização' });
+    b.push({ table:{ head:['Rubrica','Descrição','Valor'], widths:[30,46,24],
+      rows:(c.despesas || []).map(x => [x.rubrica || '', x.desc || '', eur(x.valor)]) } });
+  }
+  if ((c.receitas || []).length || (c.despesas || []).length)
+    b.push({ p:`Receitas: ${eur(receitasComp(c))}   ·   Despesas: ${eur(despesasComp(c))}   ·   Saldo: ${eur(saldoComp(c))}` });
+  if (c.observacoes) b.push({ h3:'Observações' }, { p:c.observacoes });
+  return b;
+}
+
+async function exportarCompeticaoPdf(kuid){
+  const c = (S.cfg.competicoes || []).find(x => x.uid === kuid);
+  if (!c) return;
+  await entregar(`competicao-${slug(c.nome || c.uid)}.pdf`,
+    buildPdf(blocosCompeticao(c, true), { titulo:'Competição nacional', header:'FPN · Calendário nacional' }), 'pdf');
+}
+
+async function exportarCalendarioXlsx(){
+  const lista = compsOrdenadas();
+  if (!lista.length) return toast('O calendário nacional está vazio.', true);
+  const cal = [['Competição','Tipo','Escalões','Data início','Data fim','Local','Piscina','Responsável',
+    'Participantes','Clubes','Receitas (€)','Despesas (€)','Saldo (€)','Estado']];
+  const equipa = [['Competição','Nome','Função','Contacto']];
+  const fin = [['Competição','Natureza','Rubrica','Descrição','Valor (€)']];
+  const porResp = {};
+  for (const c of lista){
+    cal.push([c.nome || '', c.tipo || '', c.escalao || '', c.dataIni || '', c.dataFim || '',
+      c.local || '', c.piscina || '', c.responsavel || '',
+      c.participantes === '' || c.participantes == null ? '' : Number(c.participantes),
+      c.clubes === '' || c.clubes == null ? '' : Number(c.clubes),
+      +receitasComp(c).toFixed(2), +despesasComp(c).toFixed(2), +saldoComp(c).toFixed(2),
+      nomeEstado(ESTADOS_COMP, c.estado)]);
+    if (c.responsavel){
+      porResp[c.responsavel] = porResp[c.responsavel] || { n:0, part:0, saldo:0 };
+      porResp[c.responsavel].n++;
+      porResp[c.responsavel].part += Number(c.participantes) || 0;
+      porResp[c.responsavel].saldo += saldoComp(c);
+    }
+    (c.equipa || []).filter(x => (x.nome || '').trim())
+      .forEach(x => equipa.push([c.nome || '', x.nome, x.funcao || '', x.contacto || '']));
+    (c.receitas || []).forEach(x => fin.push([c.nome || '', 'Receita', x.rubrica || '', x.desc || '', +(Number(x.valor) || 0).toFixed(2)]));
+    (c.despesas || []).forEach(x => fin.push([c.nome || '', 'Despesa', x.rubrica || '', x.desc || '', +(Number(x.valor) || 0).toFixed(2)]));
+  }
+  const resp = [['Responsável','Competições','Participantes','Saldo (€)'],
+    ...Object.entries(porResp).sort((a, b) => b[1].n - a[1].n)
+      .map(([k, v]) => [k, v.n, v.part, +v.saldo.toFixed(2)])];
+
+  const folhas = [
+    { name:'Calendário', titulo:'Calendário nacional', sub:`Gerado a ${HOJE()}`, rows:cal,
+      widths:[40,22,20,12,12,28,9,24,13,9,14,14,13,18] },
+    { name:'Responsáveis', titulo:'Carga por responsável', rows:resp, widths:[30,13,14,14] },
+    { name:'Equipas', titulo:'Pessoas associadas à organização', rows:equipa, widths:[40,30,26,24] },
+    { name:'Receitas e despesas', titulo:'Receitas e despesas de organização', rows:fin, widths:[40,12,26,36,14] }
+  ];
+  await entregar('calendario-nacional.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarCalendarioDoc(fmt){
+  const lista = compsOrdenadas();
+  if (!lista.length) return toast('O calendário nacional está vazio.', true);
+  const b = cabGestao('Calendário nacional', 'Competições, responsáveis, participação e contas de organização');
+  b.push({ table:{ head:['Competição','Datas','Local','Responsável','Particip.','Saldo'],
+    widths:[30,14,22,20,8,12],
+    rows:lista.map(c => [c.nome || '', c.dataIni ? fmtDate(c.dataIni) : '—', c.local || '',
+      c.responsavel || '—', c.participantes !== '' && c.participantes != null ? String(c.participantes) : '—',
+      (receitasComp(c) || despesasComp(c)) ? eur(saldoComp(c)) : '—']) } });
+  const rec = lista.reduce((s, c) => s + receitasComp(c), 0);
+  const des = lista.reduce((s, c) => s + despesasComp(c), 0);
+  b.push({ p:`Receitas: ${eur(rec)}   ·   Despesas: ${eur(des)}   ·   Saldo global: ${eur(rec - des)}` });
+  for (const c of lista) b.push({ pagebreak:true }, ...blocosCompeticao(c, false));
+  if (fmt === 'docx') await entregar('calendario-nacional.docx', buildDocx(b), 'docx');
+  else await entregar('calendario-nacional.pdf',
+    buildPdf(b, { titulo:'Calendário nacional', header:'FPN · Calendário nacional' }), 'pdf');
+}
+
+/* ==========================================================================
+   PAINEL — mais leituras sobre as atividades das seleções
+   ========================================================================== */
+const noEstrangeiro = a => !!(a.local && /\(([^)]+)\)/.test(a.local) && !/portugal/i.test(a.local));
+
+function cardsPainelExtra(){
+  const caixa = el('div', { style:'margin-top:18px' });
+
+  /* cronograma anual das seleções */
+  const corSel = new Map(SELECOES.map((s, i) => [s.id, { cor:corCat(i), claro:claroCat(i) }]));
+  const comDatas = ATIVS.filter(a => a.dataIni);
+  const linhas = SELECOES.map(s => ({ lb:s.breve,
+    sub:plural(comDatas.filter(a => a.sel === s.id).length, 'atividade', 'atividades'),
+    itens:comDatas.filter(a => a.sel === s.id).map(a => ({
+      ini:a.dataIni, fim:a.dataFim || a.dataIni, rotulo:a.id,
+      cor:(corSel.get(a.sel) || {}).cor, claro:(corSel.get(a.sel) || {}).claro,
+      titulo:`${a.id} — ${a.nome} · ${a.datas} · ${a.local}` + (respDe(a.id) ? ` · ${respDe(a.id)}` : ''),
+      onclick:() => irPara('convDet', a.id) })) })).filter(l => l.itens.length);
+
+  caixa.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Cronograma anual das seleções'),
+      el('div', { class:'small muted' }, 'Estágios e competições ao longo de 2027. A linha vermelha marca o dia de hoje.'))),
+    el('div', { class:'body' },
+      el('div', { class:'cat-leg' }, ...SELECOES.filter(s => linhas.some(l => l.lb === s.breve))
+        .map(s => el('span', {}, el('b', { style:`background:${(corSel.get(s.id) || {}).cor}` }), s.breve))),
+      cronograma(linhas, { vazio:'Sem atividades com datas.' }))));
+
+  /* atividades por mês */
+  const mes = Array.from({ length:12 }, () => ({ est:0, comp:0 }));
+  for (const a of comDatas){
+    const m = new Date(a.dataIni).getMonth();
+    if (isNaN(m)) continue;
+    if (a.tipo === 'Estágio') mes[m].est++; else mes[m].comp++;
+  }
+  /* nadadores com mais convocatórias */
+  const porNadador = new Map();
+  for (const c of Object.values(S.cfg.convocatorias || {}))
+    for (const m of (c.membros || [])){
+      if (m.estado === 'removido') continue;
+      const x = porNadador.get(m.key) || { nome:m.nome, n:0 };
+      x.n++; x.nome = m.nome; porNadador.set(m.key, x);
+    }
+  const topNad = [...porNadador.values()].sort((a, b) => b.n - a.n).slice(0, 12);
+
+  /* estado das convocatórias */
+  const estados = { gerar:0, rascunho:0, final:0 };
+  for (const a of ATIVS){
+    const c = conv(a.id);
+    if (!c) estados.gerar++;
+    else if (c.estado === 'final') estados.final++;
+    else estados.rascunho++;
+  }
+
+  /* carga por responsável */
+  const porResp = {};
+  for (const a of ATIVS){
+    const r = respDe(a.id) || '(sem responsável)';
+    const c = conv(a.id);
+    porResp[r] = porResp[r] || { est:0, comp:0, conv:0 };
+    if (a.tipo === 'Estágio') porResp[r].est++; else porResp[r].comp++;
+    porResp[r].conv += c ? c.membros.filter(m => m.estado !== 'removido').length : 0;
+  }
+  const respOrd = Object.entries(porResp)
+    .sort((a, b) => (b[1].est + b[1].comp) - (a[1].est + a[1].comp)).slice(0, 12);
+
+  /* onde decorrem as atividades */
+  const porLocal = SELECOES.map(s2 => {
+    const lista = ATIVS.filter(a => a.sel === s2.id);
+    return { lb:s2.breve, a:lista.filter(noEstrangeiro).length, b:lista.filter(x => !noEstrangeiro(x)).length };
+  }).filter(x => x.a + x.b);
+
+  const g = el('div', { class:'grid g2', style:'margin-top:18px' });
+  g.append(cardGraf('Atividades por mês', 'Distribuição do ano entre estágios e competições.',
+    barras(MESES_CURTO.map((m, i) => ({ lb:m, a:mes[i].est, b:mes[i].comp })),
+      { legenda:['Estágios', 'Competições'] })));
+  g.append(cardGraf('Atividades por responsável', 'Quantas atividades cada pessoa acompanha.',
+    barras(respOrd.map(([k, v]) => ({ lb:k, a:v.est, b:v.comp })),
+      { legenda:['Estágios', 'Competições'] })));
+  g.append(cardGraf('Nadadores convocados por responsável', 'Soma dos convocados das atividades a seu cargo.',
+    barras(respOrd.map(([k, v]) => ({ lb:k, a:v.conv })), {})));
+  g.append(cardGraf('Nadadores com mais convocatórias', 'Presenças em atividades distintas.',
+    topNad.length ? barras(topNad.map(x => ({ lb:x.nome, a:x.n })), {})
+      : el('p', { class:'muted small' }, 'Sem convocatórias geradas.')));
+  g.append(cardGraf('Situação das convocatórias', 'Em que ponto está cada atividade do plano.',
+    barras([
+      { lb:'Por gerar', a:estados.gerar },
+      { lb:'Em rascunho', a:estados.rascunho },
+      { lb:'Marcadas como final', a:estados.final }], {})));
+  g.append(cardGraf('Onde decorrem as atividades', 'Deslocações ao estrangeiro e atividades em Portugal.',
+    porLocal.length ? barras(porLocal, { legenda:['No estrangeiro', 'Em Portugal'] })
+      : el('p', { class:'muted small' }, 'Sem atividades.')));
+  caixa.append(g);
+
+  /* calendário nacional resumido */
+  const comps = compsOrdenadas();
+  if (comps.length){
+    const rec = comps.reduce((s, c) => s + receitasComp(c), 0);
+    const des = comps.reduce((s, c) => s + despesasComp(c), 0);
+    caixa.append(el('div', { class:'grid g4', style:'margin-top:18px' },
+      kpi(String(comps.length), 'Competições nacionais', 'No calendário nacional'),
+      kpi(numPT(comps.reduce((s, c) => s + (Number(c.participantes) || 0), 0)), 'Participantes', 'Somados no calendário'),
+      kpi(String(new Set(comps.map(c => c.responsavel).filter(Boolean)).size), 'Responsáveis', 'Pessoas com prova a seu cargo'),
+      kpi(eur(rec - des), 'Saldo de organização', `${eur(rec)} · ${eur(des)}`)));
+  }
   return caixa;
 }
 
