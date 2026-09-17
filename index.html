@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="pt">
+<html lang="pt-PT">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Gera, edita e exporta as convocatórias das Seleções Nacionais de Natação Pura a partir do Plano de Atividades 2027 (PAR 2025-2028).">
+</head>
+<body>
 <title>Convocatórias PAR 2027</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -316,8 +317,6 @@ ul.crit b{color:var(--ink)}
   .wrap,.topbar{padding-left:16px;padding-right:16px}
 }
 </style>
-</head>
-<body>
 
 <div class="app">
   <aside class="rail">
@@ -1309,6 +1308,131 @@ const CRITERIOS_TRANSVERSAIS = [
     'As reclamações relativas a convocatórias devem ser apresentadas por escrito à DTN, no prazo de 48 horas após a publicação da convocatória, identificando o critério alegadamente não cumprido.',
     'A DTN responde de forma fundamentada no prazo de 5 dias úteis. A decisão da DTN, homologada pela Direção da FPN, é definitiva.'] }
 ];
+
+</script>
+<script>
+/* ==========================================================================
+   PAR 2027 — Base de conhecimento dos módulos de gestão
+   Contactos, e-mails, orçamentos, equipamentos, relatórios, prémios e recordes.
+   Nada aqui altera o funcionamento dos módulos já existentes.
+   ========================================================================== */
+
+/* ---------- contactos ---------- */
+const TIPOS_CONTACTO = ['Clube', 'Treinador', 'Nadador', 'Encarregado de educação',
+  'Staff FPN', 'Fornecedor', 'Entidade oficial', 'Comunicação social', 'Outro'];
+
+/* ---------- e-mails ---------- */
+const TIPOS_EMAIL = [
+  { id:'convocatoria', nome:'Convocatória' },
+  { id:'orcamento',    nome:'Pedido de orçamento' },
+  { id:'equipamento',  nome:'Requisição de equipamento' },
+  { id:'relatorio',    nome:'Relatório de atividade' },
+  { id:'painel',       nome:'Painel de convocatórias' },
+  { id:'livre',        nome:'Mensagem livre' }
+];
+const ESTADOS_EMAIL = [
+  { id:'rascunho', nome:'Rascunho', pill:'' },
+  { id:'pronto',   nome:'Pronto a enviar', pill:'acc' },
+  { id:'enviado',  nome:'Enviado', pill:'good' }
+];
+
+/* Marcadores aceites no assunto e no corpo dos modelos de e-mail. */
+const MARCADORES_EMAIL = [
+  ['{atividade}',   'Nome da atividade'],
+  ['{codigo}',      'Código da atividade (ex.: C4_AS_SEN)'],
+  ['{selecao}',     'Nome da seleção'],
+  ['{datas}',       'Datas da atividade'],
+  ['{local}',       'Local da atividade'],
+  ['{dataIni}',     'Data de início por extenso'],
+  ['{dataFim}',     'Data de fim por extenso'],
+  ['{nConvocados}', 'Número de nadadores convocados'],
+  ['{listaConvocados}', 'Lista numerada dos convocados'],
+  ['{hoje}',        'Data de hoje por extenso'],
+  ['{assinatura}',  'Assinatura definida em Definições']
+];
+
+const MODELOS_EMAIL_BASE = [
+  { id:'m_conv', nome:'Convocatória — clubes', tipo:'convocatoria',
+    assunto:'Convocatória {codigo} — {atividade} ({datas})',
+    corpo:'Exmos. Senhores,\n\nJunto se envia a convocatória da {selecao} para {atividade}, a realizar em {local}, de {datas}.\n\nNadadores convocados ({nConvocados}):\n{listaConvocados}\n\nSolicita-se a confirmação de receção e a comunicação de qualquer impedimento até cinco dias úteis após a data deste comunicado.\n\nA convocatória completa segue em anexo, em PDF.\n\n{assinatura}' },
+
+  { id:'m_orc', nome:'Pedido de orçamento — fornecedor', tipo:'orcamento',
+    assunto:'Pedido de orçamento — {atividade} ({datas})',
+    corpo:'Exmos. Senhores,\n\nA Federação Portuguesa de Natação solicita orçamento para os serviços abaixo discriminados, no âmbito da atividade {codigo} — {atividade}, a realizar em {local}, de {datas}.\n\nAgradecemos que a proposta indique preços unitários, prazos de pagamento e período de validade.\n\nO detalhe do pedido segue em anexo.\n\n{assinatura}' },
+
+  { id:'m_eq', nome:'Requisição de equipamento — interna', tipo:'equipamento',
+    assunto:'Requisição de equipamento — {codigo} {atividade}',
+    corpo:'Exmos. Senhores,\n\nSolicita-se a preparação do equipamento destinado à comitiva da {selecao} que participa em {atividade}, em {local}, de {datas}.\n\nO material necessário e as quantidades constam do documento em anexo. Agradecemos que o equipamento esteja disponível até {dataIni}.\n\n{assinatura}' },
+
+  { id:'m_rel', nome:'Relatório de atividade — direção', tipo:'relatorio',
+    assunto:'Relatório de atividade — {codigo} {atividade}',
+    corpo:'Exmos. Senhores,\n\nJunto se envia o relatório da atividade {codigo} — {atividade}, realizada em {local}, de {datas}.\n\nO documento inclui a participação da comitiva, os resultados obtidos, os prémios conquistados, os recordes batidos e o balanço face aos objetivos definidos no Plano de Atividades.\n\n{assinatura}' },
+
+  { id:'m_pain', nome:'Painel de convocatórias — direção', tipo:'painel',
+    assunto:'Plano de Atividades 2027 — Painel de convocatórias',
+    corpo:'Exmos. Senhores,\n\nJunto se envia o painel de convocatórias do Plano de Atividades 2027 das Seleções Nacionais de Natação Pura, com data de {hoje}.\n\n{assinatura}' }
+];
+
+/* ---------- orçamentos ---------- */
+const CATEGORIAS_ORC = ['Transporte aéreo', 'Transporte terrestre', 'Alojamento', 'Alimentação',
+  'Aluguer de espaços', 'Inscrições', 'Seguros', 'Equipamento', 'Apoio médico', 'Outros'];
+
+const ESTADOS_ORC = [
+  { id:'pedido',    nome:'Pedido enviado', pill:'acc'  },
+  { id:'recebido',  nome:'Proposta recebida', pill:'warn' },
+  { id:'aprovado',  nome:'Aprovado', pill:'good' },
+  { id:'rejeitado', nome:'Rejeitado', pill:'bad'  },
+  { id:'pago',      nome:'Pago', pill:'good' }
+];
+/* Estados que contam para o custo comprometido da atividade */
+const ORC_COMPROMETE = ['aprovado', 'pago'];
+
+/* ---------- equipamento ---------- */
+const ARTIGOS_EQ = ['Fato de banho de competição', 'Fato de banho de treino', 'Touca',
+  'Óculos', 'Toalha', 'T-shirt oficial', 'Polo oficial', 'Casaco de fato de treino',
+  'Calças de fato de treino', 'Calções', 'Chinelos', 'Saco/mochila', 'Mala de viagem',
+  'Garrafa', 'Material de treino', 'Kit médico', 'Bandeira', 'Outro'];
+const TAMANHOS_EQ = ['—', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '8', '10', '12', '14', '16'];
+const ESTADOS_EQ = [
+  { id:'rascunho', nome:'Rascunho', pill:''     },
+  { id:'pedido',   nome:'Requisitado', pill:'acc'  },
+  { id:'aprovado', nome:'Aprovado', pill:'warn' },
+  { id:'entregue', nome:'Entregue', pill:'good' }
+];
+
+/* ---------- relatórios de atividade ---------- */
+const RONDAS = ['Eliminatória', 'Semifinal', 'Final A', 'Final B', 'Final', 'Série única', 'Estafeta'];
+const CUMPRIMENTO = [
+  { id:'sim',     nome:'Cumprido', pill:'good' },
+  { id:'parcial', nome:'Parcialmente cumprido', pill:'warn' },
+  { id:'nao',     nome:'Não cumprido', pill:'bad'  },
+  { id:'na',      nome:'Não aplicável', pill:''    }
+];
+
+/* ---------- prémios ---------- */
+const TIPOS_PREMIO = [
+  { id:'ouro',    nome:'Medalha de ouro',   ordem:1, cor:'var(--warn)' },
+  { id:'prata',   nome:'Medalha de prata',  ordem:2, cor:'var(--ink-3)' },
+  { id:'bronze',  nome:'Medalha de bronze', ordem:3, cor:'var(--serie-b)' },
+  { id:'diploma', nome:'Diploma (4.º a 8.º)', ordem:4, cor:'var(--accent)' },
+  { id:'final',   nome:'Presença em final',  ordem:5, cor:'var(--accent)' },
+  { id:'especial',nome:'Prémio especial',    ordem:6, cor:'var(--good)' }
+];
+
+/* ---------- recordes nacionais ---------- */
+/* Os escalões de recorde são configuráveis: as idades variam com o regulamento
+   em vigor e devem ser confirmadas pela DTN. */
+const CATEGORIAS_REC_BASE = [
+  { id:'ABS', nome:'Absoluto',  min:0,  max:99 },
+  { id:'JUN', nome:'Júnior',    min:15, max:18 },
+  { id:'JUV', nome:'Juvenil',   min:14, max:16 },
+  { id:'INF', nome:'Infantil',  min:11, max:14 }
+];
+
+/* Uma marca só é considerada recorde batido se for melhor do que a registada
+   por esta margem (em segundos) — evita falsos positivos por arredondamento. */
+const MARGEM_RECORDE = 0.001;
+
 </script>
 <script>
 /* ==========================================================================
@@ -2059,6 +2183,7 @@ function avaliar(ativ, db, cfg){
   out.excluidos.push(...naoCumprem.filter(x => !jaExcl.has(x.key)));
   return out;
 }
+
 </script>
 <script>
 /* ==========================================================================
@@ -2497,6 +2622,7 @@ async function guardar(filename, data, alternativas = []){
   }
   throw ultimo || new Error('Não foi possível guardar o ficheiro.');
 }
+
 </script>
 <script>
 /* ==========================================================================
@@ -2565,7 +2691,18 @@ const cfgPadrao = () => ({
   convocatorias:{},
   staffPadrao: STAFF_BASE.map(f => ({ funcao:f, nome:'', contacto:'' })),
   email:{ para:'', cc:'', assinatura:'Com os melhores cumprimentos,\nDireção Técnica Nacional\nFederação Portuguesa de Natação' },
-  notas:{}
+  notas:{},
+  /* --- módulos de gestão --- */
+  contactos:[],                 /* livro de endereços */
+  listas:[],                    /* listas de distribuição */
+  modelosEmail: clone(MODELOS_EMAIL_BASE),
+  emails:[],                    /* histórico de e-mails */
+  orcamentos:[],                /* pedidos de orçamento */
+  requisicoes:[],               /* requisições de equipamento */
+  relatorios:{},                /* ativId -> relatório de atividade */
+  recordes:[],                  /* recordes nacionais */
+  categoriasRec: clone(CATEGORIAS_REC_BASE),
+  orcamentoGlobal:0             /* dotação anual, para o painel de custos */
 });
 const S = { db:null, cfg:cfgPadrao(), page:'painel', ativo:null, sessao:null, _cache:{} };
 
@@ -2588,8 +2725,13 @@ function mesclarAtividade(base, ed){
   return a;
 }
 
-async function salvar(){ await store.set('cfg', S.cfg); }
-async function salvarDb(){ await store.set('db', S.db ? serializarDb(S.db) : null); }
+/* Gravação local (neste navegador). A base partilhada, quando existe, recebe
+   uma cópia pouco depois — ver sync.js. */
+async function salvarLocal(){ await store.set('cfg', S.cfg); }
+async function salvarDbLocal(){ await store.set('db', S.db ? serializarDb(S.db) : null); }
+
+async function salvar(){ await salvarLocal(); if (typeof agendarEmpurrar === 'function') agendarEmpurrar(); }
+async function salvarDb(){ await salvarDbLocal(); if (typeof agendarEmpurrar === 'function') agendarEmpurrar(); }
 
 function serializarDb(db){
   return { resultados: db.resultados.map(r => ({ ...r, nasc:+r.nasc, data:r.data ? +r.data : null })),
@@ -2770,6 +2912,12 @@ const ICON = {
   conv:'<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6v4H9zM8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   nad:'<path d="M12 11a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   idx:'<path d="M4 19V5M4 8h16M4 13h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  mail:'<path d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 7.5l8.5 6 8.5-6" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  euro:'<path d="M17 5.5A6.5 6.5 0 007 12a6.5 6.5 0 0010 6.5M4 10.5h8M4 13.5h8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  caixa:'<path d="M3 8l9-4 9 4v8l-9 4-9-4z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 8l9 4 9-4M12 12v8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  rel:'<path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  trofeu:'<path d="M7 4h10v5a5 5 0 01-10 0zM7 6H4v1a4 4 0 004 4M17 6h3v1a4 4 0 01-4 4M9 20h6M12 14v6" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  cont:'<path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2zM2 8h3M2 12h3M2 16h3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 12a2.2 2.2 0 100-4.4A2.2 2.2 0 0012 12zM8.4 16.5a3.8 3.8 0 017.2 0" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   cfg:'<path d="M12 15a3 3 0 100-6 3 3 0 000 6z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 7a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 009 3V3a2 2 0 114 0v.1A1.7 1.7 0 0017 4.6a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0021 9v0a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.5"/>'
 };
 const svg = p => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${p}</svg>`;
@@ -2778,7 +2926,13 @@ const PAGINAS = [
   { id:'painel',  nome:'Painel',       icon:'painel' },
   { id:'ativ',    nome:'Atividades',   icon:'ativ' },
   { id:'conv',    nome:'Convocatórias',icon:'conv' },
+  { id:'mail',    nome:'E-mails',      icon:'mail' },
+  { id:'custos',  nome:'Orçamentos',   icon:'euro' },
+  { id:'equip',   nome:'Equipamento',  icon:'caixa' },
+  { id:'rel',     nome:'Relatórios',   icon:'rel' },
+  { id:'rec',     nome:'Recordes',     icon:'trofeu' },
   { id:'nad',     nome:'Nadadores',    icon:'nad' },
+  { id:'cont',    nome:'Contactos',    icon:'cont' },
   { id:'idx',     nome:'Índices',      icon:'idx' },
   { id:'cfg',     nome:'Definições',   icon:'cfg' }
 ];
@@ -2809,6 +2963,14 @@ function pintarNav(){
       el('div', {}, `${S.db.nadadores.size} nadadores · ${S.db.resultados.length.toLocaleString('pt-PT')} resultados`),
       el('div', {}, `Importado a ${fmtDate(S.db.importadoEm)}`));
   } else f.append(el('div', {}, 'Sem ficheiro de rankings importado.'));
+  if (typeof SYNC !== 'undefined' && SYNC.disponivel){
+    const txt = { pronto:'Base partilhada ligada', 'a-ler':'A carregar dados…',
+      'a-gravar':'A gravar…', conflito:'Versão mais recente disponível', erro:'Erro na base partilhada' }[SYNC.estado]
+      || 'Base partilhada';
+    f.append(el('div', { style:'margin-top:8px' },
+      el('span', { class:'pill ' + (SYNC.estado === 'erro' ? 'bad' : SYNC.estado === 'conflito' ? 'warn'
+        : SYNC.estado === 'pronto' ? 'good' : 'acc') }, txt)));
+  }
 }
 
 function irPara(p, ativo){
@@ -2981,11 +3143,13 @@ function render(){
   const v = $('#view'); v.replaceChildren();
   $('#pgActions').replaceChildren();
   const p = PAGINAS.find(x => x.id === S.page);
-  $('#pgTitle').textContent = S.page === 'convDet'
-    ? (ATIVS.find(a => a.id === S.ativo) || {}).id || 'Convocatória'
+  $('#pgTitle').textContent = (S.page === 'convDet' || S.page === 'relDet')
+    ? ((ATIVS.find(a => a.id === S.ativo) || {}).id || 'Convocatória') + (S.page === 'relDet' ? ' · Relatório' : '')
     : (p ? p.nome : 'Painel');
   ({ painel:vPainel, ativ:vAtividades, conv:vConvocatorias, convDet:vConvDetalhe,
-     nad:vNadadores, idx:vIndices, cfg:vDefinicoes }[S.page] || vPainel)(v);
+     nad:vNadadores, idx:vIndices, cfg:vDefinicoes,
+     mail:vEmails, custos:vOrcamentos, equip:vEquipamento,
+     rel:vRelatorios, relDet:vRelatorioDetalhe, rec:vRecordes, cont:vContactos }[S.page] || vPainel)(v);
   if (!podeEditar()) bloquearEdicao();
 }
 
@@ -3269,6 +3433,10 @@ function vPainel(v){
   v.append(el('div', { class:'card' },
     el('header', {}, el('h3', {}, 'Calendário de atividades 2027')),
     el('div', { class:'body tight' }, tab)));
+
+  /* custos, equipamento, e-mails e relatórios integrados no painel */
+  const gest = cardsGestaoPainel();
+  if (gest) v.append(gest);
 
   if (S.db.avisos && S.db.avisos.length)
     v.append(el('div', { class:'card' }, el('div', { class:'body' },
@@ -3561,6 +3729,12 @@ function vConvDetalhe(v){
 
   /* informações da convocatória */
   v.append(cardBlocos(ativ));
+
+  /* orçamentos, equipamento, e-mails e relatório desta atividade */
+  v.append(cardOrcamentosAtiv(ativ));
+  v.append(cardEquipAtiv(ativ));
+  v.append(cardEmailsAtiv(ativ));
+  v.append(cardRelatorioAtalho(ativ));
 
   /* nota geral */
   const ta = el('textarea', { placeholder:'Observações da convocatória (comunicado, logística, decisões da DTN…)' });
@@ -4107,6 +4281,12 @@ function vDefinicoes(v){
         el('label', { class:'f' }, el('span', {}, 'Destinatários por defeito'), ePara),
         el('label', { class:'f' }, el('span', {}, 'Cc por defeito'), eCc)),
       el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Assinatura'), eAss))));
+
+  /* base partilhada entre computadores */
+  v.append(cardSync());
+
+  /* escalões dos recordes nacionais e dotação orçamental */
+  v.append(cardDefinicoesGestao());
 
   /* dados */
   v.append(el('div', { class:'card' },
@@ -4976,6 +5156,2667 @@ function modalEmail(opts){
 }
 
 function guardarEEnviarTudo(){ modalEmail({}); }
+
+</script>
+<script>
+/* ==========================================================================
+   GESTÃO — contactos, e-mails, orçamentos e equipamento
+   Módulos acrescentados ao lado dos existentes; nada aqui altera o
+   funcionamento das convocatórias, dos índices ou das exportações antigas.
+   ========================================================================== */
+
+const uid = p => (p || 'x') + Math.random().toString(36).slice(2, 9);
+const eur = n => (Number(n) || 0).toLocaleString('pt-PT', { style:'currency', currency:'EUR' });
+const numPT = n => (Number(n) || 0).toLocaleString('pt-PT');
+
+const ativDe = id => ATIVS.find(a => a.id === id) || null;
+const nomeAtiv = id => { const a = ativDe(id); return a ? `${a.id} · ${a.nome}` : (id || '—'); };
+const selDe = a => (SELECOES.find(s => s.id === (a && a.sel)) || {});
+
+const pillEstado = (lista, id) => {
+  const e = lista.find(x => x.id === id) || { nome:id || '—', pill:'' };
+  return el('span', { class:'pill ' + (e.pill || '') }, e.nome);
+};
+const nomeEstado = (lista, id) => (lista.find(x => x.id === id) || {}).nome || id || '—';
+
+/* Guarda e volta a desenhar, respeitando a sessão de consulta. */
+function gravarG(redesenhar){
+  if (!podeEditar()) return semPermissao();
+  salvar();
+  if (redesenhar) render();
+  return true;
+}
+
+/* ==========================================================================
+   TABELA DE ITENS EDITÁVEL (usada em orçamentos, equipamento e relatórios)
+   colunas: [{k, t, tipo:'texto'|'num'|'select'|'area', op:[], w:'120px', dec:2}]
+   ========================================================================== */
+function listaItens(itens, colunas, aoMudar, opts = {}){
+  const tw = el('div', { class:'tw' });
+  const t = el('table', { class:'grelha' });
+  t.append(el('thead', {}, el('tr', {},
+    el('th', { class:'gnum' }, '#'),
+    ...colunas.map(c => el('th', { class: c.tipo === 'num' ? 'num' : '' }, c.t)),
+    opts.total ? el('th', { class:'num' }, 'Total') : null,
+    el('th', { class:'gnum' }, ''))));
+  const tb = el('tbody', {});
+
+  itens.forEach((it, i) => {
+    const tds = colunas.map(c => {
+      let campo;
+      if (c.tipo === 'select'){
+        campo = el('select', { style:`min-width:${c.w || '130px'}` },
+          ...(c.op || []).map(o => el('option', { value: (o.id ?? o) }, (o.nome ?? o))));
+        campo.value = it[c.k] ?? ((c.op && (c.op[0].id ?? c.op[0])) || '');
+        campo.addEventListener('change', () => { it[c.k] = campo.value; aoMudar(); });
+      } else if (c.tipo === 'num'){
+        campo = el('input', { type:'number', step: c.dec === 0 ? '1' : '0.01', min:'0',
+          style:`width:${c.w || '92px'};text-align:right` });
+        campo.value = it[c.k] ?? '';
+        campo.addEventListener('input', () => { it[c.k] = campo.value === '' ? '' : +campo.value; aoMudar(); });
+      } else if (c.tipo === 'area'){
+        campo = el('input', { type:'text', placeholder:c.ph || '', style:`min-width:${c.w || '200px'}` });
+        campo.value = it[c.k] || '';
+        campo.addEventListener('input', () => { it[c.k] = campo.value; aoMudar(); });
+      } else {
+        campo = el('input', { type:'text', placeholder:c.ph || '', style:`min-width:${c.w || '150px'}` });
+        campo.value = it[c.k] || '';
+        campo.addEventListener('input', () => { it[c.k] = campo.value; aoMudar(); });
+      }
+      return el('td', { class: c.tipo === 'num' ? 'num' : '' }, campo);
+    });
+    tb.append(el('tr', {},
+      el('td', { class:'gnum muted mono' }, String(i + 1)),
+      ...tds,
+      opts.total ? el('td', { class:'num mono' }, eur(opts.total(it))) : null,
+      el('td', { class:'gnum' }, el('button', { class:'gx', title:'Eliminar linha',
+        onclick:() => { itens.splice(i, 1); aoMudar(true); } }, '×'))));
+  });
+  t.append(tb); tw.append(t);
+  return tw;
+}
+
+/* ==========================================================================
+   CONTACTOS — livro de endereços e listas de distribuição
+   ========================================================================== */
+let qCont = '', filtroTipoCont = 'todos';
+
+function contactosDaLista(listaUid){
+  const l = (S.cfg.listas || []).find(x => x.uid === listaUid);
+  if (!l) return [];
+  const porUid = new Map((S.cfg.contactos || []).map(c => [c.uid, c]));
+  return (l.contactos || []).map(u => porUid.get(u)).filter(Boolean);
+}
+function enderecosDaLista(listaUid){
+  const l = (S.cfg.listas || []).find(x => x.uid === listaUid);
+  const base = contactosDaLista(listaUid).map(c => c.email).filter(Boolean);
+  const extra = String((l && l.extra) || '').split(/[,;\s]+/).filter(x => x.includes('@'));
+  return [...new Set(base.concat(extra))];
+}
+
+function vContactos(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:() => editarLista(null) }, '+ Nova lista'),
+    el('button', { class:'btn', onclick:importarContactosDaConv }, 'Importar dos clubes convocados'),
+    el('button', { class:'btn primary', onclick:() => editarContacto(null) }, '+ Novo contacto'));
+
+  const busca = el('input', { type:'text', class:'ro-ok', placeholder:'Procurar por nome, entidade ou e-mail…' });
+  busca.value = qCont;
+  busca.addEventListener('input', () => { qCont = busca.value; pintar(); });
+
+  const chipsTipo = el('div', { class:'chips' },
+    chip('Todos', filtroTipoCont === 'todos', () => { filtroTipoCont = 'todos'; pintar(); }),
+    ...TIPOS_CONTACTO.map(tp => chip(tp, filtroTipoCont === tp, () => { filtroTipoCont = tp; pintar(); })));
+
+  const corpo = el('div', {});
+  const pintar = () => {
+    const q = qCont.trim().toLowerCase();
+    const lista = (S.cfg.contactos || []).filter(c =>
+      (filtroTipoCont === 'todos' || c.tipo === filtroTipoCont) &&
+      (!q || [c.nome, c.entidade, c.email, c.telefone].some(x => String(x || '').toLowerCase().includes(q))));
+
+    const tw = el('div', { class:'tw' }); const t = el('table');
+    t.append(el('thead', {}, el('tr', {}, ...['Nome','Tipo','Entidade','E-mail','Telefone','Listas','']
+      .map(h => el('th', {}, h)))));
+    const tb = el('tbody', {});
+    for (const c of lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt'))){
+      const emLista = (S.cfg.listas || []).filter(l => (l.contactos || []).includes(c.uid));
+      tb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, c.nome || '—')),
+        el('td', {}, el('span', { class:'pill' }, c.tipo || '—')),
+        el('td', { class:'small' }, c.entidade || '—'),
+        el('td', { class:'small mono' }, c.email || '—'),
+        el('td', { class:'small mono' }, c.telefone || '—'),
+        el('td', {}, el('div', { class:'chips' }, ...emLista.slice(0, 3).map(l => el('span', { class:'pill acc' }, l.nome)),
+          emLista.length > 3 ? el('span', { class:'pill' }, `+${emLista.length - 3}`) : null)),
+        el('td', { style:'text-align:right;white-space:nowrap' },
+          el('button', { class:'btn sm', onclick:() => editarContacto(c.uid) }, 'Editar'))));
+    }
+    t.append(tb); tw.append(t);
+
+    const cartaoListas = el('div', { class:'card' },
+      el('header', {}, el('div', {},
+        el('h3', {}, 'Listas de distribuição'),
+        el('div', { class:'small muted' }, 'Grupos de destinatários reutilizáveis em qualquer e-mail.')),
+        el('span', { class:'sp', style:'flex:1' }),
+        el('button', { class:'btn sm', onclick:() => editarLista(null) }, '+ Nova lista')),
+      el('div', { class:'body' },
+        (S.cfg.listas || []).length
+          ? el('div', { class:'grid g3' }, ...(S.cfg.listas || []).map(l =>
+              el('div', { class:'kpi', style:'cursor:pointer', onclick:() => editarLista(l.uid) },
+                el('div', { class:'v', style:'font-size:24px' }, String(enderecosDaLista(l.uid).length)),
+                el('div', { class:'l' }, l.nome),
+                el('div', { class:'s' }, `${(l.contactos || []).length} contactos${l.extra ? ' + endereços avulsos' : ''}`))))
+          : el('p', { class:'muted small', style:'margin:0' },
+              'Ainda não há listas. Crie, por exemplo, “Clubes com convocados”, “Treinadores de seleção” ou “Direção e IPDJ”.')));
+
+    corpo.replaceChildren(
+      cartaoListas,
+      el('div', { class:'card' },
+        el('header', {}, el('h3', {}, 'Contactos'),
+          el('span', { class:'sp', style:'flex:1' }),
+          el('span', { class:'small muted' }, `${lista.length} de ${(S.cfg.contactos || []).length}`)),
+        el('div', { class:'body tight' }, lista.length ? tw
+          : el('p', { class:'muted small', style:'padding:16px 18px' }, 'Sem contactos que correspondam à procura.'))));
+    if (!podeEditar()) bloquearEdicao();
+  };
+
+  v.append(el('div', { class:'card' }, el('div', { class:'body' },
+    busca, el('div', { style:'margin-top:10px' }, chipsTipo))), corpo);
+  pintar();
+}
+
+function editarContacto(cuid){
+  if (!podeEditar()) return semPermissao();
+  const base = cuid ? (S.cfg.contactos || []).find(c => c.uid === cuid) : null;
+  const c = base ? clone(base) : { uid:uid('c'), tipo:'Clube', nome:'', entidade:'', email:'', telefone:'', notas:'' };
+
+  const f = (rot, inp) => el('label', { class:'f' }, el('span', {}, rot), inp);
+  const txt = (val, ph) => { const i = el('input', { type:'text', placeholder:ph }); i.value = val || ''; return i; };
+  const tipo = el('select', {}, ...TIPOS_CONTACTO.map(x => el('option', { value:x }, x)));
+  tipo.value = c.tipo;
+  const nome = txt(c.nome, 'Nome completo ou designação');
+  const ent = txt(c.entidade, 'Clube, empresa ou organismo');
+  const mail = txt(c.email, 'endereco@exemplo.pt');
+  const tel = txt(c.telefone, '+351 …');
+  const notas = el('textarea', { rows:2, placeholder:'Observações' }); notas.value = c.notas || '';
+
+  const guardarC = () => {
+    Object.assign(c, { tipo:tipo.value, nome:nome.value.trim(), entidade:ent.value.trim(),
+      email:mail.value.trim(), telefone:tel.value.trim(), notas:notas.value.trim() });
+    if (!c.nome) return toast('Indique o nome do contacto.', true);
+    S.cfg.contactos = S.cfg.contactos || [];
+    const i = S.cfg.contactos.findIndex(x => x.uid === c.uid);
+    if (i >= 0) S.cfg.contactos[i] = c; else S.cfg.contactos.push(c);
+    salvar(); fecharModal(); render();
+    toast(base ? 'Contacto atualizado.' : 'Contacto criado.');
+  };
+
+  const botoes = [el('button', { class:'btn', onclick:fecharModal }, 'Cancelar')];
+  if (base) botoes.push(el('button', { class:'btn', onclick:() => {
+    S.cfg.contactos = (S.cfg.contactos || []).filter(x => x.uid !== c.uid);
+    (S.cfg.listas || []).forEach(l => l.contactos = (l.contactos || []).filter(u => u !== c.uid));
+    salvar(); fecharModal(); render(); toast('Contacto eliminado.');
+  } }, 'Eliminar'));
+  botoes.push(el('button', { class:'btn primary', onclick:guardarC }, base ? 'Guardar' : 'Criar contacto'));
+
+  abrirModal(base ? 'Editar contacto' : 'Novo contacto', el('div', {},
+    el('div', { class:'grid g2' }, f('Nome', nome), f('Tipo', tipo)),
+    el('div', { class:'grid g2', style:'margin-top:10px' }, f('Entidade', ent), f('E-mail', mail)),
+    el('div', { class:'grid g2', style:'margin-top:10px' }, f('Telefone', tel), el('div')),
+    el('div', { style:'margin-top:10px' }, f('Notas', notas))), botoes);
+}
+
+function editarLista(luid){
+  if (!podeEditar()) return semPermissao();
+  const base = luid ? (S.cfg.listas || []).find(l => l.uid === luid) : null;
+  const l = base ? clone(base) : { uid:uid('l'), nome:'', contactos:[], extra:'' };
+  const sel = new Set(l.contactos || []);
+
+  const nome = el('input', { type:'text', placeholder:'ex.: Clubes com convocados' }); nome.value = l.nome || '';
+  const extra = el('textarea', { rows:2, placeholder:'endereços avulsos, separados por vírgula' });
+  extra.value = l.extra || '';
+  const busca = el('input', { type:'text', class:'ro-ok', placeholder:'Procurar contacto…' });
+  const caixa = el('div', { style:'max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px' });
+
+  const pintar = () => {
+    const q = busca.value.trim().toLowerCase();
+    caixa.replaceChildren();
+    const lista = (S.cfg.contactos || []).filter(c => !q ||
+      [c.nome, c.entidade, c.email].some(x => String(x || '').toLowerCase().includes(q)));
+    if (!lista.length) return caixa.append(el('p', { class:'muted small', style:'padding:12px' }, 'Sem contactos.'));
+    for (const c of lista){
+      const cb = el('input', { type:'checkbox', style:'width:auto' });
+      cb.checked = sel.has(c.uid);
+      cb.addEventListener('change', () => cb.checked ? sel.add(c.uid) : sel.delete(c.uid));
+      caixa.append(el('label', { style:'display:flex;gap:10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line-2);cursor:pointer' },
+        cb, el('div', { style:'flex:1;min-width:0' },
+          el('div', { class:'nome' }, c.nome),
+          el('div', { class:'small muted' }, `${c.tipo} · ${c.email || 'sem e-mail'}`))));
+    }
+  };
+  busca.addEventListener('input', pintar); pintar();
+
+  const botoes = [el('button', { class:'btn', onclick:fecharModal }, 'Cancelar')];
+  if (base) botoes.push(el('button', { class:'btn', onclick:() => {
+    S.cfg.listas = (S.cfg.listas || []).filter(x => x.uid !== l.uid);
+    salvar(); fecharModal(); render(); toast('Lista eliminada.');
+  } }, 'Eliminar'));
+  botoes.push(el('button', { class:'btn primary', onclick:() => {
+    l.nome = nome.value.trim() || 'Lista sem nome';
+    l.contactos = [...sel]; l.extra = extra.value.trim();
+    S.cfg.listas = S.cfg.listas || [];
+    const i = S.cfg.listas.findIndex(x => x.uid === l.uid);
+    if (i >= 0) S.cfg.listas[i] = l; else S.cfg.listas.push(l);
+    salvar(); fecharModal(); render(); toast('Lista guardada.');
+  } }, base ? 'Guardar' : 'Criar lista'));
+
+  abrirModal(base ? 'Editar lista de distribuição' : 'Nova lista de distribuição', el('div', {},
+    el('label', { class:'f' }, el('span', {}, 'Nome da lista'), nome),
+    el('div', { style:'margin-top:12px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Contactos'), busca, caixa),
+    el('label', { class:'f', style:'margin-top:12px' },
+      el('span', {}, 'Endereços avulsos'), extra)), botoes);
+}
+
+/* Cria contactos a partir dos clubes e treinadores já registados nas convocatórias. */
+function importarContactosDaConv(){
+  if (!podeEditar()) return semPermissao();
+  const existentes = new Set((S.cfg.contactos || []).map(c => `${c.tipo}|${(c.nome || '').toLowerCase()}`));
+  const novos = [];
+  const juntar = (tipo, nome, entidade) => {
+    const k = `${tipo}|${String(nome || '').toLowerCase()}`;
+    if (!nome || existentes.has(k)) return;
+    existentes.add(k);
+    novos.push({ uid:uid('c'), tipo, nome, entidade:entidade || '', email:'', telefone:'', notas:'Importado das convocatórias' });
+  };
+  for (const c of Object.values(S.cfg.convocatorias || {})){
+    const a = ativDe(c.ativId);
+    for (const t of (c.treinadores || [])) juntar('Treinador', t.nome, t.clube);
+    for (const s of (c.staff || [])) if ((s.nome || '').trim()) juntar('Staff FPN', s.nome, s.funcao);
+    if (!a) continue;
+    for (const l of linhasConvocatoria(c.ativId)) if (l.estado !== 'removido' && l.clube) juntar('Clube', l.clube, '');
+  }
+  if (!novos.length) return toast('Não há contactos novos a importar.');
+  S.cfg.contactos = (S.cfg.contactos || []).concat(novos);
+  salvar(); render();
+  toast(`${novos.length} contactos criados a partir das convocatórias. Falta preencher os endereços.`);
+}
+
+/* ==========================================================================
+   E-MAILS — modelos, histórico e painel
+   ========================================================================== */
+function aplicarMarcadores(txt, ativId){
+  const a = ativId ? ativDe(ativId) : null;
+  const d = (a && conv(a.id)) ? dadosConv(a.id) : null;
+  const listaConv = d ? d.ativos.map((l, i) => `  ${i + 1}. ${l.nome}${l.clube ? ' — ' + l.clube : ''}`).join('\n') : '';
+  return String(txt || '')
+    .replace(/\{codigo\}/g, a ? a.id : '')
+    .replace(/\{atividade\}/g, a ? a.nome : '')
+    .replace(/\{selecao\}/g, a ? (selDe(a).nome || '') : '')
+    .replace(/\{datas\}/g, a ? a.datas : '')
+    .replace(/\{local\}/g, a ? a.local : '')
+    .replace(/\{dataIni\}/g, a ? (dataLonga(a.dataIni) || a.datas) : '')
+    .replace(/\{dataFim\}/g, a ? (dataLonga(a.dataFim) || a.datas) : '')
+    .replace(/\{nConvocados\}/g, d ? String(d.ativos.length) : '0')
+    .replace(/\{listaConvocados\}/g, listaConv)
+    .replace(/\{hoje\}/g, HOJE())
+    .replace(/\{assinatura\}/g, S.cfg.email.assinatura || '');
+}
+
+function abrirMailto(d){
+  const corpo = d.corpo.length > 1600
+    ? d.corpo.slice(0, 1600) + '\n\n[…] Texto completo copiado para a área de transferência.'
+    : d.corpo;
+  if (d.corpo.length > 1600 && navigator.clipboard) navigator.clipboard.writeText(d.corpo).catch(() => {});
+  const url = 'mailto:' + encodeURIComponent(d.para || '') +
+    '?subject=' + encodeURIComponent(d.assunto || '') +
+    (d.cc ? '&cc=' + encodeURIComponent(d.cc) : '') +
+    '&body=' + encodeURIComponent(corpo);
+  window.open(url, '_blank');
+}
+
+function emailsDe(ativId){ return (S.cfg.emails || []).filter(e => e.ativId === ativId); }
+
+function novoEmail(opts = {}){
+  if (!podeEditar()) return semPermissao();
+  const modelo = (S.cfg.modelosEmail || []).find(m => m.id === opts.modelo)
+    || (S.cfg.modelosEmail || []).find(m => m.tipo === opts.tipo)
+    || null;
+  const reg = {
+    uid: uid('e'), ativId: opts.ativId || '', tipo: opts.tipo || (modelo ? modelo.tipo : 'livre'),
+    assunto: aplicarMarcadores(modelo ? modelo.assunto : '', opts.ativId),
+    corpo: aplicarMarcadores(modelo ? modelo.corpo : (S.cfg.email.assinatura || ''), opts.ativId),
+    para: opts.para || S.cfg.email.para || '', cc: opts.cc || S.cfg.email.cc || '',
+    anexo: opts.anexo || '', estado:'rascunho', criadoEm:new Date().toISOString(), enviadoEm:''
+  };
+  if (opts.assunto) reg.assunto = opts.assunto;
+  if (opts.corpo) reg.corpo = opts.corpo;
+  S.cfg.emails = S.cfg.emails || [];
+  S.cfg.emails.push(reg);
+  salvar();
+  editorEmail(reg.uid);
+}
+
+function editorEmail(euid){
+  const reg = (S.cfg.emails || []).find(e => e.uid === euid);
+  if (!reg) return;
+  const so = !podeEditar();
+
+  const sel = (val, ops, aoMudar) => {
+    const s = el('select', {}, ...ops.map(o => el('option', { value:o.id }, o.nome)));
+    s.value = val; s.addEventListener('change', () => aoMudar(s.value));
+    return s;
+  };
+  const para = el('input', { type:'text', placeholder:'destinatarios@exemplo.pt, separados por vírgula' });
+  para.value = reg.para || '';
+  const cc = el('input', { type:'text' }); cc.value = reg.cc || '';
+  const assunto = el('input', { type:'text' }); assunto.value = reg.assunto || '';
+  const corpo = el('textarea', { rows:15, style:'min-height:250px' }); corpo.value = reg.corpo || '';
+  const anexo = el('input', { type:'text', placeholder:'ex.: convocatoria-C4-AS-SEN.pdf' });
+  anexo.value = reg.anexo || '';
+
+  const gravarE = () => {
+    if (so) return;
+    Object.assign(reg, { para:para.value.trim(), cc:cc.value.trim(),
+      assunto:assunto.value, corpo:corpo.value, anexo:anexo.value.trim() });
+    salvar();
+  };
+  [para, cc, assunto, corpo, anexo].forEach(c => c.addEventListener('change', gravarE));
+
+  const listasBox = el('div', { class:'chips' },
+    ...(S.cfg.listas || []).map(l => el('button', { class:'chip', onclick:() => {
+      const novos = enderecosDaLista(l.uid);
+      const atuais = para.value.split(/[,;]\s*/).map(x => x.trim()).filter(Boolean);
+      para.value = [...new Set(atuais.concat(novos))].join(', ');
+      gravarE();
+      toast(`${novos.length} endereços de “${l.nome}” acrescentados.`);
+    } }, `+ ${l.nome} (${enderecosDaLista(l.uid).length})`)),
+    (S.cfg.listas || []).length ? null : el('span', { class:'small muted' },
+      'Sem listas de distribuição — crie-as no separador Contactos.'));
+
+  const modelosBox = el('div', { class:'chips' },
+    ...(S.cfg.modelosEmail || []).map(m => el('button', { class:'chip', onclick:() => {
+      assunto.value = aplicarMarcadores(m.assunto, reg.ativId);
+      corpo.value = aplicarMarcadores(m.corpo, reg.ativId);
+      reg.tipo = m.tipo; gravarE();
+      toast(`Modelo “${m.nome}” aplicado.`);
+    } }, m.nome)));
+
+  const ativSel = el('select', {},
+    el('option', { value:'' }, '— sem atividade associada —'),
+    ...ATIVS.map(a => el('option', { value:a.id }, `${a.id} · ${a.nome}`)));
+  ativSel.value = reg.ativId || '';
+  ativSel.addEventListener('change', () => { reg.ativId = ativSel.value; salvar(); });
+
+  const estado = sel(reg.estado, ESTADOS_EMAIL, x => {
+    reg.estado = x;
+    if (x === 'enviado' && !reg.enviadoEm) reg.enviadoEm = new Date().toISOString();
+    if (x !== 'enviado') reg.enviadoEm = '';
+    salvar();
+  });
+
+  const box = el('div', {},
+    el('div', { class:'grid g3' },
+      el('label', { class:'f' }, el('span', {}, 'Atividade'), ativSel),
+      el('label', { class:'f' }, el('span', {}, 'Estado'), estado),
+      el('label', { class:'f' }, el('span', {}, 'Anexo previsto'), anexo)),
+    el('div', { style:'margin-top:12px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Aplicar modelo'), modelosBox),
+    el('div', { class:'grid g2', style:'margin-top:12px' },
+      el('label', { class:'f' }, el('span', {}, 'Para'), para),
+      el('label', { class:'f' }, el('span', {}, 'Cc'), cc)),
+    el('div', { style:'margin-top:8px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Acrescentar lista de distribuição'), listasBox),
+    el('label', { class:'f', style:'margin-top:12px' }, el('span', {}, 'Assunto'), assunto),
+    el('label', { class:'f', style:'margin-top:10px' }, el('span', {}, 'Mensagem'), corpo),
+    el('div', { class:'note warn', style:'margin-top:12px' },
+      el('b', {}, 'Como funciona: '),
+      'um navegador não pode anexar ficheiros a um e-mail. Guarde primeiro o documento e depois abra o rascunho — fica só a faltar arrastar o ficheiro para o anexo.'));
+
+  const botoes = [el('button', { class:'btn', onclick:fecharModal }, 'Fechar')];
+  if (!so){
+    botoes.push(el('button', { class:'btn', onclick:() => {
+      S.cfg.emails = (S.cfg.emails || []).filter(e => e.uid !== reg.uid);
+      salvar(); fecharModal(); render(); toast('E-mail eliminado.');
+    } }, 'Eliminar'));
+    if (reg.ativId && conv(reg.ativId))
+      botoes.push(el('button', { class:'btn', onclick:async () => {
+        gravarE(); toast('A gerar o PDF…');
+        if (reg.tipo === 'relatorio') await exportarRelatorioPdf(reg.ativId);
+        else if (reg.tipo === 'orcamento' || reg.tipo === 'equipamento') await exportarGestaoPdf(reg.ativId, reg.tipo);
+        else await exportarConvPdf(reg.ativId);
+      } }, '1 · Guardar PDF'));
+    botoes.push(el('button', { class:'btn primary', onclick:() => {
+      gravarE();
+      abrirMailto(reg);
+      reg.estado = 'enviado'; reg.enviadoEm = new Date().toISOString();
+      salvar(); fecharModal(); render();
+      toast('Rascunho aberto no seu programa de e-mail e registado como enviado.');
+    } }, '2 · Abrir e-mail'));
+  }
+
+  abrirModal('E-mail — ' + (nomeEstado(TIPOS_EMAIL, reg.tipo) || 'Mensagem'), box, botoes);
+  if (so) bloquearEdicao();
+}
+
+let filtroEmail = 'todos';
+function vEmails(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:gerirModelos }, 'Modelos'),
+    el('button', { class:'btn', onclick:exportarEmailsXlsx }, 'Exportar histórico'),
+    el('button', { class:'btn primary', onclick:() => novoEmail({}) }, '+ Novo e-mail'));
+
+  const todos = S.cfg.emails || [];
+  const porEstado = id => todos.filter(e => e.estado === id).length;
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(todos.length), 'E-mails registados', 'Rascunhos e enviados'),
+    kpi(String(porEstado('rascunho')), 'Em rascunho', 'Por rever'),
+    kpi(String(porEstado('pronto')), 'Prontos a enviar', 'Aguardam envio'),
+    kpi(String(porEstado('enviado')), 'Enviados', 'Com registo de data')));
+
+  const chipsBox = el('div', { class:'chips' },
+    chip('Todos', filtroEmail === 'todos', () => { filtroEmail = 'todos'; render(); }),
+    ...ESTADOS_EMAIL.map(e => chip(e.nome, filtroEmail === e.id, () => { filtroEmail = e.id; render(); })),
+    ...TIPOS_EMAIL.map(t => chip(t.nome, filtroEmail === 't:' + t.id, () => { filtroEmail = 't:' + t.id; render(); })));
+  v.append(el('div', { class:'card' }, el('div', { class:'body' }, chipsBox)));
+
+  const lista = todos.filter(e => filtroEmail === 'todos'
+    || (filtroEmail.startsWith('t:') ? e.tipo === filtroEmail.slice(2) : e.estado === filtroEmail))
+    .sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
+
+  if (!lista.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem e-mails neste filtro'),
+      el('p', {}, 'Crie um e-mail a partir de um modelo, ou abra uma convocatória e use o cartão de e-mails da atividade.'),
+      el('div', { style:'margin-top:14px' },
+        el('button', { class:'btn primary', onclick:() => novoEmail({}) }, '+ Novo e-mail'))))));
+    return;
+  }
+
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Assunto','Tipo','Atividade','Para','Anexo','Estado','Data','']
+    .map(h => el('th', {}, h)))));
+  const tb = el('tbody', {});
+  for (const e of lista){
+    tb.append(el('tr', { style:'cursor:pointer', onclick:() => editorEmail(e.uid) },
+      el('td', {}, el('span', { class:'nome' }, e.assunto || '(sem assunto)')),
+      el('td', { class:'small' }, nomeEstado(TIPOS_EMAIL, e.tipo)),
+      el('td', { class:'small mono muted' }, e.ativId || '—'),
+      el('td', { class:'small just', title:e.para || '' }, e.para || '—'),
+      el('td', { class:'small muted' }, e.anexo || '—'),
+      el('td', {}, pillEstado(ESTADOS_EMAIL, e.estado)),
+      el('td', { class:'small mono' }, fmtDate(e.enviadoEm || e.criadoEm)),
+      el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, 'Abrir'))));
+  }
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Histórico de e-mails'),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'small muted' }, `${lista.length} registos`)),
+    el('div', { class:'body tight' }, tw)));
+}
+
+function gerirModelos(){
+  const corpo = el('div', {});
+  const pintar = () => {
+    corpo.replaceChildren();
+    S.cfg.modelosEmail = S.cfg.modelosEmail || [];
+    S.cfg.modelosEmail.forEach((m, i) => {
+      const nome = el('input', { type:'text', style:'flex:1;min-width:170px;font-weight:600' });
+      nome.value = m.nome;
+      nome.addEventListener('input', () => { m.nome = nome.value; salvar(); });
+      const tipo = el('select', { style:'width:auto;min-width:170px' },
+        ...TIPOS_EMAIL.map(t => el('option', { value:t.id }, t.nome)));
+      tipo.value = m.tipo;
+      tipo.addEventListener('change', () => { m.tipo = tipo.value; salvar(); });
+      const ass = el('input', { type:'text', placeholder:'Assunto' }); ass.value = m.assunto;
+      ass.addEventListener('input', () => { m.assunto = ass.value; salvar(); });
+      const txt = el('textarea', { rows:6, placeholder:'Corpo da mensagem' }); txt.value = m.corpo;
+      txt.addEventListener('input', () => { m.corpo = txt.value; salvar(); });
+      corpo.append(el('div', { class:'bloco' },
+        el('div', { class:'bloco-top' },
+          el('span', { class:'bloco-n mono' }, String(i + 1)), nome, tipo,
+          el('button', { class:'btn sm ghost', onclick:() => {
+            S.cfg.modelosEmail.splice(i, 1); salvar(); pintar();
+          } }, 'Eliminar')),
+        ass, el('div', { style:'height:8px' }), txt));
+    });
+    corpo.append(el('div', { style:'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap' },
+      el('button', { class:'btn sm', onclick:() => {
+        S.cfg.modelosEmail.push({ id:uid('m'), nome:'Novo modelo', tipo:'livre', assunto:'', corpo:'' });
+        salvar(); pintar();
+      } }, '+ Novo modelo'),
+      el('button', { class:'btn sm', onclick:() => {
+        const faltam = MODELOS_EMAIL_BASE.filter(b => !S.cfg.modelosEmail.some(m => m.id === b.id));
+        S.cfg.modelosEmail.push(...clone(faltam)); salvar(); pintar();
+        toast(faltam.length ? `${faltam.length} modelos repostos.` : 'Os modelos de origem já estão todos na lista.');
+      } }, 'Repor modelos de origem')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintar();
+
+  abrirModal('Modelos de e-mail', el('div', {},
+    el('div', { class:'note', style:'margin-bottom:12px' },
+      el('b', {}, 'Marcadores disponíveis: '),
+      MARCADORES_EMAIL.map(([m]) => m).join('  ·  '),
+      el('div', { class:'small', style:'margin-top:6px' },
+        'São substituídos pelos dados da atividade quando o modelo é aplicado.')),
+    corpo), [el('button', { class:'btn primary', onclick:() => { fecharModal(); render(); } }, 'Fechar')]);
+}
+
+function cardEmailsAtiv(ativ){
+  const lista = emailsDe(ativ.id);
+  const corpo = el('div', { class:'body' });
+  if (lista.length){
+    const tw = el('div', { class:'tw' }); const t = el('table', { class:'grelha' });
+    t.append(el('thead', {}, el('tr', {}, ...['Assunto','Tipo','Para','Estado','Data',''].map(h => el('th', {}, h)))));
+    const tb = el('tbody', {});
+    for (const e of lista){
+      tb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, e.assunto || '(sem assunto)')),
+        el('td', { class:'small' }, nomeEstado(TIPOS_EMAIL, e.tipo)),
+        el('td', { class:'small just', title:e.para || '' }, e.para || '—'),
+        el('td', {}, pillEstado(ESTADOS_EMAIL, e.estado)),
+        el('td', { class:'small mono' }, fmtDate(e.enviadoEm || e.criadoEm)),
+        el('td', { style:'text-align:right' },
+          el('button', { class:'btn sm', onclick:() => editorEmail(e.uid) }, 'Abrir'))));
+    }
+    t.append(tb); tw.append(t); corpo.append(tw);
+  } else {
+    corpo.append(el('p', { class:'muted small', style:'margin:0' },
+      'Ainda não há e-mails desta atividade. Crie um a partir de um modelo — o assunto e o corpo são preenchidos com os dados da convocatória.'));
+  }
+  corpo.append(el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'convocatoria',
+      anexo:`convocatoria-${slug(ativ.id)}.pdf` }) }, '+ Convocatória'),
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'orcamento',
+      anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, '+ Pedido de orçamento'),
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'equipamento',
+      anexo:`equipamento-${slug(ativ.id)}.pdf` }) }, '+ Requisição de equipamento'),
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'relatorio',
+      anexo:`relatorio-${slug(ativ.id)}.pdf` }) }, '+ Relatório'),
+    el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'livre' }) }, '+ Mensagem livre')));
+
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'E-mails da atividade'),
+      el('div', { class:'small muted' }, 'Modelos preenchidos com os dados da convocatória, com registo de quem recebeu e quando.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + (lista.some(e => e.estado === 'enviado') ? 'good' : '') },
+        `${lista.length} registos`)), corpo);
+}
+
+/* ==========================================================================
+   ORÇAMENTOS
+   ========================================================================== */
+const totalItemOrc = it => (Number(it.qtd) || 0) * (Number(it.precoUnit) || 0);
+const totalOrc = o => (o.itens || []).reduce((s, it) => s + totalItemOrc(it), 0);
+const orcamentosDe = ativId => (S.cfg.orcamentos || []).filter(o => o.ativId === ativId);
+const custoComprometido = ativId => orcamentosDe(ativId)
+  .filter(o => ORC_COMPROMETE.includes(o.estado))
+  .reduce((s, o) => s + (o.valorAprovado != null && o.valorAprovado !== '' ? Number(o.valorAprovado) : totalOrc(o)), 0);
+
+function novoOrcamento(ativId){
+  if (!podeEditar()) return semPermissao();
+  const o = { uid:uid('o'), ativId: ativId || '', titulo:'', categoria:CATEGORIAS_ORC[0],
+    fornecedor:{ nome:'', contacto:'', email:'', nif:'' },
+    itens:[{ desc:'', qtd:1, unidade:'un.', precoUnit:0, obs:'' }],
+    estado:'pedido', prazoResposta:'', valorAprovado:'', notas:'',
+    criadoEm:new Date().toISOString() };
+  S.cfg.orcamentos = S.cfg.orcamentos || [];
+  S.cfg.orcamentos.push(o);
+  salvar();
+  editarOrcamento(o.uid);
+}
+
+function editarOrcamento(ouid){
+  const o = (S.cfg.orcamentos || []).find(x => x.uid === ouid);
+  if (!o) return;
+  const so = !podeEditar();
+  o.fornecedor = o.fornecedor || { nome:'', contacto:'', email:'', nif:'' };
+  o.itens = o.itens || [];
+
+  const txt = (val, ph) => { const i = el('input', { type:'text', placeholder:ph }); i.value = val || ''; return i; };
+  const titulo = txt(o.titulo, 'ex.: Voos Porto/Lisboa — Budapeste');
+  const cat = el('select', {}, ...CATEGORIAS_ORC.map(c => el('option', { value:c }, c)));
+  cat.value = o.categoria;
+  const ativSel = el('select', {}, el('option', { value:'' }, '— sem atividade —'),
+    ...ATIVS.map(a => el('option', { value:a.id }, `${a.id} · ${a.nome}`)));
+  ativSel.value = o.ativId || '';
+  const estado = el('select', {}, ...ESTADOS_ORC.map(e => el('option', { value:e.id }, e.nome)));
+  estado.value = o.estado;
+  const fNome = txt(o.fornecedor.nome, 'Nome do fornecedor');
+  const fEmail = txt(o.fornecedor.email, 'email@fornecedor.pt');
+  const fCont = txt(o.fornecedor.contacto, 'Pessoa de contacto / telefone');
+  const fNif = txt(o.fornecedor.nif, 'NIF');
+  const prazo = el('input', { type:'date' }); prazo.value = o.prazoResposta || '';
+  const aprov = el('input', { type:'number', step:'0.01', min:'0', placeholder:'valor final acordado' });
+  aprov.value = o.valorAprovado ?? '';
+  const notas = el('textarea', { rows:2, placeholder:'Condições, prazos de pagamento, observações' });
+  notas.value = o.notas || '';
+
+  const totalBox = el('div', { class:'kpi' });
+  const itensBox = el('div', {});
+  const pintarItens = () => {
+    itensBox.replaceChildren(
+      listaItens(o.itens, [
+        { k:'desc', t:'Descrição', ph:'serviço ou artigo', w:'230px' },
+        { k:'qtd', t:'Qtd.', tipo:'num', w:'74px' },
+        { k:'unidade', t:'Unidade', w:'90px', ph:'un., noites, pax' },
+        { k:'precoUnit', t:'Preço unit.', tipo:'num', w:'100px' },
+        { k:'obs', t:'Observações', w:'160px' }
+      ], (estrutural) => { gravarO(); if (estrutural) pintarItens(); atualizarTotal(); }, { total: totalItemOrc }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          o.itens.push({ desc:'', qtd:1, unidade:'un.', precoUnit:0, obs:'' });
+          gravarO(); pintarItens(); atualizarTotal();
+        } }, '+ Linha'),
+        el('span', { class:'small muted', style:'align-self:center' },
+          'O total é a soma de quantidade × preço unitário.')));
+    if (so) bloquearEdicao();
+  };
+  const atualizarTotal = () => {
+    totalBox.replaceChildren(
+      el('div', { class:'v' }, eur(totalOrc(o))),
+      el('div', { class:'l' }, 'Total do pedido'),
+      el('div', { class:'s' }, `${(o.itens || []).length} linhas · ${cat.value}`));
+  };
+  const gravarO = () => {
+    if (so) return;
+    Object.assign(o, { titulo:titulo.value.trim(), categoria:cat.value, ativId:ativSel.value,
+      estado:estado.value, prazoResposta:prazo.value, notas:notas.value,
+      valorAprovado: aprov.value === '' ? '' : +aprov.value });
+    o.fornecedor = { nome:fNome.value.trim(), email:fEmail.value.trim(),
+      contacto:fCont.value.trim(), nif:fNif.value.trim() };
+    salvar();
+  };
+  [titulo, cat, ativSel, estado, prazo, aprov, notas, fNome, fEmail, fCont, fNif]
+    .forEach(c => c.addEventListener('change', () => { gravarO(); atualizarTotal(); }));
+  pintarItens(); atualizarTotal();
+
+  const botoes = [el('button', { class:'btn', onclick:() => { fecharModal(); render(); } }, 'Fechar')];
+  if (!so){
+    botoes.push(el('button', { class:'btn', onclick:() => {
+      S.cfg.orcamentos = (S.cfg.orcamentos || []).filter(x => x.uid !== o.uid);
+      salvar(); fecharModal(); render(); toast('Pedido de orçamento eliminado.');
+    } }, 'Eliminar'));
+    botoes.push(el('button', { class:'btn', onclick:async () => {
+      gravarO(); await exportarOrcamentoPdf(o.uid);
+    } }, 'Guardar PDF'));
+    botoes.push(el('button', { class:'btn primary', onclick:() => {
+      gravarO(); fecharModal();
+      novoEmail({ ativId:o.ativId, tipo:'orcamento', para:o.fornecedor.email,
+        anexo:`orcamento-${slug(o.titulo || o.uid)}.pdf` });
+    } }, 'Preparar e-mail'));
+  }
+
+  abrirModal('Pedido de orçamento', el('div', {},
+    el('div', { class:'grid g2' },
+      el('label', { class:'f' }, el('span', {}, 'Título'), titulo),
+      el('label', { class:'f' }, el('span', {}, 'Categoria'), cat)),
+    el('div', { class:'grid g3', style:'margin-top:10px' },
+      el('label', { class:'f' }, el('span', {}, 'Atividade'), ativSel),
+      el('label', { class:'f' }, el('span', {}, 'Estado'), estado),
+      el('label', { class:'f' }, el('span', {}, 'Prazo de resposta'), prazo)),
+    el('div', { style:'margin-top:16px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Fornecedor'),
+      el('div', { class:'grid g2' },
+        el('label', { class:'f' }, el('span', {}, 'Nome'), fNome),
+        el('label', { class:'f' }, el('span', {}, 'E-mail'), fEmail)),
+      el('div', { class:'grid g2', style:'margin-top:10px' },
+        el('label', { class:'f' }, el('span', {}, 'Contacto'), fCont),
+        el('label', { class:'f' }, el('span', {}, 'NIF'), fNif))),
+    el('div', { style:'margin-top:16px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Itens do pedido'), itensBox),
+    el('div', { class:'grid g2', style:'margin-top:14px' }, totalBox,
+      el('label', { class:'f' }, el('span', {}, 'Valor aprovado (se diferente do total)'), aprov)),
+    el('label', { class:'f', style:'margin-top:12px' }, el('span', {}, 'Notas'), notas)), botoes);
+  if (so) bloquearEdicao();
+}
+
+let filtroOrc = 'todos';
+function vOrcamentos(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:exportarOrcamentosXlsx }, 'Excel'),
+    el('button', { class:'btn', onclick:() => exportarOrcamentosDoc('pdf') }, 'PDF'),
+    el('button', { class:'btn', onclick:() => exportarOrcamentosDoc('docx') }, 'Word'),
+    el('button', { class:'btn primary', onclick:() => novoOrcamento('') }, '+ Novo pedido'));
+
+  const todos = S.cfg.orcamentos || [];
+  const tot = todos.reduce((s, o) => s + totalOrc(o), 0);
+  const aprovado = todos.filter(o => ORC_COMPROMETE.includes(o.estado))
+    .reduce((s, o) => s + (o.valorAprovado !== '' && o.valorAprovado != null ? Number(o.valorAprovado) : totalOrc(o)), 0);
+  const dot = Number(S.cfg.orcamentoGlobal) || 0;
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(todos.length), 'Pedidos registados', `${new Set(todos.map(o => o.ativId).filter(Boolean)).size} atividades`),
+    kpi(eur(tot), 'Valor pedido', 'Soma de todos os pedidos'),
+    kpi(eur(aprovado), 'Comprometido', 'Aprovados e pagos'),
+    kpi(dot ? eur(Math.max(0, dot - aprovado)) : '—', 'Dotação disponível',
+      dot ? `de ${eur(dot)} definidos em Definições` : 'Defina a dotação em Definições')));
+
+  if (todos.length){
+    const porCat = {};
+    for (const o of todos){
+      const c = o.categoria || 'Outros';
+      porCat[c] = porCat[c] || { a:0, b:0 };
+      if (ORC_COMPROMETE.includes(o.estado)) porCat[c].a += totalOrc(o); else porCat[c].b += totalOrc(o);
+    }
+    const porAtiv = {};
+    for (const o of todos) if (o.ativId){
+      porAtiv[o.ativId] = porAtiv[o.ativId] || { a:0, b:0 };
+      if (ORC_COMPROMETE.includes(o.estado)) porAtiv[o.ativId].a += totalOrc(o); else porAtiv[o.ativId].b += totalOrc(o);
+    }
+    v.append(el('div', { class:'grid g2', style:'margin-top:18px' },
+      cardGraf('Custo por categoria', 'Comprometido (aprovado ou pago) e ainda em apreciação.',
+        barras(Object.entries(porCat).sort((a, b) => (b[1].a + b[1].b) - (a[1].a + a[1].b))
+          .map(([k, val]) => ({ lb:k, a:Math.round(val.a), b:Math.round(val.b) })),
+          { legenda:['Comprometido (€)', 'Em apreciação (€)'] })),
+      cardGraf('Custo por atividade', 'As doze atividades com maior valor pedido.',
+        barras(Object.entries(porAtiv).sort((a, b) => (b[1].a + b[1].b) - (a[1].a + a[1].b)).slice(0, 12)
+          .map(([k, val]) => ({ lb:k, a:Math.round(val.a), b:Math.round(val.b) })),
+          { legenda:['Comprometido (€)', 'Em apreciação (€)'] }))));
+  }
+
+  v.append(el('div', { class:'card' }, el('div', { class:'body' },
+    el('div', { class:'chips' },
+      chip('Todos', filtroOrc === 'todos', () => { filtroOrc = 'todos'; render(); }),
+      ...ESTADOS_ORC.map(e => chip(e.nome, filtroOrc === e.id, () => { filtroOrc = e.id; render(); }))))));
+
+  const lista = todos.filter(o => filtroOrc === 'todos' || o.estado === filtroOrc);
+  if (!lista.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem pedidos de orçamento'),
+      el('p', {}, 'Registe um pedido com os itens, o fornecedor e o prazo de resposta. O documento para enviar é gerado a partir daqui.'),
+      el('div', { style:'margin-top:14px' },
+        el('button', { class:'btn primary', onclick:() => novoOrcamento('') }, '+ Novo pedido'))))));
+    return;
+  }
+
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Pedido','Atividade','Categoria','Fornecedor','Itens','Total','Estado','Prazo','']
+    .map(h => el('th', { class:['Itens','Total'].includes(h) ? 'num' : '' }, h)))));
+  const tb = el('tbody', {});
+  for (const o of lista.sort((a, b) => String(a.ativId).localeCompare(String(b.ativId)) || String(a.titulo).localeCompare(String(b.titulo)))){
+    tb.append(el('tr', { style:'cursor:pointer', onclick:() => editarOrcamento(o.uid) },
+      el('td', {}, el('span', { class:'nome' }, o.titulo || '(sem título)')),
+      el('td', { class:'small mono muted' }, o.ativId || '—'),
+      el('td', { class:'small' }, o.categoria || '—'),
+      el('td', { class:'small' }, (o.fornecedor && o.fornecedor.nome) || '—'),
+      el('td', { class:'num' }, String((o.itens || []).length)),
+      el('td', { class:'num mono' }, eur(totalOrc(o))),
+      el('td', {}, pillEstado(ESTADOS_ORC, o.estado)),
+      el('td', { class:'small mono' }, o.prazoResposta ? fmtDate(o.prazoResposta) : '—'),
+      el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, 'Abrir'))));
+  }
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Pedidos de orçamento'),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'small muted' }, `${lista.length} pedidos · ${eur(lista.reduce((s, o) => s + totalOrc(o), 0))}`)),
+    el('div', { class:'body tight' }, tw)));
+}
+
+function cardOrcamentosAtiv(ativ){
+  const lista = orcamentosDe(ativ.id);
+  const corpo = el('div', { class:'body' });
+  if (lista.length){
+    const tw = el('div', { class:'tw' }); const t = el('table', { class:'grelha' });
+    t.append(el('thead', {}, el('tr', {}, ...['Pedido','Categoria','Fornecedor','Total','Estado','']
+      .map(h => el('th', { class:h === 'Total' ? 'num' : '' }, h)))));
+    const tb = el('tbody', {});
+    for (const o of lista){
+      tb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, o.titulo || '(sem título)')),
+        el('td', { class:'small' }, o.categoria),
+        el('td', { class:'small' }, (o.fornecedor && o.fornecedor.nome) || '—'),
+        el('td', { class:'num mono' }, eur(totalOrc(o))),
+        el('td', {}, pillEstado(ESTADOS_ORC, o.estado)),
+        el('td', { style:'text-align:right' },
+          el('button', { class:'btn sm', onclick:() => editarOrcamento(o.uid) }, 'Abrir'))));
+    }
+    t.append(tb); tw.append(t); corpo.append(tw);
+  } else {
+    corpo.append(el('p', { class:'muted small', style:'margin:0' },
+      'Sem pedidos de orçamento nesta atividade. Registe transporte, alojamento, alimentação ou inscrições para acompanhar o custo.'));
+  }
+  corpo.append(el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+    el('button', { class:'btn sm primary', onclick:() => novoOrcamento(ativ.id) }, '+ Novo pedido'),
+    lista.length ? el('button', { class:'btn sm', onclick:() => exportarGestaoPdf(ativ.id, 'orcamento') }, 'Documento PDF') : null,
+    lista.length ? el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'orcamento',
+      anexo:`orcamentos-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null));
+
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Pedidos de orçamento'),
+      el('div', { class:'small muted' }, 'Custos previstos e comprometidos desta atividade.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill acc' }, `pedido ${eur(lista.reduce((s, o) => s + totalOrc(o), 0))}`),
+      el('span', { class:'pill ' + (custoComprometido(ativ.id) ? 'good' : '') },
+        `comprometido ${eur(custoComprometido(ativ.id))}`)), corpo);
+}
+
+/* ==========================================================================
+   REQUISIÇÃO DE EQUIPAMENTO
+   ========================================================================== */
+const requisicoesDe = ativId => (S.cfg.requisicoes || []).filter(r => r.ativId === ativId);
+const totalPecas = r => (r.itens || []).reduce((s, it) => s + (Number(it.qtd) || 0), 0);
+
+function novaRequisicao(ativId){
+  if (!podeEditar()) return semPermissao();
+  const r = { uid:uid('r'), ativId: ativId || '', titulo:'', destino:'Comitiva',
+    itens:[{ artigo:ARTIGOS_EQ[0], tamanho:'—', qtd:1, obs:'' }],
+    estado:'rascunho', dataNecessaria:'', responsavel:'', notas:'',
+    criadoEm:new Date().toISOString() };
+  S.cfg.requisicoes = S.cfg.requisicoes || [];
+  S.cfg.requisicoes.push(r);
+  salvar();
+  editarRequisicao(r.uid);
+}
+
+function editarRequisicao(ruid){
+  const r = (S.cfg.requisicoes || []).find(x => x.uid === ruid);
+  if (!r) return;
+  const so = !podeEditar();
+  r.itens = r.itens || [];
+
+  const txt = (val, ph) => { const i = el('input', { type:'text', placeholder:ph }); i.value = val || ''; return i; };
+  const titulo = txt(r.titulo, 'ex.: Equipamento da comitiva');
+  const destino = txt(r.destino, 'Comitiva, nadadores, staff…');
+  const resp = txt(r.responsavel, 'Quem recebe o material');
+  const ativSel = el('select', {}, el('option', { value:'' }, '— sem atividade —'),
+    ...ATIVS.map(a => el('option', { value:a.id }, `${a.id} · ${a.nome}`)));
+  ativSel.value = r.ativId || '';
+  const estado = el('select', {}, ...ESTADOS_EQ.map(e => el('option', { value:e.id }, e.nome)));
+  estado.value = r.estado;
+  const data = el('input', { type:'date' }); data.value = r.dataNecessaria || '';
+  const notas = el('textarea', { rows:2, placeholder:'Observações' }); notas.value = r.notas || '';
+
+  const itensBox = el('div', {});
+  const resumo = el('div', { class:'kpi' });
+  const atualizarResumo = () => {
+    const porArtigo = {};
+    for (const it of r.itens) porArtigo[it.artigo] = (porArtigo[it.artigo] || 0) + (Number(it.qtd) || 0);
+    resumo.replaceChildren(
+      el('div', { class:'v' }, String(totalPecas(r))),
+      el('div', { class:'l' }, 'Peças no total'),
+      el('div', { class:'s' }, Object.keys(porArtigo).length + ' artigos diferentes'));
+  };
+  const gravarR = () => {
+    if (so) return;
+    Object.assign(r, { titulo:titulo.value.trim(), destino:destino.value.trim(),
+      responsavel:resp.value.trim(), ativId:ativSel.value, estado:estado.value,
+      dataNecessaria:data.value, notas:notas.value });
+    salvar();
+  };
+  const pintarItens = () => {
+    itensBox.replaceChildren(
+      listaItens(r.itens, [
+        { k:'artigo', t:'Artigo', tipo:'select', op:ARTIGOS_EQ, w:'190px' },
+        { k:'tamanho', t:'Tamanho', tipo:'select', op:TAMANHOS_EQ, w:'92px' },
+        { k:'qtd', t:'Qtd.', tipo:'num', dec:0, w:'74px' },
+        { k:'destinatario', t:'Destinatário', w:'180px', ph:'nadador ou função' },
+        { k:'obs', t:'Observações', w:'150px' }
+      ], (estrutural) => { gravarR(); if (estrutural) pintarItens(); atualizarResumo(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          r.itens.push({ artigo:ARTIGOS_EQ[0], tamanho:'—', qtd:1, obs:'' });
+          gravarR(); pintarItens(); atualizarResumo();
+        } }, '+ Linha'),
+        r.ativId && conv(r.ativId) ? el('button', { class:'btn sm', onclick:() => {
+          const d = dadosConv(r.ativId);
+          const artigo = ARTIGOS_EQ[0];
+          d.ativos.forEach(l => r.itens.push({ artigo, tamanho:'—', qtd:1, destinatario:l.nome, obs:l.clube || '' }));
+          (d.c.staff || []).filter(s => (s.nome || '').trim())
+            .forEach(s => r.itens.push({ artigo, tamanho:'—', qtd:1, destinatario:s.nome, obs:s.funcao }));
+          gravarR(); pintarItens(); atualizarResumo();
+          toast(`${d.ativos.length} nadadores e o staff acrescentados. Ajuste artigo e tamanho de cada um.`);
+        } }, 'Gerar a partir da convocatória') : null,
+        el('span', { class:'small muted', style:'align-self:center' },
+          'Uma linha por artigo e tamanho; o destinatário é opcional.')));
+    if (so) bloquearEdicao();
+  };
+  [titulo, destino, resp, ativSel, estado, data, notas]
+    .forEach(c => c.addEventListener('change', gravarR));
+  pintarItens(); atualizarResumo();
+
+  const botoes = [el('button', { class:'btn', onclick:() => { fecharModal(); render(); } }, 'Fechar')];
+  if (!so){
+    botoes.push(el('button', { class:'btn', onclick:() => {
+      S.cfg.requisicoes = (S.cfg.requisicoes || []).filter(x => x.uid !== r.uid);
+      salvar(); fecharModal(); render(); toast('Requisição eliminada.');
+    } }, 'Eliminar'));
+    botoes.push(el('button', { class:'btn', onclick:async () => { gravarR(); await exportarRequisicaoPdf(r.uid); } }, 'Guardar PDF'));
+    botoes.push(el('button', { class:'btn primary', onclick:() => {
+      gravarR(); fecharModal();
+      novoEmail({ ativId:r.ativId, tipo:'equipamento', anexo:`equipamento-${slug(r.titulo || r.uid)}.pdf` });
+    } }, 'Preparar e-mail'));
+  }
+
+  abrirModal('Requisição de equipamento', el('div', {},
+    el('div', { class:'grid g2' },
+      el('label', { class:'f' }, el('span', {}, 'Título'), titulo),
+      el('label', { class:'f' }, el('span', {}, 'Destino'), destino)),
+    el('div', { class:'grid g4', style:'margin-top:10px' },
+      el('label', { class:'f' }, el('span', {}, 'Atividade'), ativSel),
+      el('label', { class:'f' }, el('span', {}, 'Estado'), estado),
+      el('label', { class:'f' }, el('span', {}, 'Necessário até'), data),
+      el('label', { class:'f' }, el('span', {}, 'Responsável'), resp)),
+    el('div', { style:'margin-top:16px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Material'), itensBox),
+    el('div', { class:'grid g2', style:'margin-top:14px' }, resumo,
+      el('label', { class:'f' }, el('span', {}, 'Notas'), notas))), botoes);
+  if (so) bloquearEdicao();
+}
+
+let filtroEq = 'todos';
+function vEquipamento(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:exportarEquipXlsx }, 'Excel'),
+    el('button', { class:'btn', onclick:() => exportarEquipDoc('pdf') }, 'PDF'),
+    el('button', { class:'btn', onclick:() => exportarEquipDoc('docx') }, 'Word'),
+    el('button', { class:'btn primary', onclick:() => novaRequisicao('') }, '+ Nova requisição'));
+
+  const todas = S.cfg.requisicoes || [];
+  const pecas = todas.reduce((s, r) => s + totalPecas(r), 0);
+  const entregues = todas.filter(r => r.estado === 'entregue').length;
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(todas.length), 'Requisições', `${new Set(todas.map(r => r.ativId).filter(Boolean)).size} atividades`),
+    kpi(numPT(pecas), 'Peças pedidas', 'Soma das quantidades'),
+    kpi(String(entregues), 'Entregues', `${todas.length - entregues} por concluir`),
+    kpi(String(todas.filter(r => r.estado === 'pedido').length), 'Por aprovar', 'Aguardam decisão')));
+
+  if (todas.length){
+    const porArtigo = {};
+    for (const r of todas) for (const it of (r.itens || []))
+      porArtigo[it.artigo || 'Outro'] = (porArtigo[it.artigo || 'Outro'] || 0) + (Number(it.qtd) || 0);
+    v.append(cardGraf('Material pedido por artigo', 'Quantidades somadas em todas as requisições.',
+      barras(Object.entries(porArtigo).sort((a, b) => b[1] - a[1]).slice(0, 14)
+        .map(([k, n]) => ({ lb:k, a:n })), {})));
+  }
+
+  v.append(el('div', { class:'card' }, el('div', { class:'body' },
+    el('div', { class:'chips' },
+      chip('Todas', filtroEq === 'todos', () => { filtroEq = 'todos'; render(); }),
+      ...ESTADOS_EQ.map(e => chip(e.nome, filtroEq === e.id, () => { filtroEq = e.id; render(); }))))));
+
+  const lista = todas.filter(r => filtroEq === 'todos' || r.estado === filtroEq);
+  if (!lista.length){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Sem requisições de equipamento'),
+      el('p', {}, 'Registe o material da comitiva. Pode gerar as linhas a partir da convocatória e ajustar artigo e tamanho.'),
+      el('div', { style:'margin-top:14px' },
+        el('button', { class:'btn primary', onclick:() => novaRequisicao('') }, '+ Nova requisição'))))));
+    return;
+  }
+
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Requisição','Atividade','Destino','Linhas','Peças','Estado','Necessário até','']
+    .map(h => el('th', { class:['Linhas','Peças'].includes(h) ? 'num' : '' }, h)))));
+  const tb = el('tbody', {});
+  for (const r of lista){
+    tb.append(el('tr', { style:'cursor:pointer', onclick:() => editarRequisicao(r.uid) },
+      el('td', {}, el('span', { class:'nome' }, r.titulo || '(sem título)')),
+      el('td', { class:'small mono muted' }, r.ativId || '—'),
+      el('td', { class:'small' }, r.destino || '—'),
+      el('td', { class:'num' }, String((r.itens || []).length)),
+      el('td', { class:'num mono' }, numPT(totalPecas(r))),
+      el('td', {}, pillEstado(ESTADOS_EQ, r.estado)),
+      el('td', { class:'small mono' }, r.dataNecessaria ? fmtDate(r.dataNecessaria) : '—'),
+      el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, 'Abrir'))));
+  }
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Requisições de equipamento'),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'small muted' }, `${lista.length} requisições`)),
+    el('div', { class:'body tight' }, tw)));
+}
+
+function cardEquipAtiv(ativ){
+  const lista = requisicoesDe(ativ.id);
+  const corpo = el('div', { class:'body' });
+  if (lista.length){
+    const tw = el('div', { class:'tw' }); const t = el('table', { class:'grelha' });
+    t.append(el('thead', {}, el('tr', {}, ...['Requisição','Destino','Linhas','Peças','Estado','']
+      .map(h => el('th', { class:['Linhas','Peças'].includes(h) ? 'num' : '' }, h)))));
+    const tb = el('tbody', {});
+    for (const r of lista){
+      tb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, r.titulo || '(sem título)')),
+        el('td', { class:'small' }, r.destino || '—'),
+        el('td', { class:'num' }, String((r.itens || []).length)),
+        el('td', { class:'num mono' }, numPT(totalPecas(r))),
+        el('td', {}, pillEstado(ESTADOS_EQ, r.estado)),
+        el('td', { style:'text-align:right' },
+          el('button', { class:'btn sm', onclick:() => editarRequisicao(r.uid) }, 'Abrir'))));
+    }
+    t.append(tb); tw.append(t); corpo.append(tw);
+  } else {
+    corpo.append(el('p', { class:'muted small', style:'margin:0' },
+      'Sem requisições nesta atividade. Pode gerar as linhas a partir da convocatória, com um artigo por nadador e por elemento do staff.'));
+  }
+  corpo.append(el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+    el('button', { class:'btn sm primary', onclick:() => novaRequisicao(ativ.id) }, '+ Nova requisição'),
+    lista.length ? el('button', { class:'btn sm', onclick:() => exportarGestaoPdf(ativ.id, 'equipamento') }, 'Documento PDF') : null,
+    lista.length ? el('button', { class:'btn sm', onclick:() => novoEmail({ ativId:ativ.id, tipo:'equipamento',
+      anexo:`equipamento-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null));
+
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Requisição de equipamento'),
+      el('div', { class:'small muted' }, 'Material a preparar para a comitiva.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + (lista.length ? 'acc' : '') },
+        `${lista.reduce((s, r) => s + totalPecas(r), 0)} peças`)), corpo);
+}
+
+/* ==========================================================================
+   DEFINIÇÕES DOS MÓDULOS DE GESTÃO
+   ========================================================================== */
+function cardDefinicoesGestao(){
+  const dot = el('input', { type:'number', min:'0', step:'100', placeholder:'ex.: 250000' });
+  dot.value = S.cfg.orcamentoGlobal || '';
+  dot.addEventListener('change', () => {
+    S.cfg.orcamentoGlobal = dot.value === '' ? 0 : +dot.value; salvar();
+    toast('Dotação atualizada.');
+  });
+
+  const catBox = el('div', {});
+  const pintarCat = () => {
+    S.cfg.categoriasRec = S.cfg.categoriasRec || clone(CATEGORIAS_REC_BASE);
+    catBox.replaceChildren(
+      listaItens(S.cfg.categoriasRec, [
+        { k:'id', t:'Código', w:'80px' },
+        { k:'nome', t:'Escalão', w:'150px' },
+        { k:'min', t:'Idade mín.', tipo:'num', dec:0, w:'88px' },
+        { k:'max', t:'Idade máx.', tipo:'num', dec:0, w:'88px' }
+      ], (estrutural) => { salvar(); if (estrutural) pintarCat(); }),
+      el('div', { class:'tabela-btns' },
+        el('button', { class:'btn sm', onclick:() => {
+          S.cfg.categoriasRec.push({ id:'NOVO', nome:'Novo escalão', min:0, max:99 });
+          salvar(); pintarCat();
+        } }, '+ Escalão'),
+        el('button', { class:'btn sm', onclick:() => {
+          S.cfg.categoriasRec = clone(CATEGORIAS_REC_BASE); salvar(); pintarCat();
+          toast('Escalões repostos.');
+        } }, 'Repor'),
+        el('span', { class:'small muted', style:'align-self:center' },
+          'A idade usada é a mesma da data de referência definida acima.')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintarCat();
+
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Orçamento e recordes'),
+      el('div', { class:'small muted' }, 'Valores usados nos painéis de custos e na deteção de recordes.'))),
+    el('div', { class:'body' },
+      el('div', { class:'grid g2' },
+        el('label', { class:'f' }, el('span', {}, 'Dotação orçamental do ano (€)'), dot,
+          el('span', { class:'small muted' }, 'Serve para calcular a verba disponível no painel de orçamentos. Deixe vazio para não a mostrar.')),
+        el('div', {})),
+      el('div', { style:'margin-top:16px' },
+        el('div', { class:'eyebrow', style:'margin-bottom:8px' }, 'Escalões dos recordes nacionais'),
+        el('div', { class:'note', style:'margin-bottom:10px' },
+          'As idades de cada escalão variam com o regulamento em vigor e devem ser confirmadas pela DTN. ' +
+          'São usadas para decidir em que escalão uma marca conta como recorde.'),
+        catBox)));
+}
+
+</script>
+<script>
+/* ==========================================================================
+   RELATÓRIOS DE ATIVIDADE, PRÉMIOS E RECORDES NACIONAIS
+   ========================================================================== */
+
+const ESTADOS_REL = [
+  { id:'porFazer',  nome:'Por elaborar', pill:''     },
+  { id:'rascunho',  nome:'Em elaboração', pill:'acc'  },
+  { id:'final',     nome:'Concluído', pill:'good' }
+];
+
+const relDe = ativId => (S.cfg.relatorios || {})[ativId] || null;
+const estadoRel = ativId => { const r = relDe(ativId); return r ? (r.estado || 'rascunho') : 'porFazer'; };
+
+function relatorioVazio(ativId){
+  const a = ativDe(ativId);
+  return {
+    ativId, estado:'rascunho', criadoEm:new Date().toISOString(), atualizadoEm:'',
+    resumo:'', balanco:'', ocorrencias:'', custoReal:'',
+    participacoes:[], premios:[], recordes:[],
+    objetivos:((a && a.objetivos) || []).map(t => ({ texto:t, cumprido:'na', nota:'' }))
+  };
+}
+
+/* Gera o esqueleto a partir da convocatória: nadadores, provas e objetivos do PAR. */
+function gerarRelatorio(ativId, silencioso){
+  if (!podeEditar()) return semPermissao();
+  const a = ativDe(ativId); if (!a) return;
+  const antigo = relDe(ativId);
+  const r = antigo || relatorioVazio(ativId);
+  const c = conv(ativId);
+  const jaLa = new Map((r.participacoes || []).map(p => [p.key, p]));
+
+  const participacoes = [];
+  if (c){
+    for (const l of linhasConvocatoria(ativId)){
+      if (l.estado === 'removido') continue;
+      const ex = jaLa.get(l.key);
+      const provas = ex && ex.provas && ex.provas.length
+        ? ex.provas
+        : (l.provas || []).map(ev => ({ ev, curso:(a.regra.piscina || ['PL'])[0], ronda:'Final',
+            tempo:'', classificacao:'', rp:false, obs:'' }));
+      participacoes.push({ key:l.key, nome:l.nome, clube:l.clube || '', g:l.g || '', provas });
+    }
+  }
+  for (const [k, p] of jaLa) if (!participacoes.some(x => x.key === k)) participacoes.push(p);
+  r.participacoes = participacoes;
+
+  const objetivosPAR = (a.objetivos || []);
+  const porTexto = new Map((r.objetivos || []).map(o => [o.texto, o]));
+  r.objetivos = objetivosPAR.map(t => porTexto.get(t) || { texto:t, cumprido:'na', nota:'' })
+    .concat((r.objetivos || []).filter(o => !objetivosPAR.includes(o.texto)));
+
+  r.atualizadoEm = new Date().toISOString();
+  S.cfg.relatorios = S.cfg.relatorios || {};
+  S.cfg.relatorios[ativId] = r;
+  salvar();
+  if (!silencioso) toast(`Relatório de ${ativId} preparado com ${participacoes.length} participantes.`);
+  return r;
+}
+
+/* ---------- prémios ---------- */
+const premioDaClassificacao = cl => {
+  const n = parseInt(String(cl).replace(/\D/g, ''), 10);
+  if (!n) return null;
+  if (n === 1) return 'ouro';
+  if (n === 2) return 'prata';
+  if (n === 3) return 'bronze';
+  if (n <= 8) return 'diploma';
+  return null;
+};
+
+function premiosAutomaticos(ativId){
+  if (!podeEditar()) return semPermissao();
+  const r = relDe(ativId); if (!r) return;
+  const existentes = new Set((r.premios || []).map(p => `${p.nadador}|${p.prova}|${p.tipo}`));
+  let n = 0;
+  for (const p of (r.participacoes || [])) for (const pr of (p.provas || [])){
+    const tipo = premioDaClassificacao(pr.classificacao);
+    if (!tipo) continue;
+    const k = `${p.nome}|${pr.ev}|${tipo}`;
+    if (existentes.has(k)) continue;
+    existentes.add(k);
+    (r.premios = r.premios || []).push({ nadador:p.nome, prova:pr.ev,
+      tipo, lugar:String(pr.classificacao), obs:pr.ronda || '' });
+    n++;
+  }
+  r.atualizadoEm = new Date().toISOString();
+  salvar(); render();
+  toast(n ? `${n} prémios registados a partir das classificações.` : 'Não há classificações novas de 1.º a 8.º lugar.');
+}
+
+const contarPremios = r => {
+  const c = {};
+  for (const p of (r.premios || [])) c[p.tipo] = (c[p.tipo] || 0) + 1;
+  return c;
+};
+const medalhasDe = r => (contarPremios(r).ouro || 0) + (contarPremios(r).prata || 0) + (contarPremios(r).bronze || 0);
+
+/* ==========================================================================
+   LISTA DE RELATÓRIOS
+   ========================================================================== */
+let filtroRel = 'todos';
+function vRelatorios(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:exportarRelatoriosXlsx }, 'Excel'),
+    el('button', { class:'btn', onclick:() => exportarRelatoriosDoc('docx') }, 'Word (todos)'),
+    el('button', { class:'btn primary', onclick:() => exportarRelatoriosDoc('pdf') }, 'PDF (todos)'));
+
+  const feitos = ATIVS.filter(a => relDe(a.id));
+  const concluidos = feitos.filter(a => estadoRel(a.id) === 'final');
+  const todosRel = feitos.map(a => relDe(a.id));
+  const medalhas = todosRel.reduce((s, r) => s + medalhasDe(r), 0);
+  const recordes = todosRel.reduce((s, r) => s + (r.recordes || []).length, 0);
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(`${feitos.length}/${ATIVS.length}`, 'Relatórios iniciados', `${concluidos.length} concluídos`),
+    kpi(String(medalhas), 'Medalhas', 'Ouro, prata e bronze registados'),
+    kpi(String(recordes), 'Recordes batidos', 'Registados nos relatórios'),
+    kpi(String(todosRel.reduce((s, r) => s + (r.participacoes || []).length, 0)), 'Participações',
+      'Nadadores com resultados registados')));
+
+  if (todosRel.length){
+    const porSel = {};
+    for (const a of feitos){
+      const r = relDe(a.id), c = contarPremios(r);
+      porSel[a.sel] = porSel[a.sel] || { a:0, b:0 };
+      porSel[a.sel].a += (c.ouro || 0) + (c.prata || 0) + (c.bronze || 0);
+      porSel[a.sel].b += (c.diploma || 0) + (c.final || 0);
+    }
+    const cumprimento = { sim:0, parcial:0, nao:0 };
+    for (const r of todosRel) for (const o of (r.objetivos || []))
+      if (cumprimento[o.cumprido] != null) cumprimento[o.cumprido]++;
+
+    v.append(el('div', { class:'grid g2', style:'margin-top:18px' },
+      cardGraf('Prémios por seleção', 'Medalhas e restantes classificações premiadas.',
+        barras(SELECOES.filter(s => porSel[s.id]).map(s => ({ lb:s.breve, ...porSel[s.id] })),
+          { legenda:['Medalhas', 'Diplomas e finais'] })),
+      cardGraf('Objetivos do Plano de Atividades', 'Balanço declarado nos relatórios concluídos.',
+        barras([
+          { lb:'Cumpridos', a:cumprimento.sim },
+          { lb:'Parcialmente', a:cumprimento.parcial },
+          { lb:'Não cumpridos', a:cumprimento.nao }], {}))));
+  }
+
+  v.append(el('div', { class:'card' }, el('div', { class:'body' },
+    el('div', { class:'chips' },
+      chip('Todas', filtroRel === 'todos', () => { filtroRel = 'todos'; render(); }),
+      ...ESTADOS_REL.map(e => chip(e.nome, filtroRel === e.id, () => { filtroRel = e.id; render(); }))))));
+
+  const lista = ATIVS.filter(a => filtroRel === 'todos' || estadoRel(a.id) === filtroRel);
+  const tw = el('div', { class:'tw' }); const t = el('table');
+  t.append(el('thead', {}, el('tr', {}, ...['Cód.','Atividade','Seleção','Datas','Participantes','Medalhas','Recordes','Estado','']
+    .map(h => el('th', { class:['Participantes','Medalhas','Recordes'].includes(h) ? 'num' : '' }, h)))));
+  const tb = el('tbody', {});
+  for (const a of lista){
+    const r = relDe(a.id);
+    tb.append(el('tr', { style:'cursor:pointer', onclick:() => irPara('relDet', a.id) },
+      el('td', { class:'mono small' }, a.id),
+      el('td', {}, el('span', { class:'nome' }, a.nome)),
+      el('td', { class:'small muted' }, selDe(a).curto || ''),
+      el('td', { class:'small mono' }, a.datas),
+      el('td', { class:'num' }, r ? String((r.participacoes || []).length) : '—'),
+      el('td', { class:'num' }, r ? String(medalhasDe(r)) : '—'),
+      el('td', { class:'num' }, r ? String((r.recordes || []).length) : '—'),
+      el('td', {}, pillEstado(ESTADOS_REL, estadoRel(a.id))),
+      el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, r ? 'Abrir' : 'Elaborar'))));
+  }
+  t.append(tb); tw.append(t);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Relatórios de atividade'),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'small muted' }, `${lista.length} atividades`)),
+    el('div', { class:'body tight' }, tw)));
+}
+
+function cardRelatorioAtalho(ativ){
+  const r = relDe(ativ.id);
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Relatório da atividade'),
+      el('div', { class:'small muted' }, 'Resultados, prémios, recordes e balanço face aos objetivos do PAR.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      pillEstado(ESTADOS_REL, estadoRel(ativ.id))),
+    el('div', { class:'body' },
+      r
+        ? el('div', { class:'grid g4' },
+            mini('Participantes', String((r.participacoes || []).length)),
+            mini('Medalhas', String(medalhasDe(r))),
+            mini('Recordes', String((r.recordes || []).length)),
+            mini('Atualizado', r.atualizadoEm ? fmtDate(r.atualizadoEm) : '—'))
+        : el('p', { class:'muted small', style:'margin:0' },
+            'Ainda não há relatório. Ao criá-lo, os convocados, as provas inscritas e os objetivos do Plano de Atividades ficam já preenchidos.'),
+      el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+        el('button', { class:'btn primary', onclick:() => {
+          if (!r) gerarRelatorio(ativ.id, true);
+          irPara('relDet', ativ.id);
+        } }, r ? 'Abrir relatório' : 'Criar relatório'),
+        r ? el('button', { class:'btn', onclick:() => exportarRelatorioPdf(ativ.id) }, 'PDF') : null,
+        r ? el('button', { class:'btn', onclick:() => novoEmail({ ativId:ativ.id, tipo:'relatorio',
+          anexo:`relatorio-${slug(ativ.id)}.pdf` }) }, 'Preparar e-mail') : null)));
+}
+
+/* ==========================================================================
+   DETALHE DO RELATÓRIO
+   ========================================================================== */
+function vRelatorioDetalhe(v){
+  const ativ = ativDe(S.ativo);
+  if (!ativ){ irPara('rel'); return; }
+  let r = relDe(ativ.id);
+
+  $('#pgActions').append(
+    el('button', { class:'btn ghost', onclick:() => irPara('rel') }, '← Relatórios'),
+    ...(r ? [
+      el('button', { class:'btn', onclick:() => { gerarRelatorio(ativ.id); render(); } }, 'Atualizar da convocatória'),
+      el('button', { class:'btn', onclick:() => exportarRelatorioXlsx(ativ.id) }, 'Excel'),
+      el('button', { class:'btn', onclick:() => exportarRelatorioDocx(ativ.id) }, 'Word'),
+      el('button', { class:'btn', onclick:() => exportarRelatorioPdf(ativ.id) }, 'PDF'),
+      el('button', { class:'btn primary', onclick:() => novoEmail({ ativId:ativ.id, tipo:'relatorio',
+        anexo:`relatorio-${slug(ativ.id)}.pdf` }) }, 'Enviar por e-mail')] : []));
+
+  v.append(el('div', { class:'card' },
+    el('header', {},
+      el('div', {},
+        el('div', { class:'eyebrow' }, `${ativ.id} · ${selDe(ativ).nome || ''}`),
+        el('h3', { style:'font-size:20px;margin-top:2px' }, ativ.nome)),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + (ativ.tipo === 'Estágio' ? 'est' : 'comp') }, ativ.tipo)),
+    el('div', { class:'body' },
+      el('div', { class:'grid g4' },
+        mini('Datas', ativ.datas), mini('Local', ativ.local),
+        mini('Convocados', conv(ativ.id) ? String(dadosConv(ativ.id).ativos.length) : '—'),
+        mini('Estado', nomeEstado(ESTADOS_REL, estadoRel(ativ.id)))))));
+
+  if (!r){
+    v.append(el('div', { class:'card' }, el('div', { class:'body' }, el('div', { class:'empty' },
+      el('h3', {}, 'Relatório por elaborar'),
+      el('p', {}, 'Ao criar o relatório, os nadadores convocados, as provas que foram inscritas e os objetivos definidos no Plano de Atividades ficam preenchidos. Resultados, classificações, prémios e recordes podem ser importados de um Excel de resultados ou escritos à mão.'),
+      el('div', { style:'margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap' },
+        el('button', { class:'btn primary', onclick:() => { gerarRelatorio(ativ.id); render(); } }, 'Criar relatório'),
+        el('button', { class:'btn', onclick:() => irPara('convDet', ativ.id) }, 'Ver convocatória'))))));
+    return;
+  }
+
+  const gravarR = () => { r.atualizadoEm = new Date().toISOString(); salvar(); };
+
+  /* --- estado e resumo --- */
+  const estado = el('select', {}, ...ESTADOS_REL.filter(e => e.id !== 'porFazer')
+    .map(e => el('option', { value:e.id }, e.nome)));
+  estado.value = r.estado || 'rascunho';
+  estado.addEventListener('change', () => { r.estado = estado.value; gravarR(); render(); });
+  const custo = el('input', { type:'number', min:'0', step:'0.01', placeholder:'custo real da atividade' });
+  custo.value = r.custoReal ?? '';
+  custo.addEventListener('change', () => { r.custoReal = custo.value === '' ? '' : +custo.value; gravarR(); });
+
+  const area = (val, ph, rows, campo) => {
+    const t = el('textarea', { rows:rows || 3, placeholder:ph }); t.value = val || '';
+    t.addEventListener('input', () => { r[campo] = t.value; gravarR(); });
+    return t;
+  };
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('h3', {}, 'Síntese')),
+    el('div', { class:'body' },
+      el('div', { class:'grid g3' },
+        el('label', { class:'f' }, el('span', {}, 'Estado do relatório'), estado),
+        el('label', { class:'f' }, el('span', {}, 'Custo real (€)'), custo),
+        mini('Custo comprometido em orçamentos', eur(custoComprometido(ativ.id)))),
+      el('label', { class:'f', style:'margin-top:12px' }, el('span', {}, 'Resumo da participação'),
+        area(r.resumo, 'O que aconteceu, como correu a preparação e a competição…', 4, 'resumo')),
+      el('div', { class:'grid g2', style:'margin-top:12px' },
+        el('label', { class:'f' }, el('span', {}, 'Balanço técnico'),
+          area(r.balanco, 'Leitura técnica dos resultados, progressão dos nadadores…', 4, 'balanco')),
+        el('label', { class:'f' }, el('span', {}, 'Ocorrências'),
+          area(r.ocorrencias, 'Lesões, doenças, problemas logísticos, reclamações…', 4, 'ocorrencias'))))));
+
+  /* --- resultados por nadador --- */
+  const resultadosBox = el('div', {});
+  const pintarResultados = () => {
+    resultadosBox.replaceChildren();
+    if (!(r.participacoes || []).length){
+      resultadosBox.append(el('p', { class:'muted small', style:'margin:0' },
+        'Sem participantes. Use “Atualizar da convocatória” para os trazer, ou acrescente um nadador manualmente.'));
+    }
+    (r.participacoes || []).forEach((p, i) => {
+      p.provas = p.provas || [];
+      const cab = el('div', { class:'bloco-top' },
+        el('span', { class:'bloco-n mono' }, String(i + 1)),
+        el('strong', { style:'font-family:var(--font-d);font-size:15px' }, p.nome),
+        el('span', { class:'pill' }, p.clube || '—'),
+        el('span', { class:'sp', style:'flex:1' }),
+        el('button', { class:'btn sm ghost', onclick:() => {
+          p.provas.push({ ev:'', curso:(ativ.regra.piscina || ['PL'])[0], ronda:'Final',
+            tempo:'', classificacao:'', rp:false, obs:'' });
+          gravarR(); pintarResultados();
+        } }, '+ Prova'),
+        el('button', { class:'btn sm ghost', onclick:() => {
+          r.participacoes.splice(i, 1); gravarR(); pintarResultados();
+        } }, 'Remover'));
+
+      const tabela = listaItens(p.provas, [
+        { k:'ev', t:'Prova', tipo:'select', op:['', ...EV_PC, ...ESTAFETAS.map(e => e.ev)], w:'118px' },
+        { k:'curso', t:'Piscina', tipo:'select', op:['PL','PC'], w:'78px' },
+        { k:'ronda', t:'Ronda', tipo:'select', op:RONDAS, w:'118px' },
+        { k:'tempo', t:'Tempo', w:'92px', ph:'0:00,00' },
+        { k:'classificacao', t:'Class.', w:'70px', ph:'1' },
+        { k:'obs', t:'Observações', w:'150px', ph:'recorde pessoal, DQ…' }
+      ], (estrutural) => { gravarR(); if (estrutural) pintarResultados(); });
+
+      resultadosBox.append(el('div', { class:'bloco' }, cab, tabela));
+    });
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintarResultados();
+
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Resultados'),
+      el('div', { class:'small muted' }, 'Provas nadadas, tempos e classificações de cada convocado.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('button', { class:'btn sm', onclick:() => importarResultados(ativ.id) }, 'Importar de Excel'),
+      el('button', { class:'btn sm', onclick:() => {
+        if (!podeEditar()) return semPermissao();
+        r.participacoes = r.participacoes || [];
+        r.participacoes.push({ key:uid('p'), nome:'Novo participante', clube:'', g:'', provas:[] });
+        gravarR(); pintarResultados();
+      } }, '+ Participante')),
+    el('div', { class:'body' }, resultadosBox)));
+
+  /* --- prémios --- */
+  const premiosBox = el('div', {});
+  const pintarPremios = () => {
+    premiosBox.replaceChildren(
+      (r.premios || []).length
+        ? listaItens(r.premios, [
+            { k:'nadador', t:'Nadador ou equipa', w:'200px' },
+            { k:'prova', t:'Prova', w:'120px' },
+            { k:'tipo', t:'Prémio', tipo:'select', op:TIPOS_PREMIO, w:'170px' },
+            { k:'lugar', t:'Lugar', w:'70px' },
+            { k:'obs', t:'Observações', w:'160px' }
+          ], (estrutural) => { gravarR(); if (estrutural) pintarPremios(); })
+        : el('p', { class:'muted small', style:'margin:0 0 10px' },
+            'Sem prémios registados. Preencha as classificações nos resultados e use “Gerar a partir das classificações”.'),
+      el('div', { class:'tabela-btns', style:'border:0;background:none;padding:10px 0 0' },
+        el('button', { class:'btn sm', onclick:() => {
+          if (!podeEditar()) return semPermissao();
+          (r.premios = r.premios || []).push({ nadador:'', prova:'', tipo:'ouro', lugar:'', obs:'' });
+          gravarR(); pintarPremios();
+        } }, '+ Prémio'),
+        el('button', { class:'btn sm', onclick:() => premiosAutomaticos(ativ.id) }, 'Gerar a partir das classificações')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintarPremios();
+
+  const cont = contarPremios(r);
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Prémios'),
+      el('div', { class:'small muted' }, 'Medalhas, diplomas e prémios especiais conquistados.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      ...TIPOS_PREMIO.filter(tp => cont[tp.id]).map(tp =>
+        el('span', { class:'pill ' + (tp.id === 'ouro' ? 'warn' : tp.id === 'bronze' ? 'est' : 'acc') },
+          `${cont[tp.id]} ${tp.nome.replace('Medalha de ', '')}`))),
+    el('div', { class:'body' }, premiosBox)));
+
+  /* --- recordes --- */
+  const recBox = el('div', {});
+  const pintarRec = () => {
+    recBox.replaceChildren(
+      (r.recordes || []).length
+        ? listaItens(r.recordes, [
+            { k:'nadador', t:'Nadador ou equipa', w:'190px' },
+            { k:'categoria', t:'Escalão', tipo:'select', op:(S.cfg.categoriasRec || CATEGORIAS_REC_BASE).map(c => ({ id:c.id, nome:c.nome })), w:'120px' },
+            { k:'curso', t:'Piscina', tipo:'select', op:['PL','PC'], w:'78px' },
+            { k:'ev', t:'Prova', tipo:'select', op:['', ...EV_PC, ...ESTAFETAS.map(e => e.ev)], w:'118px' },
+            { k:'tempo', t:'Marca', w:'92px', ph:'0:00,00' },
+            { k:'anterior', t:'Recorde anterior', w:'100px' },
+            { k:'detentor', t:'Detentor anterior', w:'160px' }
+          ], (estrutural) => { gravarR(); if (estrutural) pintarRec(); })
+        : el('p', { class:'muted small', style:'margin:0 0 10px' },
+            'Sem recordes registados nesta atividade.'),
+      el('div', { class:'tabela-btns', style:'border:0;background:none;padding:10px 0 0' },
+        el('button', { class:'btn sm', onclick:() => {
+          if (!podeEditar()) return semPermissao();
+          (r.recordes = r.recordes || []).push({ nadador:'', categoria:'ABS', curso:'PL', ev:'',
+            tempo:'', anterior:'', detentor:'', data:'' });
+          gravarR(); pintarRec();
+        } }, '+ Recorde'),
+        el('button', { class:'btn sm', onclick:() => aplicarRecordesDoRelatorio(ativ.id) },
+          'Atualizar a tabela nacional com estes recordes')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintarRec();
+
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Recordes nacionais batidos'),
+      el('div', { class:'small muted' }, 'Marcas que passam a constar da tabela de recordes, depois de homologadas.')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + ((r.recordes || []).length ? 'good' : '') },
+        `${(r.recordes || []).length} recordes`)),
+    el('div', { class:'body' }, recBox)));
+
+  /* --- objetivos --- */
+  const objBox = el('div', {});
+  const pintarObj = () => {
+    objBox.replaceChildren();
+    if (!(r.objetivos || []).length)
+      objBox.append(el('p', { class:'muted small', style:'margin:0' },
+        'Esta atividade não tem objetivos definidos no Plano de Atividades. Pode acrescentá-los aqui.'));
+    (r.objetivos || []).forEach((o, i) => {
+      const texto = el('input', { type:'text', style:'flex:1;min-width:200px' });
+      texto.value = o.texto || '';
+      texto.addEventListener('input', () => { o.texto = texto.value; gravarR(); });
+      const cump = el('select', { style:'width:auto;min-width:180px' },
+        ...CUMPRIMENTO.map(c => el('option', { value:c.id }, c.nome)));
+      cump.value = o.cumprido || 'na';
+      cump.addEventListener('change', () => { o.cumprido = cump.value; gravarR(); pintarObj(); });
+      const nota = el('input', { type:'text', placeholder:'Justificação ou números alcançados' });
+      nota.value = o.nota || '';
+      nota.addEventListener('input', () => { o.nota = nota.value; gravarR(); });
+      objBox.append(el('div', { class:'bloco' },
+        el('div', { class:'bloco-top' },
+          el('span', { class:'bloco-n mono' }, String(i + 1)), texto, cump,
+          pillEstado(CUMPRIMENTO, o.cumprido),
+          el('button', { class:'btn sm ghost', onclick:() => {
+            r.objetivos.splice(i, 1); gravarR(); pintarObj();
+          } }, 'Eliminar')),
+        nota));
+    });
+    objBox.append(el('div', { style:'margin-top:10px' },
+      el('button', { class:'btn sm', onclick:() => {
+        if (!podeEditar()) return semPermissao();
+        (r.objetivos = r.objetivos || []).push({ texto:'', cumprido:'na', nota:'' });
+        gravarR(); pintarObj();
+      } }, '+ Objetivo')));
+    if (!podeEditar()) bloquearEdicao();
+  };
+  pintarObj();
+
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, 'Objetivos do Plano de Atividades'),
+      el('div', { class:'small muted' }, 'Balanço de cada objetivo definido para a atividade.'))),
+    el('div', { class:'body' }, objBox)));
+}
+
+/* ---------- importar resultados de um Excel ---------- */
+function importarResultados(ativId){
+  if (!podeEditar()) return semPermissao();
+  const inp = el('input', { type:'file', accept:'.xlsx' });
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; if (!f) return;
+    toast('A ler ' + f.name + '…');
+    try{
+      const sheets = await parseXlsx(await f.arrayBuffer());
+      const r = relDe(ativId) || gerarRelatorio(ativId, true);
+      const porNome = new Map((r.participacoes || []).map(p => [tokensNome(p.nome).join(' '), p]));
+      let n = 0, semDono = 0;
+      for (const sh of sheets){
+        let hRow = -1, map = {};
+        const HEAD = ['FULLNAME','DISTANCE','STROKE','SWIMTIME','PLACE','COURSE','ROUND','MEETNAME','CLUBNAME'];
+        for (let i = 0; i < Math.min(8, sh.rows.length); i++){
+          const row = sh.rows[i] || {}, found = {};
+          (row || []).forEach((v, j) => { const k = String(v || '').trim().toUpperCase(); if (HEAD.includes(k)) found[k] = j; });
+          if (found.FULLNAME != null && found.SWIMTIME != null){ hRow = i; map = found; break; }
+        }
+        if (hRow < 0) continue;
+        for (let i = hRow + 1; i < sh.rows.length; i++){
+          const row = sh.rows[i]; if (!row) continue;
+          const nome = row[map.FULLNAME]; if (!nome) continue;
+          const ev = (row[map.DISTANCE] && normStroke(row[map.STROKE]))
+            ? `${String(row[map.DISTANCE]).trim()} ${normStroke(row[map.STROKE])}` : '';
+          const t = parseTime(row[map.SWIMTIME]);
+          const p = porNome.get(tokensNome(nome).join(' '));
+          if (!p){ semDono++; continue; }
+          p.provas = p.provas || [];
+          const curso = String(row[map.COURSE] || '').trim().toUpperCase() === 'SCM' ? 'PC' : 'PL';
+          const ronda = String(row[map.ROUND] || '').trim() || 'Final';
+          const existente = p.provas.find(x => x.ev === ev && !x.tempo);
+          const linha = existente || {};
+          Object.assign(linha, { ev, curso, ronda,
+            tempo: t ? fmtTime(t) : String(row[map.SWIMTIME] || ''),
+            classificacao: row[map.PLACE] != null ? String(row[map.PLACE]) : (linha.classificacao || ''),
+            obs: linha.obs || '' });
+          if (!existente) p.provas.push(linha);
+          n++;
+        }
+      }
+      r.atualizadoEm = new Date().toISOString();
+      salvar(); render();
+      toast(`${n} resultados importados${semDono ? `; ${semDono} linhas não corresponderam a nenhum participante` : ''}.`);
+    } catch(e){ console.error(e); toast('Não foi possível ler o ficheiro: ' + e.message, true); }
+  });
+  inp.click();
+}
+
+/* ==========================================================================
+   RECORDES NACIONAIS
+   ========================================================================== */
+const catsRec = () => S.cfg.categoriasRec || CATEGORIAS_REC_BASE;
+const chaveRec = (curso, g, cat, ev) => `${curso}|${g}|${cat}|${ev}`;
+
+function mapaRecordes(){
+  const m = new Map();
+  for (const r of (S.cfg.recordes || [])){
+    const t = parseTime(r.tempo);
+    if (t) m.set(chaveRec(r.curso, r.g, r.categoria, r.ev), { ...r, t });
+  }
+  return m;
+}
+
+/* Marcas do ficheiro de rankings que batem o recorde registado. */
+function marcasAcimaDoRecorde(){
+  if (!S.db) return [];
+  const m = mapaRecordes();
+  if (!m.size) return [];
+  const cats = catsRec();
+  const melhor = new Map();          /* chave -> melhor marca encontrada */
+  for (const res of S.db.resultados){
+    if (res.lap && !S.cfg.incluirLap) continue;
+    if (S.cfg.apenasPOR && res.nation && res.nation !== 'POR') continue;
+    const idade = idadeEm(res.nasc, S.cfg.refIdade);
+    for (const c of cats){
+      if (idade < (c.min ?? 0) || idade > (c.max ?? 99)) continue;
+      const k = chaveRec(res.curso, res.g, c.id, res.ev);
+      const rec = m.get(k);
+      if (!rec || res.t >= rec.t - MARGEM_RECORDE) continue;
+      const ant = melhor.get(k);
+      if (ant && ant.t <= res.t) continue;
+      melhor.set(k, { t:res.t, nome:res.nome, clube:res.clube, data:res.data, prova:res.prova,
+        curso:res.curso, g:res.g, ev:res.ev, categoria:c.id, catNome:c.nome, rec });
+    }
+  }
+  return [...melhor.values()].sort((a, b) => (a.rec.t - a.t) / a.rec.t < (b.rec.t - b.t) / b.rec.t ? 1 : -1);
+}
+
+function aplicarRecordesDoRelatorio(ativId){
+  if (!podeEditar()) return semPermissao();
+  const r = relDe(ativId); if (!r) return;
+  let n = 0;
+  S.cfg.recordes = S.cfg.recordes || [];
+  for (const x of (r.recordes || [])){
+    const t = parseTime(x.tempo);
+    if (!x.ev || !t) continue;
+    const g = x.g || (String(x.nadador || '').trim() ? adivinharGenero(x.nadador) : 'M');
+    const i = S.cfg.recordes.findIndex(y => y.curso === x.curso && y.g === g
+      && y.categoria === x.categoria && y.ev === x.ev);
+    const novo = { curso:x.curso, g, categoria:x.categoria, ev:x.ev, tempo:x.tempo,
+      nome:x.nadador, data:x.data || '', local:ativDe(ativId) ? ativDe(ativId).local : '',
+      origem:ativId };
+    if (i >= 0) S.cfg.recordes[i] = novo; else S.cfg.recordes.push(novo);
+    n++;
+  }
+  salvar(); render();
+  toast(n ? `${n} recordes atualizados na tabela nacional.` : 'Não há recordes preenchidos para atualizar.');
+}
+
+function adivinharGenero(nome){
+  const n = S.db && acharNadador(S.db, nome);
+  return n ? n.g : 'M';
+}
+
+let tabRec = 'PL', gRec = 'M', catRec = 'ABS';
+function vRecordes(v){
+  $('#pgActions').append(
+    el('button', { class:'btn', onclick:semearRecordes }, 'Preencher com os melhores do ficheiro'),
+    el('button', { class:'btn', onclick:exportarRecordesXlsx }, 'Excel'),
+    el('button', { class:'btn primary', onclick:() => exportarRecordesDoc('pdf') }, 'PDF'));
+
+  const todos = S.cfg.recordes || [];
+  const batidas = marcasAcimaDoRecorde();
+
+  v.append(el('div', { class:'grid g4' },
+    kpi(String(todos.length), 'Recordes registados', `${catsRec().length} escalões`),
+    kpi(String(todos.filter(r => r.curso === 'PL').length), 'Piscina longa', 'Marcas de 50 m'),
+    kpi(String(todos.filter(r => r.curso === 'PC').length), 'Piscina curta', 'Marcas de 25 m'),
+    kpi(String(batidas.length), 'Marcas que batem o recorde',
+      S.db ? 'Encontradas no ficheiro de rankings' : 'Sem ficheiro importado')));
+
+  if (batidas.length){
+    const tw = el('div', { class:'tw' }); const t = el('table');
+    t.append(el('thead', {}, el('tr', {}, ...['Nadador','Escalão','Piscina','Prova','Marca','Recorde atual','Diferença','Competição','Data','']
+      .map(h => el('th', { class:['Marca','Recorde atual','Diferença'].includes(h) ? 'num' : '' }, h)))));
+    const tb = el('tbody', {});
+    for (const b of batidas.slice(0, 60)){
+      tb.append(el('tr', {},
+        el('td', {}, el('span', { class:'nome' }, b.nome),
+          el('div', { class:'small muted' }, b.clube || '—')),
+        el('td', { class:'small' }, b.catNome),
+        el('td', { class:'small' }, b.curso),
+        el('td', { class:'small' }, b.ev),
+        el('td', { class:'num mono' }, fmtTime(b.t)),
+        el('td', { class:'num mono muted' }, fmtTime(b.rec.t)),
+        el('td', { class:'num mono', style:'color:var(--good)' }, fmtDelta(b.t - b.rec.t)),
+        el('td', { class:'small muted just', title:b.prova || '' }, b.prova || '—'),
+        el('td', { class:'small mono' }, fmtDate(b.data)),
+        el('td', { style:'text-align:right' }, el('button', { class:'btn sm', onclick:() => {
+          if (!podeEditar()) return semPermissao();
+          const i = (S.cfg.recordes || []).findIndex(y => y.curso === b.curso && y.g === b.g
+            && y.categoria === b.categoria && y.ev === b.ev);
+          const novo = { curso:b.curso, g:b.g, categoria:b.categoria, ev:b.ev, tempo:fmtTime(b.t),
+            nome:b.nome, data:b.data ? new Date(b.data).toISOString().slice(0, 10) : '',
+            local:b.prova || '', origem:'ranking' };
+          if (i >= 0) S.cfg.recordes[i] = novo; else (S.cfg.recordes = S.cfg.recordes || []).push(novo);
+          salvar(); render(); toast('Recorde atualizado.');
+        } }, 'Homologar'))));
+    }
+    t.append(tb); tw.append(t);
+    v.append(el('div', { class:'card' },
+      el('header', {}, el('div', {},
+        el('h3', {}, 'Marcas que batem o recorde registado'),
+        el('div', { class:'small muted' }, 'Comparação dos rankings importados com a tabela abaixo. A homologação é sempre uma decisão da FPN.')),
+        el('span', { class:'sp', style:'flex:1' }),
+        el('span', { class:'pill warn' }, `${batidas.length} marcas`)),
+      el('div', { class:'body tight' }, tw)));
+  }
+
+  const tabs = el('div', { class:'tabs' },
+    el('button', { 'aria-selected':String(tabRec === 'PL'), onclick:() => { tabRec = 'PL'; render(); } }, 'Piscina Longa (50 m)'),
+    el('button', { 'aria-selected':String(tabRec === 'PC'), onclick:() => { tabRec = 'PC'; render(); } }, 'Piscina Curta (25 m)'));
+  const chipsG = el('div', { class:'chips', style:'margin-top:10px' },
+    chip('Masculinos', gRec === 'M', () => { gRec = 'M'; render(); }),
+    chip('Femininos', gRec === 'F', () => { gRec = 'F'; render(); }));
+  const chipsC = el('div', { class:'chips', style:'margin-top:10px' },
+    ...catsRec().map(c => chip(c.nome, catRec === c.id, () => { catRec = c.id; render(); })));
+  v.append(el('div', { class:'card' }, el('div', { class:'body' }, tabs, chipsG, chipsC)));
+
+  const evs = tabRec === 'PL' ? EV_PL : EV_PC;
+  const linhas = evs.concat(ESTAFETAS.filter(e => e.piscina.includes(tabRec)).map(e => e.ev));
+  const tw = el('div', { class:'tw' }); const t = el('table', { class:'grelha' });
+  t.append(el('thead', {}, el('tr', {},
+    el('th', {}, 'Prova'), el('th', { class:'num' }, 'Recorde'), el('th', {}, 'Detentor'),
+    el('th', {}, 'Data'), el('th', {}, 'Local'), el('th', { class:'gnum' }, ''))));
+  const tb = el('tbody', {});
+  for (const ev of linhas){
+    const i = (S.cfg.recordes || []).findIndex(r => r.curso === tabRec && r.g === gRec
+      && r.categoria === catRec && r.ev === ev);
+    const rec = i >= 0 ? S.cfg.recordes[i] : null;
+    const campo = (val, ph, tipo, aplicar) => {
+      const inp = el('input', { type:tipo || 'text', placeholder:ph });
+      inp.value = val || '';
+      inp.addEventListener('change', () => {
+        if (!podeEditar()) return semPermissao();
+        S.cfg.recordes = S.cfg.recordes || [];
+        let alvo = S.cfg.recordes.find(r => r.curso === tabRec && r.g === gRec
+          && r.categoria === catRec && r.ev === ev);
+        if (!alvo){
+          alvo = { curso:tabRec, g:gRec, categoria:catRec, ev, tempo:'', nome:'', data:'', local:'' };
+          S.cfg.recordes.push(alvo);
+        }
+        aplicar(alvo, inp.value);
+        salvar();
+      });
+      return inp;
+    };
+    tb.append(el('tr', {},
+      el('td', {}, el('span', { class:'nome' }, ev)),
+      el('td', { class:'num' }, campo(rec && rec.tempo, 'sem registo', 'text', (a, v) => a.tempo = v.trim())),
+      el('td', {}, campo(rec && rec.nome, '', 'text', (a, v) => a.nome = v.trim())),
+      el('td', {}, campo(rec && rec.data, '', 'date', (a, v) => a.data = v)),
+      el('td', {}, campo(rec && rec.local, '', 'text', (a, v) => a.local = v.trim())),
+      el('td', { class:'gnum' }, rec ? el('button', { class:'gx', title:'Limpar recorde', onclick:() => {
+        if (!podeEditar()) return semPermissao();
+        S.cfg.recordes = (S.cfg.recordes || []).filter(r => !(r.curso === tabRec && r.g === gRec
+          && r.categoria === catRec && r.ev === ev));
+        salvar(); render();
+      } }, '×') : '')));
+  }
+  t.append(tb); tw.append(t);
+
+  const catNome = (catsRec().find(c => c.id === catRec) || {}).nome || catRec;
+  v.append(el('div', { class:'card' },
+    el('header', {}, el('div', {},
+      el('h3', {}, `Recordes nacionais · ${catNome} · ${gRec === 'M' ? 'Masculinos' : 'Femininos'} · ${tabRec}`),
+      el('div', { class:'small muted' }, 'Tempos em MM:SS,cc. Uma linha em branco significa que ainda não há recorde registado nesta aplicação.'))),
+    el('div', { class:'body tight' }, tw)));
+}
+
+/* Preenche a tabela com os melhores tempos do ficheiro importado, para servir
+   de ponto de partida. Nunca substitui um recorde já registado. */
+function semearRecordes(){
+  if (!podeEditar()) return semPermissao();
+  if (!S.db) return toast('Importe primeiro um ficheiro de rankings.', true);
+  abrirModal('Preencher a tabela de recordes', el('div', {},
+    el('p', {}, 'Vai preencher as linhas ainda vazias com o melhor tempo encontrado no ficheiro de rankings, por prova, escalão, género e piscina.'),
+    el('div', { class:'note warn', style:'margin-top:12px' },
+      'Isto é apenas um ponto de partida: o melhor tempo do ficheiro não é necessariamente o recorde nacional. ' +
+      'As linhas já preenchidas não são alteradas.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:() => {
+        fecharModal();
+        const existentes = new Set((S.cfg.recordes || []).map(r => chaveRec(r.curso, r.g, r.categoria, r.ev)));
+        const melhor = new Map();
+        for (const res of S.db.resultados){
+          if (res.lap && !S.cfg.incluirLap) continue;
+          if (S.cfg.apenasPOR && res.nation && res.nation !== 'POR') continue;
+          const idade = idadeEm(res.nasc, S.cfg.refIdade);
+          for (const c of catsRec()){
+            if (idade < (c.min ?? 0) || idade > (c.max ?? 99)) continue;
+            const k = chaveRec(res.curso, res.g, c.id, res.ev);
+            if (existentes.has(k)) continue;
+            const ant = melhor.get(k);
+            if (!ant || res.t < ant.t) melhor.set(k, { ...res, categoria:c.id });
+          }
+        }
+        S.cfg.recordes = S.cfg.recordes || [];
+        for (const [k, x] of melhor){
+          S.cfg.recordes.push({ curso:x.curso, g:x.g, categoria:x.categoria, ev:x.ev,
+            tempo:fmtTime(x.t), nome:x.nome, data:x.data ? new Date(x.data).toISOString().slice(0, 10) : '',
+            local:x.prova || '', origem:'ranking' });
+        }
+        salvar(); render();
+        toast(`${melhor.size} linhas preenchidas a partir do ficheiro. Confirme e corrija antes de usar.`);
+      } }, 'Preencher') ]);
+}
+
+</script>
+<script>
+/* ==========================================================================
+   EXPORTAÇÕES DOS MÓDULOS DE GESTÃO
+   Excel, Word e PDF de e-mails, orçamentos, equipamento, relatórios e recordes.
+   ========================================================================== */
+
+const cabGestao = (titulo, sub) => ([
+  { h1:titulo },
+  { small:`Federação Portuguesa de Natação · Seleções Nacionais de Natação Pura · PAR Ciclo 2025-2028 · ${HOJE()}` },
+  sub ? { small:sub } : null,
+  { rule:true }
+].filter(Boolean));
+
+/* ==========================================================================
+   E-MAILS
+   ========================================================================== */
+async function exportarEmailsXlsx(){
+  const lista = S.cfg.emails || [];
+  if (!lista.length) return toast('Não há e-mails registados.', true);
+  const rows = [['Assunto','Tipo','Atividade','Para','Cc','Anexo','Estado','Criado','Enviado']];
+  for (const e of lista) rows.push([e.assunto || '', nomeEstado(TIPOS_EMAIL, e.tipo), e.ativId || '',
+    e.para || '', e.cc || '', e.anexo || '', nomeEstado(ESTADOS_EMAIL, e.estado),
+    fmtDate(e.criadoEm), e.enviadoEm ? fmtDate(e.enviadoEm) : '']);
+  const folhas = [{ name:'E-mails', titulo:'Histórico de e-mails', sub:`Gerado a ${HOJE()}`,
+    rows, widths:[52,22,14,40,28,26,18,12,12] }];
+  await entregar('emails-par-2027.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+/* ==========================================================================
+   ORÇAMENTOS
+   ========================================================================== */
+function blocosOrcamento(o, comCapa){
+  const a = ativDe(o.ativId);
+  const b = comCapa
+    ? cabGestao('Pedido de orçamento', o.titulo || '')
+    : [{ h2:`Pedido de orçamento — ${o.titulo || '(sem título)'}` }];
+  if (a) b.push({ small:`Atividade ${a.id} — ${a.nome} · ${selDe(a).nome || ''} · ${a.datas} · ${a.local}` });
+  b.push({ table:{ head:['Campo','Valor'], widths:[26,74], rows:[
+    ['Categoria', o.categoria || '—'],
+    ['Fornecedor', (o.fornecedor && o.fornecedor.nome) || '—'],
+    ['Contacto', [(o.fornecedor && o.fornecedor.contacto) || '', (o.fornecedor && o.fornecedor.email) || ''].filter(Boolean).join(' · ') || '—'],
+    ['NIF', (o.fornecedor && o.fornecedor.nif) || '—'],
+    ['Estado', nomeEstado(ESTADOS_ORC, o.estado)],
+    ['Prazo de resposta', o.prazoResposta ? fmtDate(o.prazoResposta) : '—']
+  ] } });
+  b.push({ h3:'Itens' });
+  b.push({ table:{ head:['#','Descrição','Qtd.','Unidade','Preço unit.','Total'],
+    widths:[5,45,9,13,14,14],
+    rows:(o.itens || []).map((it, i) => [String(i + 1), it.desc || '', String(it.qtd ?? ''),
+      it.unidade || '', eur(it.precoUnit), eur(totalItemOrc(it))]) } });
+  b.push({ p:`Total do pedido: ${eur(totalOrc(o))}` +
+    (o.valorAprovado !== '' && o.valorAprovado != null ? `   ·   Valor aprovado: ${eur(o.valorAprovado)}` : '') });
+  if (o.notas) b.push({ h3:'Notas' }, { p:o.notas });
+  b.push({ small:'Agradecemos que a proposta indique preços unitários, prazos de pagamento e período de validade.' });
+  return b;
+}
+
+async function exportarOrcamentoPdf(ouid){
+  const o = (S.cfg.orcamentos || []).find(x => x.uid === ouid);
+  if (!o) return;
+  await entregar(`orcamento-${slug(o.titulo || o.uid)}.pdf`,
+    buildPdf(blocosOrcamento(o, true), { titulo:'Pedido de orçamento', header:'FPN · Pedido de orçamento · PAR 2027' }), 'pdf');
+}
+
+async function exportarOrcamentosXlsx(){
+  const lista = S.cfg.orcamentos || [];
+  if (!lista.length) return toast('Não há pedidos de orçamento.', true);
+  const resumo = [['Pedido','Atividade','Categoria','Fornecedor','Estado','Itens','Total (€)','Valor aprovado (€)','Prazo']];
+  const itens = [['Pedido','Atividade','Categoria','Descrição','Qtd.','Unidade','Preço unit. (€)','Total (€)','Observações']];
+  for (const o of lista){
+    resumo.push([o.titulo || '', o.ativId || '', o.categoria || '', (o.fornecedor && o.fornecedor.nome) || '',
+      nomeEstado(ESTADOS_ORC, o.estado), (o.itens || []).length, +totalOrc(o).toFixed(2),
+      o.valorAprovado === '' || o.valorAprovado == null ? '' : +Number(o.valorAprovado).toFixed(2),
+      o.prazoResposta ? fmtDate(o.prazoResposta) : '']);
+    for (const it of (o.itens || [])) itens.push([o.titulo || '', o.ativId || '', o.categoria || '',
+      it.desc || '', Number(it.qtd) || 0, it.unidade || '', +(Number(it.precoUnit) || 0).toFixed(2),
+      +totalItemOrc(it).toFixed(2), it.obs || '']);
+  }
+  const porCat = {};
+  for (const o of lista) porCat[o.categoria || 'Outros'] = (porCat[o.categoria || 'Outros'] || 0) + totalOrc(o);
+  const cat = [['Categoria','Total (€)'], ...Object.entries(porCat).sort((a, b) => b[1] - a[1]).map(([k, n]) => [k, +n.toFixed(2)])];
+
+  const folhas = [
+    { name:'Pedidos', titulo:'Pedidos de orçamento', sub:`Gerado a ${HOJE()}`, rows:resumo,
+      widths:[38,14,20,28,18,8,14,18,12] },
+    { name:'Itens', titulo:'Itens dos pedidos', rows:itens, widths:[30,12,18,40,8,12,15,14,26] },
+    { name:'Por categoria', rows:cat, widths:[26,14] }
+  ];
+  await entregar('orcamentos-par-2027.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarOrcamentosDoc(fmt){
+  const lista = S.cfg.orcamentos || [];
+  if (!lista.length) return toast('Não há pedidos de orçamento.', true);
+  const b = cabGestao('Pedidos de orçamento — Plano de Atividades 2027');
+  b.push({ table:{ head:['Pedido','Atividade','Categoria','Fornecedor','Estado','Total'],
+    widths:[28,10,17,20,13,12],
+    rows:lista.map(o => [o.titulo || '', o.ativId || '', o.categoria || '',
+      (o.fornecedor && o.fornecedor.nome) || '', nomeEstado(ESTADOS_ORC, o.estado), eur(totalOrc(o))]) } });
+  b.push({ p:`Total pedido: ${eur(lista.reduce((s, o) => s + totalOrc(o), 0))}   ·   Comprometido: ${eur(lista.filter(o => ORC_COMPROMETE.includes(o.estado)).reduce((s, o) => s + totalOrc(o), 0))}` });
+  for (const o of lista) b.push({ pagebreak:true }, ...blocosOrcamento(o, false));
+  if (fmt === 'docx') await entregar('orcamentos-par-2027.docx', buildDocx(b), 'docx');
+  else await entregar('orcamentos-par-2027.pdf',
+    buildPdf(b, { titulo:'Orçamentos PAR 2027', header:'FPN · Orçamentos · PAR 2027' }), 'pdf');
+}
+
+/* ==========================================================================
+   EQUIPAMENTO
+   ========================================================================== */
+function blocosRequisicao(r, comCapa){
+  const a = ativDe(r.ativId);
+  const b = comCapa
+    ? cabGestao('Requisição de equipamento', r.titulo || '')
+    : [{ h2:`Requisição de equipamento — ${r.titulo || '(sem título)'}` }];
+  if (a) b.push({ small:`Atividade ${a.id} — ${a.nome} · ${selDe(a).nome || ''} · ${a.datas} · ${a.local}` });
+  b.push({ table:{ head:['Campo','Valor'], widths:[26,74], rows:[
+    ['Destino', r.destino || '—'],
+    ['Responsável', r.responsavel || '—'],
+    ['Estado', nomeEstado(ESTADOS_EQ, r.estado)],
+    ['Necessário até', r.dataNecessaria ? fmtDate(r.dataNecessaria) : '—'],
+    ['Total de peças', String(totalPecas(r))]
+  ] } });
+  b.push({ h3:'Material' });
+  b.push({ table:{ head:['#','Artigo','Tamanho','Qtd.','Destinatário','Observações'],
+    widths:[5,28,11,8,26,22],
+    rows:(r.itens || []).map((it, i) => [String(i + 1), it.artigo || '', it.tamanho || '',
+      String(it.qtd ?? ''), it.destinatario || '', it.obs || '']) } });
+
+  const porArtigo = {};
+  for (const it of (r.itens || [])){
+    const k = `${it.artigo || 'Outro'} ${it.tamanho && it.tamanho !== '—' ? '(' + it.tamanho + ')' : ''}`.trim();
+    porArtigo[k] = (porArtigo[k] || 0) + (Number(it.qtd) || 0);
+  }
+  if (Object.keys(porArtigo).length){
+    b.push({ h3:'Resumo por artigo e tamanho' });
+    b.push({ table:{ head:['Artigo','Quantidade'], widths:[70,30],
+      rows:Object.entries(porArtigo).sort((x, y) => y[1] - x[1]).map(([k, n]) => [k, String(n)]) } });
+  }
+  if (r.notas) b.push({ h3:'Notas' }, { p:r.notas });
+  return b;
+}
+
+async function exportarRequisicaoPdf(ruid){
+  const r = (S.cfg.requisicoes || []).find(x => x.uid === ruid);
+  if (!r) return;
+  await entregar(`equipamento-${slug(r.titulo || r.uid)}.pdf`,
+    buildPdf(blocosRequisicao(r, true), { titulo:'Requisição de equipamento', header:'FPN · Equipamento · PAR 2027' }), 'pdf');
+}
+
+async function exportarEquipXlsx(){
+  const lista = S.cfg.requisicoes || [];
+  if (!lista.length) return toast('Não há requisições de equipamento.', true);
+  const resumo = [['Requisição','Atividade','Destino','Responsável','Estado','Linhas','Peças','Necessário até']];
+  const itens = [['Requisição','Atividade','Artigo','Tamanho','Qtd.','Destinatário','Observações']];
+  const porArtigo = {};
+  for (const r of lista){
+    resumo.push([r.titulo || '', r.ativId || '', r.destino || '', r.responsavel || '',
+      nomeEstado(ESTADOS_EQ, r.estado), (r.itens || []).length, totalPecas(r),
+      r.dataNecessaria ? fmtDate(r.dataNecessaria) : '']);
+    for (const it of (r.itens || [])){
+      itens.push([r.titulo || '', r.ativId || '', it.artigo || '', it.tamanho || '',
+        Number(it.qtd) || 0, it.destinatario || '', it.obs || '']);
+      const k = `${it.artigo || 'Outro'}|${it.tamanho || '—'}`;
+      porArtigo[k] = (porArtigo[k] || 0) + (Number(it.qtd) || 0);
+    }
+  }
+  const agregado = [['Artigo','Tamanho','Quantidade'],
+    ...Object.entries(porArtigo).sort((a, b) => b[1] - a[1])
+      .map(([k, n]) => [k.split('|')[0], k.split('|')[1], n])];
+  const folhas = [
+    { name:'Requisições', titulo:'Requisições de equipamento', sub:`Gerado a ${HOJE()}`, rows:resumo,
+      widths:[36,14,20,24,16,9,9,16] },
+    { name:'Material', titulo:'Material requisitado', rows:itens, widths:[30,12,30,11,8,28,26] },
+    { name:'Por artigo', titulo:'Totais por artigo e tamanho', rows:agregado, widths:[32,12,13] }
+  ];
+  await entregar('equipamento-par-2027.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarEquipDoc(fmt){
+  const lista = S.cfg.requisicoes || [];
+  if (!lista.length) return toast('Não há requisições de equipamento.', true);
+  const b = cabGestao('Requisições de equipamento — Plano de Atividades 2027');
+  b.push({ table:{ head:['Requisição','Atividade','Destino','Estado','Peças'],
+    widths:[34,12,26,16,12],
+    rows:lista.map(r => [r.titulo || '', r.ativId || '', r.destino || '',
+      nomeEstado(ESTADOS_EQ, r.estado), String(totalPecas(r))]) } });
+  for (const r of lista) b.push({ pagebreak:true }, ...blocosRequisicao(r, false));
+  if (fmt === 'docx') await entregar('equipamento-par-2027.docx', buildDocx(b), 'docx');
+  else await entregar('equipamento-par-2027.pdf',
+    buildPdf(b, { titulo:'Equipamento PAR 2027', header:'FPN · Equipamento · PAR 2027' }), 'pdf');
+}
+
+/* Documento de uma atividade: todos os orçamentos ou todas as requisições. */
+async function exportarGestaoPdf(ativId, tipo){
+  const a = ativDe(ativId);
+  if (tipo === 'orcamento'){
+    const lista = orcamentosDe(ativId);
+    if (!lista.length) return toast('Sem pedidos de orçamento nesta atividade.', true);
+    const b = cabGestao(`Pedidos de orçamento — ${a ? a.id + ' · ' + a.nome : ativId}`,
+      a ? `${selDe(a).nome || ''} · ${a.datas} · ${a.local}` : '');
+    b.push({ table:{ head:['Pedido','Categoria','Fornecedor','Estado','Total'], widths:[32,20,24,12,12],
+      rows:lista.map(o => [o.titulo || '', o.categoria || '', (o.fornecedor && o.fornecedor.nome) || '',
+        nomeEstado(ESTADOS_ORC, o.estado), eur(totalOrc(o))]) } });
+    b.push({ p:`Total pedido: ${eur(lista.reduce((s, o) => s + totalOrc(o), 0))}   ·   Comprometido: ${eur(custoComprometido(ativId))}` });
+    for (const o of lista) b.push({ pagebreak:true }, ...blocosOrcamento(o, false));
+    await entregar(`orcamentos-${slug(ativId)}.pdf`,
+      buildPdf(b, { titulo:'Orçamentos ' + ativId, header:'FPN · Orçamentos · ' + ativId }), 'pdf');
+    return;
+  }
+  const lista = requisicoesDe(ativId);
+  if (!lista.length) return toast('Sem requisições nesta atividade.', true);
+  const b = cabGestao(`Requisição de equipamento — ${a ? a.id + ' · ' + a.nome : ativId}`,
+    a ? `${selDe(a).nome || ''} · ${a.datas} · ${a.local}` : '');
+  for (const r of lista) b.push(...blocosRequisicao(r, false));
+  await entregar(`equipamento-${slug(ativId)}.pdf`,
+    buildPdf(b, { titulo:'Equipamento ' + ativId, header:'FPN · Equipamento · ' + ativId }), 'pdf');
+}
+
+/* ==========================================================================
+   RELATÓRIOS DE ATIVIDADE
+   ========================================================================== */
+function blocosRelatorio(ativId, comCapa){
+  const a = ativDe(ativId), r = relDe(ativId);
+  if (!r) return [{ p:'Sem relatório.' }];
+  const sel = selDe(a);
+  const b = comCapa
+    ? [{ h1:`Relatório de atividade — ${a.id} · ${a.nome}` },
+       { small:`${sel.nome || ''} · ${a.tipo} · ${a.datas} · ${a.local}` },
+       { small:`Federação Portuguesa de Natação · Plano de Atividades 2027 · PAR Ciclo 2025-2028 · Documento gerado a ${HOJE()}` },
+       { rule:true }]
+    : [{ h2:`${a.id} · ${a.nome}` },
+       { small:`${sel.nome || ''} · ${a.datas} · ${a.local}` }];
+
+  const cont = contarPremios(r);
+  b.push({ h3:'Números da participação' });
+  b.push({ table:{ head:['Indicador','Valor'], widths:[60,40], rows:[
+    ['Participantes', String((r.participacoes || []).length)],
+    ['Provas nadadas', String((r.participacoes || []).reduce((s, p) => s + (p.provas || []).length, 0))],
+    ['Medalhas (ouro/prata/bronze)', `${cont.ouro || 0} / ${cont.prata || 0} / ${cont.bronze || 0}`],
+    ['Diplomas e finais', String((cont.diploma || 0) + (cont.final || 0))],
+    ['Recordes nacionais batidos', String((r.recordes || []).length)],
+    ['Custo comprometido em orçamentos', eur(custoComprometido(ativId))],
+    ['Custo real declarado', r.custoReal !== '' && r.custoReal != null ? eur(r.custoReal) : '—'],
+    ['Estado do relatório', nomeEstado(ESTADOS_REL, r.estado)]
+  ] } });
+
+  if (r.resumo) b.push({ h3:'Resumo da participação' }, { p:r.resumo });
+
+  const linhas = [];
+  for (const p of (r.participacoes || [])) for (const pr of (p.provas || []))
+    linhas.push([p.nome, p.clube || '', pr.ev || '', pr.curso || '', pr.ronda || '',
+      pr.tempo || '', String(pr.classificacao || ''), pr.obs || '']);
+  if (linhas.length){
+    b.push({ h3:'Resultados' });
+    b.push({ table:{ head:['Nadador','Clube','Prova','Pisc.','Ronda','Tempo','Class.','Observações'],
+      widths:[21,19,11,6,12,10,7,14], rows:linhas } });
+  }
+
+  if ((r.premios || []).length){
+    b.push({ h3:'Prémios' });
+    b.push({ table:{ head:['Nadador ou equipa','Prova','Prémio','Lugar','Observações'],
+      widths:[27,14,24,9,26],
+      rows:r.premios.map(p => [p.nadador || '', p.prova || '',
+        nomeEstado(TIPOS_PREMIO, p.tipo), String(p.lugar || ''), p.obs || '']) } });
+  }
+
+  if ((r.recordes || []).length){
+    b.push({ h3:'Recordes nacionais batidos' });
+    b.push({ table:{ head:['Nadador','Escalão','Pisc.','Prova','Marca','Anterior','Detentor anterior'],
+      widths:[22,12,7,12,11,11,25],
+      rows:r.recordes.map(x => [x.nadador || '',
+        ((S.cfg.categoriasRec || CATEGORIAS_REC_BASE).find(c => c.id === x.categoria) || {}).nome || x.categoria || '',
+        x.curso || '', x.ev || '', x.tempo || '', x.anterior || '', x.detentor || '']) } });
+  }
+
+  if ((r.objetivos || []).length){
+    b.push({ h3:'Objetivos do Plano de Atividades' });
+    b.push({ table:{ head:['Objetivo','Balanço','Nota'], widths:[52,18,30],
+      rows:r.objetivos.map(o => [o.texto || '', nomeEstado(CUMPRIMENTO, o.cumprido), o.nota || '']) } });
+  }
+
+  if (r.balanco) b.push({ h3:'Balanço técnico' }, { p:r.balanco });
+  if (r.ocorrencias) b.push({ h3:'Ocorrências' }, { p:r.ocorrencias });
+  return b;
+}
+
+async function exportarRelatorioPdf(ativId){
+  if (!relDe(ativId)) return toast('Esta atividade ainda não tem relatório.', true);
+  await entregar(`relatorio-${slug(ativId)}.pdf`,
+    buildPdf(blocosRelatorio(ativId, true),
+      { titulo:'Relatório ' + ativId, header:'FPN · Relatório · ' + ativId }), 'pdf');
+}
+async function exportarRelatorioDocx(ativId){
+  if (!relDe(ativId)) return toast('Esta atividade ainda não tem relatório.', true);
+  await entregar(`relatorio-${slug(ativId)}.docx`, buildDocx(blocosRelatorio(ativId, true)), 'docx');
+}
+
+function folhaRelatorio(ativId){
+  const a = ativDe(ativId), r = relDe(ativId);
+  const rows = [['Nadador','Clube','Prova','Piscina','Ronda','Tempo','Classificação','Observações']];
+  for (const p of (r.participacoes || [])) for (const pr of (p.provas || []))
+    rows.push([p.nome, p.clube || '', pr.ev || '', pr.curso || '', pr.ronda || '',
+      pr.tempo || '', pr.classificacao || '', pr.obs || '']);
+  if ((r.premios || []).length){
+    rows.push([], ['PRÉMIOS'], ['Nadador','Prova','Prémio','Lugar','Observações']);
+    r.premios.forEach(p => rows.push([p.nadador || '', p.prova || '',
+      nomeEstado(TIPOS_PREMIO, p.tipo), p.lugar || '', p.obs || '']));
+  }
+  if ((r.recordes || []).length){
+    rows.push([], ['RECORDES NACIONAIS BATIDOS'],
+      ['Nadador','Escalão','Piscina','Prova','Marca','Anterior','Detentor anterior']);
+    r.recordes.forEach(x => rows.push([x.nadador || '', x.categoria || '', x.curso || '',
+      x.ev || '', x.tempo || '', x.anterior || '', x.detentor || '']));
+  }
+  if ((r.objetivos || []).length){
+    rows.push([], ['OBJETIVOS'], ['Objetivo','Balanço','Nota']);
+    r.objetivos.forEach(o => rows.push([o.texto || '', nomeEstado(CUMPRIMENTO, o.cumprido), o.nota || '']));
+  }
+  if (r.resumo) rows.push([], ['RESUMO'], [r.resumo]);
+  if (r.balanco) rows.push([], ['BALANÇO TÉCNICO'], [r.balanco]);
+  if (r.ocorrencias) rows.push([], ['OCORRÊNCIAS'], [r.ocorrencias]);
+  return { name:ativId, titulo:`Relatório · ${a ? a.id + ' — ' + a.nome : ativId}`,
+    sub:`${a ? a.datas + ' · ' + a.local : ''} · gerado a ${HOJE()}`,
+    rows, widths:[30,28,13,9,14,11,13,34] };
+}
+
+async function exportarRelatorioXlsx(ativId){
+  if (!relDe(ativId)) return toast('Esta atividade ainda não tem relatório.', true);
+  const folhas = [folhaRelatorio(ativId)];
+  await entregar(`relatorio-${slug(ativId)}.xlsx`, buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarRelatoriosXlsx(){
+  const ids = Object.keys(S.cfg.relatorios || {});
+  if (!ids.length) return toast('Não há relatórios elaborados.', true);
+  const resumo = [['Cód.','Atividade','Seleção','Datas','Participantes','Ouro','Prata','Bronze','Diplomas','Recordes','Custo real (€)','Estado']];
+  for (const id of ids){
+    const a = ativDe(id), r = relDe(id), c = contarPremios(r);
+    resumo.push([id, a ? a.nome : '', a ? (selDe(a).curto || '') : '', a ? a.datas : '',
+      (r.participacoes || []).length, c.ouro || 0, c.prata || 0, c.bronze || 0,
+      (c.diploma || 0) + (c.final || 0), (r.recordes || []).length,
+      r.custoReal === '' || r.custoReal == null ? '' : +Number(r.custoReal).toFixed(2),
+      nomeEstado(ESTADOS_REL, r.estado)]);
+  }
+  const folhas = [{ name:'Resumo', titulo:'Relatórios de atividade — Resumo', sub:`Gerado a ${HOJE()}`,
+    rows:resumo, widths:[12,42,10,14,13,8,8,8,11,10,15,16] },
+    ...ids.map(folhaRelatorio)];
+  await entregar('relatorios-par-2027.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarRelatoriosDoc(fmt){
+  const ids = Object.keys(S.cfg.relatorios || {});
+  if (!ids.length) return toast('Não há relatórios elaborados.', true);
+  const b = cabGestao('Relatórios de atividade — Plano de Atividades 2027');
+  b.push({ table:{ head:['Cód.','Atividade','Datas','Particip.','Medalhas','Recordes'],
+    widths:[10,42,16,11,11,10],
+    rows:ids.map(id => { const a = ativDe(id), r = relDe(id);
+      return [id, a ? a.nome : '', a ? a.datas : '', String((r.participacoes || []).length),
+        String(medalhasDe(r)), String((r.recordes || []).length)]; }) } });
+  for (const id of ids) b.push({ pagebreak:true }, ...blocosRelatorio(id, true));
+  if (fmt === 'docx') await entregar('relatorios-par-2027.docx', buildDocx(b), 'docx');
+  else await entregar('relatorios-par-2027.pdf',
+    buildPdf(b, { titulo:'Relatórios PAR 2027', header:'FPN · Relatórios · PAR 2027' }), 'pdf');
+}
+
+/* ==========================================================================
+   RECORDES NACIONAIS
+   ========================================================================== */
+function folhasRecordes(){
+  const cats = S.cfg.categoriasRec || CATEGORIAS_REC_BASE;
+  const folhas = [];
+  for (const curso of ['PL', 'PC']){
+    const evs = (curso === 'PL' ? EV_PL : EV_PC)
+      .concat(ESTAFETAS.filter(e => e.piscina.includes(curso)).map(e => e.ev));
+    for (const g of ['M', 'F']){
+      const rows = [['Prova', ...cats.flatMap(c => [`${c.nome} — marca`, `${c.nome} — detentor`])]];
+      for (const ev of evs){
+        const linha = [ev];
+        for (const c of cats){
+          const r = (S.cfg.recordes || []).find(x => x.curso === curso && x.g === g
+            && x.categoria === c.id && x.ev === ev);
+          linha.push(r ? r.tempo || '' : '', r ? r.nome || '' : '');
+        }
+        rows.push(linha);
+      }
+      folhas.push({ name:`${curso} ${g === 'M' ? 'Masc' : 'Fem'}`,
+        titulo:`Recordes nacionais · ${curso === 'PL' ? 'Piscina Longa' : 'Piscina Curta'} · ${g === 'M' ? 'Masculinos' : 'Femininos'}`,
+        sub:`Gerado a ${HOJE()}`, rows,
+        widths:[14, ...cats.flatMap(() => [12, 26])] });
+    }
+  }
+  return folhas;
+}
+
+async function exportarRecordesXlsx(){
+  const folhas = folhasRecordes();
+  const batidas = marcasAcimaDoRecorde();
+  if (batidas.length){
+    folhas.push({ name:'A bater', titulo:'Marcas do ficheiro que batem o recorde registado',
+      rows:[['Nadador','Clube','Escalão','Piscina','Prova','Marca','Recorde atual','Diferença','Competição','Data'],
+        ...batidas.map(b => [b.nome, b.clube || '', b.catNome, b.curso, b.ev, fmtTime(b.t),
+          fmtTime(b.rec.t), fmtDelta(b.t - b.rec.t), b.prova || '', fmtDate(b.data)])],
+      widths:[30,28,13,9,12,11,13,12,30,12] });
+  }
+  await entregar('recordes-nacionais.xlsx', buildXlsx(folhas), 'xlsx', folhas);
+}
+
+async function exportarRecordesDoc(fmt){
+  const cats = S.cfg.categoriasRec || CATEGORIAS_REC_BASE;
+  const b = cabGestao('Recordes nacionais', 'Tabela mantida na aplicação de convocatórias');
+  for (const curso of ['PL', 'PC']){
+    const evs = (curso === 'PL' ? EV_PL : EV_PC)
+      .concat(ESTAFETAS.filter(e => e.piscina.includes(curso)).map(e => e.ev));
+    for (const c of cats) for (const g of ['M', 'F']){
+      const rows = evs.map(ev => {
+        const r = (S.cfg.recordes || []).find(x => x.curso === curso && x.g === g
+          && x.categoria === c.id && x.ev === ev);
+        return [ev, r ? r.tempo || '—' : '—', r ? r.nome || '' : '', r && r.data ? fmtDate(r.data) : '', r ? r.local || '' : ''];
+      });
+      if (!rows.some(x => x[1] !== '—')) continue;
+      b.push({ h3:`${c.nome} · ${g === 'M' ? 'Masculinos' : 'Femininos'} · ${curso === 'PL' ? 'Piscina Longa' : 'Piscina Curta'}` });
+      b.push({ table:{ head:['Prova','Recorde','Detentor','Data','Local'], widths:[16,12,30,12,30], rows } });
+    }
+  }
+  if (fmt === 'docx') await entregar('recordes-nacionais.docx', buildDocx(b), 'docx');
+  else await entregar('recordes-nacionais.pdf',
+    buildPdf(b, { titulo:'Recordes nacionais', header:'FPN · Recordes nacionais' }), 'pdf');
+}
+
+/* ==========================================================================
+   PAINEL — cartões de gestão integrados
+   ========================================================================== */
+function cardsGestaoPainel(){
+  const caixa = el('div', { style:'margin-top:18px' });
+
+  const orc = S.cfg.orcamentos || [];
+  const req = S.cfg.requisicoes || [];
+  const mails = S.cfg.emails || [];
+  const relIds = Object.keys(S.cfg.relatorios || {});
+  const rels = relIds.map(relDe);
+  const medalhas = rels.reduce((s, r) => s + medalhasDe(r), 0);
+  const comprometido = orc.filter(o => ORC_COMPROMETE.includes(o.estado))
+    .reduce((s, o) => s + (o.valorAprovado !== '' && o.valorAprovado != null ? Number(o.valorAprovado) : totalOrc(o)), 0);
+  const dot = Number(S.cfg.orcamentoGlobal) || 0;
+
+  if (!orc.length && !req.length && !mails.length && !relIds.length) return null;
+
+  caixa.append(el('div', { class:'grid g4' },
+    kpi(eur(orc.reduce((s, o) => s + totalOrc(o), 0)), 'Orçamentos pedidos',
+      `${orc.length} pedidos · ${eur(comprometido)} comprometidos`),
+    kpi(dot ? Math.round(dot ? (comprometido / dot) * 100 : 0) + '%' : '—', 'Dotação usada',
+      dot ? `${eur(Math.max(0, dot - comprometido))} disponíveis` : 'Defina a dotação em Definições'),
+    kpi(numPT(req.reduce((s, r) => s + totalPecas(r), 0)), 'Peças de equipamento',
+      `${req.length} requisições`),
+    kpi(`${relIds.length}/${ATIVS.length}`, 'Relatórios', `${medalhas} medalhas registadas`)));
+
+  const linhas = [];
+  for (const a of ATIVS){
+    const c = conv(a.id);
+    const o = orcamentosDe(a.id), q = requisicoesDe(a.id), m = emailsDe(a.id), r = relDe(a.id);
+    if (!o.length && !q.length && !m.length && !r) continue;   /* só atividades com gestão em curso */
+    linhas.push({ a, c, o, q, m, r });
+  }
+  if (linhas.length){
+    const tw = el('div', { class:'tw' }); const t = el('table');
+    t.append(el('thead', {}, el('tr', {}, ...['Cód.','Atividade','Convocados','Orçamento','Equipamento','E-mails','Relatório','']
+      .map(h => el('th', { class:['Convocados','Orçamento','E-mails'].includes(h) ? 'num' : '' }, h)))));
+    const tb = el('tbody', {});
+    for (const x of linhas){
+      tb.append(el('tr', { style:'cursor:pointer', onclick:() => irPara('convDet', x.a.id) },
+        el('td', { class:'mono small' }, x.a.id),
+        el('td', {}, el('span', { class:'nome' }, x.a.nome)),
+        el('td', { class:'num' }, x.c ? String(x.c.membros.filter(mm => mm.estado !== 'removido').length) : '—'),
+        el('td', { class:'num mono' }, x.o.length ? eur(x.o.reduce((s, o) => s + totalOrc(o), 0)) : '—'),
+        el('td', { class:'small' }, x.q.length ? `${x.q.reduce((s, r2) => s + totalPecas(r2), 0)} peças` : '—'),
+        el('td', { class:'num' }, x.m.length ? String(x.m.length) : '—'),
+        el('td', {}, pillEstado(ESTADOS_REL, estadoRel(x.a.id))),
+        el('td', { style:'text-align:right' }, el('button', { class:'btn sm' }, 'Abrir'))));
+    }
+    t.append(tb); tw.append(t);
+    caixa.append(el('div', { class:'card' },
+      el('header', {}, el('div', {},
+        el('h3', {}, 'Gestão por atividade'),
+        el('div', { class:'small muted' }, 'Convocatória, custos, material, e-mails e relatório, lado a lado.'))),
+      el('div', { class:'body tight' }, tw)));
+  }
+
+  return caixa;
+}
+
+</script>
+<script>
+/* ==========================================================================
+   BASE PARTILHADA
+   Mantém o trabalho acessível de qualquer computador: o que um editor grava
+   fica na base partilhada da aplicação e é lido por quem abrir a ligação
+   noutro sítio. Quem tem acesso de consulta lê; só quem tem permissão de
+   edição grava ou elimina.
+
+   Se a aplicação estiver a correr fora do ambiente publicado (ficheiro HTML
+   local), nada disto existe e tudo continua a funcionar como antes, apenas
+   com o armazenamento do próprio navegador.
+   ========================================================================== */
+
+const SYNC = {
+  db: null,            /* namespace da capability */
+  user: null,
+  disponivel: false,
+  podeGravar: false,
+  estado: 'off',       /* off | pronto | a-ler | a-gravar | erro | conflito */
+  detalhe: '',
+  rev: 0,              /* revisão conhecida localmente */
+  remoto: null,        /* último manifesto remoto visto */
+  em: null,
+  porQuem: '',
+  _sub: null,
+  _timer: null,
+  _aGravar: false,
+  _pendente: false
+};
+
+const SYNC_MAX = 200000;                   /* caracteres de base64 por documento */
+const syncDoc  = p => SYNC.db.doc('sync/' + p);
+
+function syncHash(s){
+  let x = 5381;
+  for (let i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0;
+  return x.toString(36) + ':' + s.length;
+}
+
+/* ---------- empacotar / desempacotar ---------- */
+const b64 = u8 => {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000)
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+const deB64 = s => {
+  const bin = atob(s), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+};
+
+async function comprimir(texto){
+  const bytes = new TextEncoder().encode(texto);
+  if (typeof CompressionStream === 'undefined') return { z:false, s:b64(bytes) };
+  try{
+    const cs = new CompressionStream('deflate-raw');
+    const out = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer());
+    return { z:true, s:b64(out) };
+  } catch { return { z:false, s:b64(bytes) }; }
+}
+async function descomprimir(s, z){
+  const u8 = deB64(s);
+  if (!z) return new TextDecoder().decode(u8);
+  return new TextDecoder().decode(await inflateRaw(u8));
+}
+
+function partir(s){
+  const partes = [];
+  for (let i = 0; i < s.length; i += SYNC_MAX) partes.push(s.slice(i, i + SYNC_MAX));
+  return partes.length ? partes : [''];
+}
+
+/* ---------- arranque ---------- */
+async function iniciarSync(){
+  try{
+    if (typeof window === 'undefined' || !window.claude || !window.claude.use) return;
+    SYNC.db = await window.claude.use('db');
+    if (!SYNC.db) return;
+    try{ SYNC.user = await window.claude.use('user'); } catch { SYNC.user = null; }
+    SYNC.disponivel = true;
+    SYNC.podeGravar = SYNC.user ? !!SYNC.user.canEdit() : true;
+    SYNC.estado = 'pronto';
+    const local = await store.get('sync');
+    SYNC.rev = (local && local.rev) || 0;
+    await puxarSeMaisRecente(true);
+    ligarEscuta();
+  } catch(e){
+    console.warn('Base partilhada indisponível:', e);
+    SYNC.disponivel = false; SYNC.estado = 'off';
+  }
+}
+
+function ligarEscuta(){
+  if (!SYNC.disponivel || SYNC._sub) return;
+  try{
+    SYNC._sub = syncDoc('manifesto').onSnapshot(snap => {
+      if (!snap.exists) return;
+      const m = snap.data();
+      SYNC.remoto = m;
+      if ((m.rev || 0) > SYNC.rev && !SYNC._aGravar) avisarVersaoNova(m);
+    }, e => { console.warn('Escuta da base partilhada terminada:', e && e.code); SYNC._sub = null; });
+  } catch(e){ console.warn('Não foi possível escutar a base partilhada:', e); }
+}
+
+let _avisoSyncAberto = false;
+function avisarVersaoNova(m){
+  if (_avisoSyncAberto) return;
+  _avisoSyncAberto = true;
+  SYNC.estado = 'conflito';
+  pintarNav();
+  abrirModal('Há dados mais recentes', el('div', {},
+    el('p', {}, `Alguém gravou uma versão mais recente do trabalho${m.porQuem ? ' (' + esc(m.porQuem) + ')' : ''}${m.em ? ', a ' + fmtDate(m.em) : ''}.`),
+    el('p', { class:'small muted' }, 'Carregar essa versão substitui o que tem neste computador pelas convocatórias, ficheiros de ranking e restantes dados gravados na base partilhada.'),
+    el('div', { class:'note', style:'margin-top:12px' },
+      'Se tiver alterações por gravar neste computador que não queira perder, guarde primeiro uma cópia de trabalho (.json) em Definições.')),
+    [ el('button', { class:'btn', onclick:() => { _avisoSyncAberto = false; SYNC.estado = 'pronto'; fecharModal(); pintarNav(); } }, 'Manter o que tenho'),
+      el('button', { class:'btn primary', onclick:async () => {
+        _avisoSyncAberto = false; fecharModal();
+        await puxar(true);
+      } }, 'Carregar a versão mais recente') ]);
+}
+
+/* ---------- leitura ---------- */
+async function lerBloco(prefixo, n, z){
+  let s = '';
+  for (let i = 0; i < n; i++){
+    const d = await syncDoc(`${prefixo}_${i}`).get();
+    if (!d.exists) throw new Error('Bloco em falta na base partilhada: ' + prefixo + '_' + i);
+    s += (d.data().p || '');
+  }
+  return s ? descomprimir(s, z) : '';
+}
+
+async function puxarSeMaisRecente(silencioso){
+  if (!SYNC.disponivel) return false;
+  try{
+    const man = await syncDoc('manifesto').get();
+    if (!man.exists) return false;
+    const m = man.data();
+    SYNC.remoto = m;
+    if ((m.rev || 0) <= SYNC.rev) return false;
+    return await puxar(!silencioso);
+  } catch(e){ console.warn('Leitura da base partilhada falhou:', e); return false; }
+}
+
+async function puxar(comAviso){
+  if (!SYNC.disponivel) return false;
+  SYNC.estado = 'a-ler'; pintarNav();
+  try{
+    const man = await syncDoc('manifesto').get();
+    if (!man.exists){ SYNC.estado = 'pronto'; pintarNav(); return false; }
+    const m = man.data();
+
+    if (m.cfgN){
+      const txt = await lerBloco('cfg', m.cfgN, m.z);
+      const cfg = JSON.parse(txt);
+      S.cfg = { ...cfgPadrao(), ...cfg };
+      S.cfg.indices = cfg.indices && cfg.indices.PL && cfg.indices.PC ? cfg.indices : { PL:clone(IDX_PL), PC:clone(IDX_PC) };
+      S.cfg.rankings = { ...cfgPadrao().rankings, ...(cfg.rankings || {}) };
+      S.cfg.tabelas = migrarTabelas(cfg.tabelas);
+    }
+    if (m.dbN){
+      const txt = await lerBloco('db', m.dbN, m.z);
+      S.db = desserializarDb(JSON.parse(txt));
+    } else if (m.dbN === 0){
+      S.db = null;
+    }
+
+    SYNC.rev = m.rev || 0; SYNC.em = m.em; SYNC.porQuem = m.porQuem || '';
+    SYNC.remoto = m;
+    SYNC.estado = 'pronto';
+    S._cache = {};
+    await store.set('sync', { rev:SYNC.rev });
+    await salvarLocal(); await salvarDbLocal();
+    reconstruirAtividades(); pintarNav(); render();
+    if (comAviso) toast('Dados carregados da base partilhada.');
+    return true;
+  } catch(e){
+    console.warn('Não foi possível ler a base partilhada:', e);
+    SYNC.estado = 'erro'; SYNC.detalhe = e.message || String(e);
+    pintarNav();
+    if (comAviso) toast('Não foi possível ler a base partilhada: ' + SYNC.detalhe, true);
+    return false;
+  }
+}
+
+/* ---------- escrita ---------- */
+function agendarEmpurrar(){
+  if (!SYNC.disponivel || !SYNC.podeGravar) return;
+  clearTimeout(SYNC._timer);
+  SYNC._timer = setTimeout(() => empurrar(false), 3500);
+}
+
+async function empurrar(comAviso){
+  if (!SYNC.disponivel || !SYNC.podeGravar) return false;
+  if (SYNC._aGravar){ SYNC._pendente = true; return false; }
+  SYNC._aGravar = true;
+  SYNC.estado = 'a-gravar'; pintarNav();
+  try{
+    const quem = (SYNC.user && SYNC.user.me && (await SYNC.user.me().catch(() => null))) || null;
+    const holder = (quem && (quem.id || quem.name)) || 'editor';
+
+    const lease = await syncDoc('manifesto').acquire({ holder:String(holder), ttlMs:60000 }).catch(() => ({ acquired:true }));
+    if (lease && lease.acquired === false){
+      SYNC.estado = 'pronto'; pintarNav(); SYNC._aGravar = false;
+      if (comAviso) toast('Outro editor está a gravar neste momento. Tente daqui a pouco.', true);
+      return false;
+    }
+
+    const cfgTxt = JSON.stringify(S.cfg);
+    const dbTxt  = S.db ? JSON.stringify(serializarDb(S.db)) : '';
+    const cfgPk  = await comprimir(cfgTxt);
+    const dbPk   = dbTxt ? await comprimir(dbTxt) : { z:cfgPk.z, s:'' };
+
+    const cfgPartes = partir(cfgPk.s);
+    const dbPartes  = dbTxt ? partir(dbPk.s) : [];
+
+    const antigo = SYNC.remoto || {};
+    for (let i = 0; i < cfgPartes.length; i++) await syncDoc(`cfg_${i}`).set({ p:cfgPartes[i] });
+    for (let i = 0; i < dbPartes.length; i++)  await syncDoc(`db_${i}`).set({ p:dbPartes[i] });
+    /* blocos que deixaram de ser precisos (ficheiros removidos pelo editor) */
+    for (let i = cfgPartes.length; i < (antigo.cfgN || 0); i++) await syncDoc(`cfg_${i}`).delete().catch(() => {});
+    for (let i = dbPartes.length;  i < (antigo.dbN  || 0); i++) await syncDoc(`db_${i}`).delete().catch(() => {});
+
+    const rev = Math.max(SYNC.rev, (antigo.rev || 0)) + 1;
+    const manifesto = {
+      rev, z:cfgPk.z, cfgN:cfgPartes.length, dbN:dbPartes.length,
+      cfgHash:syncHash(cfgTxt), dbHash:dbTxt ? syncHash(dbTxt) : '',
+      em:new Date().toISOString(),
+      porQuem: (quem && quem.name) || (S.sessao && S.sessao.user) || 'Editor',
+      ficheiros: S.db ? (S.db.ficheiros || []).map(f => ({ fid:f.fid, nome:f.nome, n:f.n, em:f.em })) : [],
+      nConvocatorias: Object.keys(S.cfg.convocatorias || {}).length,
+      app:'convocatorias-par-2027'
+    };
+    await syncDoc('manifesto').set(manifesto);
+
+    SYNC.rev = rev; SYNC.remoto = manifesto; SYNC.em = manifesto.em; SYNC.porQuem = manifesto.porQuem;
+    SYNC.estado = 'pronto'; SYNC.detalhe = '';
+    await store.set('sync', { rev });
+    pintarNav();
+    if (comAviso) toast('Dados gravados na base partilhada — já estão acessíveis noutro computador.');
+    return true;
+  } catch(e){
+    console.warn('Não foi possível gravar na base partilhada:', e);
+    SYNC.estado = 'erro'; SYNC.detalhe = (e && (e.message || e.code)) || String(e);
+    pintarNav();
+    if (comAviso) toast('Não foi possível gravar na base partilhada: ' + SYNC.detalhe, true);
+    return false;
+  } finally {
+    SYNC._aGravar = false;
+    if (SYNC._pendente){ SYNC._pendente = false; agendarEmpurrar(); }
+  }
+}
+
+/* Apagar tudo o que está na base partilhada (só o editor). */
+async function limparSync(){
+  if (!SYNC.disponivel || !SYNC.podeGravar) return semPermissao();
+  abrirModal('Apagar a base partilhada', el('div', {},
+    el('p', {}, 'Vai apagar os dados guardados na base partilhada da aplicação.'),
+    el('p', { class:'small muted' }, 'Quem abrir a ligação noutro computador deixa de encontrar trabalho gravado. Os dados deste computador mantêm-se — podem voltar a ser enviados com “Gravar agora”.'),
+    el('div', { class:'note warn', style:'margin-top:12px' }, 'Esta operação não pode ser desfeita.')),
+    [ el('button', { class:'btn', onclick:fecharModal }, 'Cancelar'),
+      el('button', { class:'btn primary', onclick:async () => {
+        fecharModal();
+        try{
+          const m = SYNC.remoto || {};
+          for (let i = 0; i < (m.cfgN || 0); i++) await syncDoc(`cfg_${i}`).delete().catch(() => {});
+          for (let i = 0; i < (m.dbN  || 0); i++) await syncDoc(`db_${i}`).delete().catch(() => {});
+          await syncDoc('manifesto').delete();
+          SYNC.remoto = null; SYNC.rev = 0; SYNC.em = null;
+          await store.set('sync', { rev:0 });
+          pintarNav(); render();
+          toast('Base partilhada apagada.');
+        } catch(e){ toast('Não foi possível apagar: ' + (e.message || e.code), true); }
+      } }, 'Apagar') ]);
+}
+
+/* ---------- cartão das Definições ---------- */
+function cardSync(){
+  const est = {
+    off:       { txt:'Indisponível nesta janela', pill:'' },
+    pronto:    { txt:'Ligada', pill:'good' },
+    'a-ler':   { txt:'A carregar…', pill:'acc' },
+    'a-gravar':{ txt:'A gravar…', pill:'acc' },
+    conflito:  { txt:'Há uma versão mais recente', pill:'warn' },
+    erro:      { txt:'Erro', pill:'bad' }
+  }[SYNC.estado] || { txt:SYNC.estado, pill:'' };
+
+  const corpo = el('div', { class:'body' });
+
+  if (!SYNC.disponivel){
+    corpo.append(
+      el('p', { class:'small muted', style:'margin:0 0 10px' },
+        'A base partilhada só funciona na versão publicada da aplicação, aberta a partir da ligação da FPN. ' +
+        'Neste momento os dados estão guardados apenas neste navegador.'),
+      el('div', { class:'note' },
+        'Para levar o trabalho para outro computador sem a base partilhada, use “Guardar cópia (JSON)” e “Restaurar cópia”.'));
+    return el('div', { class:'card' },
+      el('header', {}, el('div', {}, el('h3', {}, 'Base partilhada'),
+        el('div', { class:'small muted' }, 'Acesso aos mesmos dados a partir de qualquer computador')),
+        el('span', { class:'sp', style:'flex:1' }), el('span', { class:'pill' }, est.txt)),
+      corpo);
+  }
+
+  const fich = (SYNC.remoto && SYNC.remoto.ficheiros) || [];
+  corpo.append(
+    el('div', { class:'grid g3', style:'margin-bottom:12px' },
+      mini('Estado', est.txt),
+      mini('Última gravação', SYNC.remoto && SYNC.remoto.em ? fmtDate(SYNC.remoto.em) : '—'),
+      mini('Gravado por', (SYNC.remoto && SYNC.remoto.porQuem) || '—')),
+    el('div', { class:'grid g3', style:'margin-bottom:12px' },
+      mini('Revisão', String(SYNC.rev || 0)),
+      mini('Convocatórias na base', SYNC.remoto ? String(SYNC.remoto.nConvocatorias ?? '—') : '—'),
+      mini('Ficheiros de ranking', String(fich.length))),
+    fich.length ? el('div', { style:'margin-bottom:12px' },
+      el('div', { class:'eyebrow', style:'margin-bottom:6px' }, 'Ficheiros guardados na base partilhada'),
+      el('div', { class:'fich' }, ...fich.map((f, i) => el('div', { class:'fich-item' },
+        el('span', { class:'fich-n mono' }, String(i + 1)),
+        el('div', { style:'min-width:0;flex:1' },
+          el('div', { class:'nome' }, f.nome || '—'),
+          el('div', { class:'small muted' }, `${(f.n || 0).toLocaleString('pt-PT')} resultados`)))))) : null,
+    el('div', { class:'note' },
+      SYNC.podeGravar
+        ? 'Tudo o que grava é enviado automaticamente para a base partilhada poucos segundos depois. Quem abrir a aplicação noutro computador encontra o mesmo trabalho. Os dados só mudam quando um editor os alterar ou eliminar aqui.'
+        : 'Tem acesso de consulta: lê os dados da base partilhada, mas não os altera. Para poder gravar, peça acesso de edição a quem partilhou a aplicação.'),
+    SYNC.estado === 'erro' && SYNC.detalhe
+      ? el('div', { class:'note warn', style:'margin-top:10px' }, el('b', {}, 'Último erro: '), SYNC.detalhe) : null,
+    el('div', { style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' },
+      el('button', { class:'btn', onclick:() => puxar(true) }, 'Carregar da base partilhada'),
+      SYNC.podeGravar ? el('button', { class:'btn primary', onclick:() => empurrar(true) }, 'Gravar agora') : null,
+      SYNC.podeGravar ? el('button', { class:'btn', onclick:limparSync }, 'Apagar base partilhada') : null));
+
+  return el('div', { class:'card' },
+    el('header', {}, el('div', {}, el('h3', {}, 'Base partilhada'),
+      el('div', { class:'small muted' }, 'Acesso aos mesmos dados a partir de qualquer computador')),
+      el('span', { class:'sp', style:'flex:1' }),
+      el('span', { class:'pill ' + est.pill }, est.txt)),
+    corpo);
+}
+
 </script>
 <script>
 /* ==========================================================================
@@ -5452,7 +8293,10 @@ async function entregar(nome, blob, tipo, folhas){
   } else {
     ecraLogin();
   }
+  /* base partilhada: procura dados mais recentes gravados noutro computador */
+  iniciarSync();
 })();
+
 </script>
 
 </body>
